@@ -38,6 +38,10 @@ DQ-02 (Pool Management content is editable by the college) and DQ-13 (English on
 
 ## Log
 
+### Tagline artwork (2026-10-23)
+
+- "Turning Potential into Progress" tagline logos (stacked and horizontal SVG) derived from the supplied artwork by `docs/brand/retagline.py`; the home hero shows the stacked one (D-86).
+
 ### Stage 7a: Pages type, news and events API, legal drafts (2026-10-22)
 
 - Stage 7 split into 7a (backend, editor) and 7b (pages), approved by the owner.
