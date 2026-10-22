@@ -2,13 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { Clock, Mail, MapPin, Phone } from "@/components/icons";
 import { footerNav, legalNav } from "@/lib/navigation";
+import { telHref, type SiteSettings } from "@/lib/public/settings";
+import type { PublicSite } from "@/lib/public/types";
 import { site } from "@/lib/site";
 
 /** Contact rows render only when a real value exists (DQ-01). */
-function ContactList() {
-  const { phone, email, address, officeHours } = site.contact;
+function ContactList({ settings }: { settings: SiteSettings }) {
+  const { phone, email, address, officeHours } = settings;
   const rows = [
-    phone && { icon: Phone, content: <a href={`tel:${phone.replace(/\s+/g, "")}`}>{phone}</a> },
+    phone && { icon: Phone, content: <a href={telHref(phone)}>{phone}</a> },
     email && { icon: Mail, content: <a href={`mailto:${email}`}>{email}</a> },
     address && { icon: MapPin, content: address },
     officeHours && { icon: Clock, content: officeHours },
@@ -27,7 +29,11 @@ function ContactList() {
   );
 }
 
-export function SiteFooter() {
+type SiteFooterProps = { settings: SiteSettings; accreditations: PublicSite["accreditations"] };
+
+export function SiteFooter({ settings, accreditations }: SiteFooterProps) {
+  // Only verified registrations reach the API (AC-16).
+  const registration = accreditations[0];
   return (
     <footer className="on-dark mt-auto bg-navy-900 text-white">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
@@ -41,7 +47,22 @@ export function SiteFooter() {
             className="-ml-2 h-20 w-auto self-start"
           />
           <p className="text-white/90">{site.location}</p>
-          <ContactList />
+          <ContactList settings={settings} />
+          {settings.social.length ? (
+            <ul aria-label="Social media" className="flex flex-wrap gap-x-4">
+              {settings.social.map((s) => (
+                <li key={s.label}>
+                  <a
+                    href={s.href}
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-touch items-center text-white/90 underline underline-offset-4 hover:text-white"
+                  >
+                    {s.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
         {footerNav.map((section) => (
           <nav key={section.label} aria-label={section.label} className="flex flex-col gap-3">
@@ -62,10 +83,14 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="border-t border-white/15">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-white/90 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 pt-6 pb-24 text-sm text-white/90 lg:flex-row lg:items-center lg:justify-between lg:px-6 lg:pb-20">
           <div className="flex flex-col gap-1">
             <p>© {site.name}</p>
-            {site.registration ? <p>{site.registration}</p> : null}
+            {registration ? (
+              <p>
+                Registered with {registration.body}, {registration.reference}
+              </p>
+            ) : null}
           </div>
           <nav aria-label="Legal">
             <ul className="flex flex-wrap gap-x-4">

@@ -44,3 +44,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Content snapshot pulled from the API at build time (scripts/pull-snapshot.mjs)
+/lib/public/snapshot.json
