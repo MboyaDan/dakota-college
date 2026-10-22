@@ -13,6 +13,24 @@ import (
 	"github.com/google/uuid"
 )
 
+const countOpenEnquiries = `-- name: CountOpenEnquiries :one
+SELECT count(*) FILTER (WHERE status = 'new') AS new_count,
+       count(*) FILTER (WHERE status <> 'closed' AND assigned_to = $1) AS mine_count
+FROM enquiries
+`
+
+type CountOpenEnquiriesRow struct {
+	NewCount  int64
+	MineCount int64
+}
+
+func (q *Queries) CountOpenEnquiries(ctx context.Context, userID *uuid.UUID) (CountOpenEnquiriesRow, error) {
+	row := q.db.QueryRow(ctx, countOpenEnquiries, userID)
+	var i CountOpenEnquiriesRow
+	err := row.Scan(&i.NewCount, &i.MineCount)
+	return i, err
+}
+
 const getPublishedProgrammeBySlug = `-- name: GetPublishedProgrammeBySlug :one
 SELECT p.id, p.title
 FROM programmes p
@@ -97,4 +115,362 @@ func (q *Queries) InsertEnquiry(ctx context.Context, arg InsertEnquiryParams) (I
 	var i InsertEnquiryRow
 	err := row.Scan(&i.ID, &i.CreatedAt)
 	return i, err
+}
+
+const insertEnquiryNote = `-- name: InsertEnquiryNote :one
+INSERT INTO enquiry_notes (enquiry_id, author_id, body) VALUES ($1, $2, $3)
+RETURNING id, created_at
+`
+
+type InsertEnquiryNoteParams struct {
+	EnquiryID uuid.UUID
+	AuthorID  uuid.UUID
+	Body      string
+}
+
+type InsertEnquiryNoteRow struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+}
+
+func (q *Queries) InsertEnquiryNote(ctx context.Context, arg InsertEnquiryNoteParams) (InsertEnquiryNoteRow, error) {
+	row := q.db.QueryRow(ctx, insertEnquiryNote, arg.EnquiryID, arg.AuthorID, arg.Body)
+	var i InsertEnquiryNoteRow
+	err := row.Scan(&i.ID, &i.CreatedAt)
+	return i, err
+}
+
+const listEnquiryAssignees = `-- name: ListEnquiryAssignees :many
+SELECT DISTINCT u.id, u.full_name, u.email
+FROM users u
+JOIN user_roles ur ON ur.user_id = u.id
+JOIN role_permissions rp ON rp.role_id = ur.role_id
+WHERE u.kind = 'staff' AND u.status = 'active' AND rp.permission_key = 'enquiries.view'
+ORDER BY u.full_name
+`
+
+type ListEnquiryAssigneesRow struct {
+	ID       uuid.UUID
+	FullName string
+	Email    string
+}
+
+// Active staff whose roles let them see the inbox.
+func (q *Queries) ListEnquiryAssignees(ctx context.Context) ([]ListEnquiryAssigneesRow, error) {
+	rows, err := q.db.Query(ctx, listEnquiryAssignees)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListEnquiryAssigneesRow{}
+	for rows.Next() {
+		var i ListEnquiryAssigneesRow
+		if err := rows.Scan(&i.ID, &i.FullName, &i.Email); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const lockEnquiry = `-- name: LockEnquiry :one
+SELECT status, assigned_to FROM enquiries WHERE id = $1 FOR UPDATE
+`
+
+type LockEnquiryRow struct {
+	Status     string
+	AssignedTo *uuid.UUID
+}
+
+func (q *Queries) LockEnquiry(ctx context.Context, id uuid.UUID) (LockEnquiryRow, error) {
+	row := q.db.QueryRow(ctx, lockEnquiry, id)
+	var i LockEnquiryRow
+	err := row.Scan(&i.Status, &i.AssignedTo)
+	return i, err
+}
+
+const setEnquiryAssignee = `-- name: SetEnquiryAssignee :exec
+UPDATE enquiries SET assigned_to = $1 WHERE id = $2
+`
+
+type SetEnquiryAssigneeParams struct {
+	AssignedTo *uuid.UUID
+	ID         uuid.UUID
+}
+
+func (q *Queries) SetEnquiryAssignee(ctx context.Context, arg SetEnquiryAssigneeParams) error {
+	_, err := q.db.Exec(ctx, setEnquiryAssignee, arg.AssignedTo, arg.ID)
+	return err
+}
+
+const setEnquiryStatus = `-- name: SetEnquiryStatus :exec
+UPDATE enquiries
+SET status = $1, closed_at = CASE WHEN $1 = 'closed' THEN now() ELSE NULL END
+WHERE id = $2
+`
+
+type SetEnquiryStatusParams struct {
+	Status string
+	ID     uuid.UUID
+}
+
+func (q *Queries) SetEnquiryStatus(ctx context.Context, arg SetEnquiryStatusParams) error {
+	_, err := q.db.Exec(ctx, setEnquiryStatus, arg.Status, arg.ID)
+	return err
+}
+
+const staffCountEnquiries = `-- name: StaffCountEnquiries :one
+SELECT count(*) FROM enquiries e
+WHERE ($1::text IS NULL OR e.status = $1)
+  AND ($2::text[] IS NULL OR e.query_type = ANY($2::text[]))
+  AND ($3::uuid IS NULL OR e.assigned_to = $3)
+  AND (NOT $4::boolean OR e.assigned_to IS NULL)
+  AND ($5::text IS NULL
+       OR e.full_name ILIKE '%' || $5 || '%'
+       OR e.email ILIKE '%' || $5 || '%'
+       OR e.phone ILIKE '%' || $5 || '%'
+       OR e.message ILIKE '%' || $5 || '%')
+`
+
+type StaffCountEnquiriesParams struct {
+	Status     *string
+	Types      []string
+	AssignedTo *uuid.UUID
+	Unassigned bool
+	Search     *string
+}
+
+func (q *Queries) StaffCountEnquiries(ctx context.Context, arg StaffCountEnquiriesParams) (int64, error) {
+	row := q.db.QueryRow(ctx, staffCountEnquiries,
+		arg.Status,
+		arg.Types,
+		arg.AssignedTo,
+		arg.Unassigned,
+		arg.Search,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const staffEnquiryHistory = `-- name: StaffEnquiryHistory :many
+SELECT a.occurred_at, a.action, a.details, u.full_name AS actor_name
+FROM audit_logs a
+LEFT JOIN users u ON u.id = a.actor_user_id
+WHERE a.entity_type = 'enquiry' AND a.entity_id = $1::text
+ORDER BY a.occurred_at, a.id
+`
+
+type StaffEnquiryHistoryRow struct {
+	OccurredAt time.Time
+	Action     string
+	Details    []byte
+	ActorName  *string
+}
+
+// The audit log is the history: who assigned, changed status or added a note.
+func (q *Queries) StaffEnquiryHistory(ctx context.Context, enquiryID string) ([]StaffEnquiryHistoryRow, error) {
+	rows, err := q.db.Query(ctx, staffEnquiryHistory, enquiryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []StaffEnquiryHistoryRow{}
+	for rows.Next() {
+		var i StaffEnquiryHistoryRow
+		if err := rows.Scan(
+			&i.OccurredAt,
+			&i.Action,
+			&i.Details,
+			&i.ActorName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const staffGetEnquiry = `-- name: StaffGetEnquiry :one
+SELECT e.id, e.full_name, e.email, e.phone, e.query_type, e.message, e.source, e.status, e.created_at,
+       e.updated_at, e.closed_at, e.assigned_to, u.full_name AS assignee_name,
+       p.slug AS programme_slug, p.title AS programme_title
+FROM enquiries e
+LEFT JOIN users u ON u.id = e.assigned_to
+LEFT JOIN programmes p ON p.id = e.programme_id
+WHERE e.id = $1
+`
+
+type StaffGetEnquiryRow struct {
+	ID             uuid.UUID
+	FullName       string
+	Email          *string
+	Phone          *string
+	QueryType      string
+	Message        string
+	Source         string
+	Status         string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	ClosedAt       *time.Time
+	AssignedTo     *uuid.UUID
+	AssigneeName   *string
+	ProgrammeSlug  *string
+	ProgrammeTitle *string
+}
+
+func (q *Queries) StaffGetEnquiry(ctx context.Context, id uuid.UUID) (StaffGetEnquiryRow, error) {
+	row := q.db.QueryRow(ctx, staffGetEnquiry, id)
+	var i StaffGetEnquiryRow
+	err := row.Scan(
+		&i.ID,
+		&i.FullName,
+		&i.Email,
+		&i.Phone,
+		&i.QueryType,
+		&i.Message,
+		&i.Source,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ClosedAt,
+		&i.AssignedTo,
+		&i.AssigneeName,
+		&i.ProgrammeSlug,
+		&i.ProgrammeTitle,
+	)
+	return i, err
+}
+
+const staffListEnquiries = `-- name: StaffListEnquiries :many
+
+SELECT e.id, e.full_name, e.email, e.phone, e.query_type, e.status, e.created_at, e.updated_at,
+       e.assigned_to, u.full_name AS assignee_name, p.title AS programme_title
+FROM enquiries e
+LEFT JOIN users u ON u.id = e.assigned_to
+LEFT JOIN programmes p ON p.id = e.programme_id
+WHERE ($1::text IS NULL OR e.status = $1)
+  AND ($2::text[] IS NULL OR e.query_type = ANY($2::text[]))
+  AND ($3::uuid IS NULL OR e.assigned_to = $3)
+  AND (NOT $4::boolean OR e.assigned_to IS NULL)
+  AND ($5::text IS NULL
+       OR e.full_name ILIKE '%' || $5 || '%'
+       OR e.email ILIKE '%' || $5 || '%'
+       OR e.phone ILIKE '%' || $5 || '%'
+       OR e.message ILIKE '%' || $5 || '%')
+ORDER BY e.created_at DESC
+LIMIT $7 OFFSET $6
+`
+
+type StaffListEnquiriesParams struct {
+	Status     *string
+	Types      []string
+	AssignedTo *uuid.UUID
+	Unassigned bool
+	Search     *string
+	Skip       int32
+	MaxItems   int32
+}
+
+type StaffListEnquiriesRow struct {
+	ID             uuid.UUID
+	FullName       string
+	Email          *string
+	Phone          *string
+	QueryType      string
+	Status         string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	AssignedTo     *uuid.UUID
+	AssigneeName   *string
+	ProgrammeTitle *string
+}
+
+// ---------- staff inbox (Stage 8a) ----------
+// Filters are optional: a NULL argument means "any". Types select an office
+// (admissions, finance, general); assigned_to and unassigned narrow by owner.
+func (q *Queries) StaffListEnquiries(ctx context.Context, arg StaffListEnquiriesParams) ([]StaffListEnquiriesRow, error) {
+	rows, err := q.db.Query(ctx, staffListEnquiries,
+		arg.Status,
+		arg.Types,
+		arg.AssignedTo,
+		arg.Unassigned,
+		arg.Search,
+		arg.Skip,
+		arg.MaxItems,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []StaffListEnquiriesRow{}
+	for rows.Next() {
+		var i StaffListEnquiriesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.FullName,
+			&i.Email,
+			&i.Phone,
+			&i.QueryType,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.AssignedTo,
+			&i.AssigneeName,
+			&i.ProgrammeTitle,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const staffListEnquiryNotes = `-- name: StaffListEnquiryNotes :many
+SELECT n.id, n.body, n.created_at, u.full_name AS author_name
+FROM enquiry_notes n
+JOIN users u ON u.id = n.author_id
+WHERE n.enquiry_id = $1
+ORDER BY n.created_at
+`
+
+type StaffListEnquiryNotesRow struct {
+	ID         uuid.UUID
+	Body       string
+	CreatedAt  time.Time
+	AuthorName string
+}
+
+func (q *Queries) StaffListEnquiryNotes(ctx context.Context, enquiryID uuid.UUID) ([]StaffListEnquiryNotesRow, error) {
+	rows, err := q.db.Query(ctx, staffListEnquiryNotes, enquiryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []StaffListEnquiryNotesRow{}
+	for rows.Next() {
+		var i StaffListEnquiryNotesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Body,
+			&i.CreatedAt,
+			&i.AuthorName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -575,6 +575,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/enquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inbox, newest first, 25 per page (enquiries.view) */
+        get: operations["listEnquiries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/enquiries/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** New enquiries, and open ones assigned to you (enquiries.view) */
+        get: operations["enquiryCounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/enquiries/assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active staff who can be given an enquiry (enquiries.manage) */
+        get: operations["enquiryAssignees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/enquiries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One enquiry with notes and history (enquiries.view) */
+        get: operations["getEnquiry"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/enquiries/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give the enquiry to someone, or clear the owner (enquiries.manage)
+         * @description The new owner gets an email with a link, without the visitor's details. 422 not_assignable if the person cannot see the inbox; 409 unchanged if they already own it.
+         */
+        post: operations["assignEnquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/enquiries/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move to open, waiting or closed (enquiries.manage)
+         * @description Closing records the time; reopening clears it. "new" cannot be set.
+         */
+        post: operations["setEnquiryStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/enquiries/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an internal note (enquiries.manage)
+         * @description Notes are visible to staff only. A note on a new enquiry also marks it open.
+         */
+        post: operations["addEnquiryNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1035,6 +1163,59 @@ export interface components {
             published_at: string | null;
             /** Format: date-time */
             updated_at: string;
+        };
+        EnquiryItem: {
+            /** Format: uuid */
+            id: string;
+            full_name: string;
+            email: string | null;
+            phone: string | null;
+            /** @enum {string} */
+            query_type: "admissions" | "programmes" | "fees" | "student_life" | "alumni" | "other";
+            /** @enum {string} */
+            office: "admissions" | "finance" | "general";
+            programme_title: string | null;
+            /** @enum {string} */
+            status: "new" | "open" | "waiting" | "closed";
+            /** Format: uuid */
+            assigned_to: string | null;
+            assignee_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EnquiryPage: {
+            items: components["schemas"]["EnquiryItem"][];
+            page: number;
+            total_pages: number;
+            total: number;
+        };
+        EnquiryDetail: components["schemas"]["EnquiryItem"] & {
+            message: string;
+            source: string;
+            programme_slug: string | null;
+            /** Format: date-time */
+            closed_at: string | null;
+            notes: {
+                /** Format: uuid */
+                id: string;
+                body: string;
+                author_name: string;
+                /** Format: date-time */
+                created_at: string;
+            }[];
+            /** @description From the audit log, oldest first. */
+            history: {
+                /** Format: date-time */
+                at: string;
+                /** @enum {string} */
+                action: "enquiry.assigned" | "enquiry.status_changed" | "enquiry.note_added";
+                actor_name: string | null;
+                details: {
+                    [key: string]: unknown;
+                };
+            }[];
         };
         /** @description Error body returned by every endpoint on failure. */
         Error: {
@@ -2070,6 +2251,216 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+        };
+    };
+    listEnquiries: {
+        parameters: {
+            query?: {
+                /** @description admissions: admissions and programmes; finance: fees; general: student life, alumni, other. */
+                office?: "admissions" | "finance" | "general";
+                status?: "new" | "open" | "waiting" | "closed";
+                /** @description me, none, or a user id. */
+                assigned?: string;
+                /** @description Searches name, email, phone and message. */
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of enquiries. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnquiryPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    enquiryCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Counts for the staff overview. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        new: number;
+                        mine: number;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    enquiryAssignees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description People whose roles include enquiries.view. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            /** Format: uuid */
+                            id: string;
+                            full_name: string;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    getEnquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The enquiry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnquiryDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    assignEnquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    assignee_id: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The enquiry after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnquiryDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    setEnquiryStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "open" | "waiting" | "closed";
+                };
+            };
+        };
+        responses: {
+            /** @description The enquiry after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnquiryDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    addEnquiryNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The enquiry with the new note. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnquiryDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
         };
     };
 }

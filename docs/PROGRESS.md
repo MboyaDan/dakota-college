@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 7b, Public site part 2 pages. Done, awaiting review.
-- **Next stage:** 8, Enquiries inbox and applicant accounts.
-- **Branch:** `stage-07b-public-pages-2` (from `main` after #20)
+- **Current stage:** 8a, Staff enquiry inbox. Done, awaiting review.
+- **Next stage:** 8b, Applicant sign-in, resume by reference number, notification templates.
+- **Branch:** `stage-08a-enquiry-inbox` (from `fix-ci-build-offline`, PR #22, not yet merged)
 
 ## Stage status
 
@@ -23,8 +23,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 6a | Public API | Merged (#17) |
 | 6b | Public pages | Merged (#18) |
 | 7a | Pages type, news and events API, legal drafts | Merged (#19, tagline artwork #20) |
-| 7b | Public site part 2 pages | Done, awaiting review |
-| 8 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 7b | Public site part 2 pages | Merged (#21); CI fix in #22 |
+| 8a | Staff enquiry inbox | Done, awaiting review |
+| 8b | Applicant sign-in and notifications | Not started |
+| 9 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -37,6 +39,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 8a: Staff enquiry inbox (2026-10-23)
+
+- Fixed CI on main (#22): build without the API; `/design` stable after its refresh (D-93).
+- Stage 8 split into 8a and 8b (owner). Migration 00009 gives Finance Officers the inbox (D-94).
+- Inbox API (list with office, status, owner and search filters; detail with notes and history; assign; status; notes) and staff screens; overview counts (D-95).
+- Verified: Go tests for the done-when (a fee enquiry reaches the finance inbox and is assigned), permissions and rules; Playwright flow as the Finance Officer with axe; 111 Playwright tests in all.
 
 ### Stage 7b: Public site part 2 pages (2026-10-23)
 

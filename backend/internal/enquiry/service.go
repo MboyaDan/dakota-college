@@ -1,5 +1,6 @@
 // Package enquiry receives questions sent from the public website (brief 6.2)
-// and emails them to the right office. The staff inbox comes in Stage 8.
+// and emails them to the right office; staff handle them in the inbox
+// (inbox.go, Stage 8a).
 //
 // Spam protection is built in, with no third-party service (D-70):
 //   - a hidden honeypot field that people never fill in;
@@ -87,13 +88,16 @@ type Service struct {
 	pool       *pgxpool.Pool
 	mailer     mail.Mailer
 	logger     *slog.Logger
+	appBaseURL string
 	perContact *auth.Limiter
 	overall    *auth.Limiter
 }
 
-func NewService(pool *pgxpool.Pool, mailer mail.Mailer, logger *slog.Logger) *Service {
+// NewService builds the enquiry service. appBaseURL is the website origin,
+// used for links to the staff portal in emails.
+func NewService(pool *pgxpool.Pool, mailer mail.Mailer, logger *slog.Logger, appBaseURL string) *Service {
 	return &Service{
-		pool: pool, mailer: mailer, logger: logger,
+		pool: pool, mailer: mailer, logger: logger, appBaseURL: strings.TrimRight(appBaseURL, "/"),
 		perContact: auth.NewLimiter(perContactMax, time.Hour, nil),
 		overall:    auth.NewLimiter(overallMax, time.Hour, nil),
 	}
@@ -256,7 +260,7 @@ func emailText(sub Submission, programme string, at time.Time) string {
 	} else {
 		b.WriteString("They gave no email address: please call or text them. ")
 	}
-	b.WriteString("The enquiry is also saved in the staff portal.\n")
+	b.WriteString("The enquiry is also saved in the staff portal inbox.\n")
 	return b.String()
 }
 

@@ -141,6 +141,17 @@ func NewRouter(d Deps) (*Router, error) {
 		add(http.MethodGet, "/staff/images/:id", false, content.PermRead, ih.get)
 	}
 
+	if d.Enquiries != nil && d.Auth != nil {
+		eh := enquiryHandlers{svc: d.Enquiries}
+		add(http.MethodGet, "/staff/enquiries", false, enquiry.PermView, eh.list)
+		add(http.MethodGet, "/staff/enquiries/counts", false, enquiry.PermView, eh.counts)
+		add(http.MethodGet, "/staff/enquiries/assignees", false, enquiry.PermManage, eh.assignees)
+		add(http.MethodGet, "/staff/enquiries/:id", false, enquiry.PermView, eh.get)
+		add(http.MethodPost, "/staff/enquiries/:id/assign", false, enquiry.PermManage, eh.assign)
+		add(http.MethodPost, "/staff/enquiries/:id/status", false, enquiry.PermManage, eh.setStatus)
+		add(http.MethodPost, "/staff/enquiries/:id/notes", false, enquiry.PermManage, eh.addNote)
+	}
+
 	if d.Content != nil && d.Enquiries != nil {
 		ph := publicHandlers{content: d.Content, images: d.Images, enquiries: d.Enquiries}
 		add(http.MethodGet, "/public/site", true, "", ph.site)

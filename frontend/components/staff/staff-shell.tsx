@@ -16,6 +16,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
 
   const nav: NavItem[] = [
     { href: "/staff", label: "Overview", show: true },
+    { href: "/staff/enquiries", label: "Enquiries", show: can("enquiries.view") },
     { href: "/staff/approvals", label: "Waiting for approval", show: can("content.publish") },
     ...kindOrder.map((k) => ({
       href: `/staff/content/${k}`,
