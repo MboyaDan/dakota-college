@@ -10,11 +10,26 @@
 node_modules/
 .next/
 out/
+playwright-report/
+test-results/
+*.tsbuildinfo
 
 # backend
 backend/bin/
 *.test
 coverage/
+*.out
+
+# database dumps and data exports (never commit)
+*.sql.gz
+*.dump
+*.backup
+*.csv
+
+# editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
 
 # misc
 *.zip
