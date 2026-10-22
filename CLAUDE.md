@@ -1,6 +1,6 @@
 # DAKOTA TRAINING COLLEGE: CLAUDE CODE MASTER BUILD PROMPT
 
-Save this file in the repo as `CLAUDE.md` (Claude Code reads it automatically at the start of every session) and keep a copy at `docs/claude/MASTER_PROMPT.md`. Also add `docs/brief.docx` (the v1 brief) and `Logos are in docs/brand/dakota-logo/ (svg, png, ico)` (logo files).
+Project files: the brief is `docs/brief.docx`, and the logo files (svg, png, ico) are in `docs/brand/dakota-logo/`. Use those exact files; do not redraw them.
 
 ---
 
@@ -88,7 +88,7 @@ Each stage lists what to build and its done-when. Brief section numbers refer to
 
 **Stage 1: Repo scaffold and tooling.** Monorepo layout, `.gitignore`, `.gitattributes`, `.editorconfig`, Go module, Gin skeleton with health and readiness endpoints, config via env with `.env.example`, Dockerfile and Compose (API, PostgreSQL, MinIO, Mailpit) for the backend only, Makefile or task runner, Next.js scaffold with Tailwind v4, ESLint, Prettier, Vitest, Playwright setup, GitHub Actions CI (Go with Postgres service; frontend lint, typecheck, build), Dependabot. Done when `docker compose up` runs the API and `npm run dev` runs the site.
 
-**Stage 2: Design system.** Tokens, fontsource fonts, logo assets from `docs/brand/`, core components (Button, Input, Select, Textarea, Checkbox, Card, Tag, Tabs, Accordion, Dialog, Toast, Table, Pagination, Breadcrumb, Alert, Skeleton, EmptyState), layout shell (announcement bar, utility bar, header with mega-menu, footer), icon set including one icon per school, a `/design` page (noindex, dev only) showing every component, dark header and light body, reduced-motion support. Done when axe has no critical issues on `/design` and the shell works at 360 px.
+**Stage 2: Design system.** Tokens, fontsource fonts, logo assets from `docs/brand/dakota-logo/`, core components (Button, Input, Select, Textarea, Checkbox, Card, Tag, Tabs, Accordion, Dialog, Toast, Table, Pagination, Breadcrumb, Alert, Skeleton, EmptyState), layout shell (announcement bar, utility bar, header with mega-menu, footer), icon set including one icon per school, a `/design` page (noindex, dev only) showing every component, dark header and light body, reduced-motion support. Done when axe has no critical issues on `/design` and the shell works at 360 px.
 
 **Stage 3: Database and migrations.** Schema for identity and access, public content, enquiries, admissions (brief section 10), with constraints, indexes, and triggers only where needed. sqlc queries. Seed command (dev only) with sample schools, sample programmes (marked Sample), sample FAQs, a test Super Admin. Done when migrations apply from empty, roll forward cleanly, and seed refuses in production mode.
 
