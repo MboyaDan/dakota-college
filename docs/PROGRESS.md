@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 5c, Brand refresh (revised logo set). Done, awaiting review.
-- **Next stage:** 6, Public site part 1 (home, schools, course finder, programme pages, about, contact).
-- **Branch:** `stage-05c-brand-refresh` (from `stage-05b-staff-portal`, merged as #15)
+- **Current stage:** 6a, Public API (content snapshot and contact form). Done, awaiting review.
+- **Next stage:** 6b, Public pages (home, schools, course finder, programme pages, about, contact, SEO, cached rendering with fallback).
+- **Branch:** `stage-06a-public-api` (from `stage-05c-brand-refresh`, PR #16, not yet merged)
 
 ## Stage status
 
@@ -19,8 +19,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 4 | Auth and RBAC | Merged (#12) |
 | 5a | Content API | Merged (#14) |
 | 5b | Staff content screens | Merged (#15) |
-| 5c | Brand refresh | Done, awaiting review |
-| 6 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 5c | Brand refresh | Done, awaiting review (#16) |
+| 6a | Public API | Done, awaiting review |
+| 6b | Public pages | Not started |
+| 7 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -33,6 +35,14 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 6a: Public API (2026-10-22)
+
+- Stage 6 split into 6a (API) and 6b (pages), approved by the owner.
+- `GET /api/v1/public/site`: one snapshot of published content for the public site (D-69).
+- `POST /api/v1/public/enquiries`: contact form, saved to `enquiries`, emailed to the right office with Reply-To (D-71); built-in spam protection (D-70).
+- Tagline corrected to "Turning Potential into Progress" (D-72, A-09); tagline artwork needs correcting (R-24).
+- Verified: Go tests against PostgreSQL (published-only snapshot, hidden unverified claims, routing and fallback, validation, honeypot, fill time, per-contact limit, cross-site refusal); live through the Next.js rewrite with Mailpit.
 
 ### Stage 5b: Staff portal screens (2026-10-22)
 
