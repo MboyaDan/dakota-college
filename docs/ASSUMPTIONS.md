@@ -21,7 +21,7 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | ID | Question (short) | Default in use | Status |
 |---|---|---|---|
 | DQ-01 | Official name, registration, address, phone, email, socials, office hours | "Dakota Training College", Makueni. Owner asked for editable dummy values: the **dev seed only** fills them with obviously fake values marked "(Sample)" (`.invalid` emails, test phone numbers). Migrations leave them empty, so production shows nothing until staff enter real values. | Confirmed (owner, 2026-10-22) |
-| DQ-02 | Meaning of "School of Pool Management" | Use the name as given; no programme content for it until explained. | Open |
+| DQ-02 | Meaning of "School of Pool Management" | Use the name as given. The school's description and programmes are left empty and editable so the college can add what it teaches in the staff portal. No sample programmes are invented for it. | Confirmed (owner, 2026-10-22) |
 | DQ-03 | Programme list per school | Sample programmes in development seed only, marked "(Sample)", removed before launch. Real programmes are entered by staff in the content manager because they change. | Confirmed (owner, 2026-10-22) |
 | DQ-04 | TVETA, CDACC, KNEC numbers | Owner asked for editable dummy values. The dev seed creates one record labelled "SAMPLE, not a real registration number". Publishing an accreditation item still needs a verification date (NN-01). Hidden in production until real, verified values are entered. | Confirmed (owner, 2026-10-22) |
 | DQ-05 | Intake months and deadlines | Intakes are admin data; none shown until entered. Dev seed has sample intakes. | Confirmed (owner, 2026-10-22) |
@@ -32,7 +32,7 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | DQ-10 | Accommodation, transport, meals | Not modelled in v1. | Open |
 | DQ-11 | Leadership profiles and consent | Section hidden until supplied. | Open |
 | DQ-12 | Real photos with consent | Neutral placeholders, clearly marked. | Open |
-| DQ-13 | Languages | English plus a Kiswahili toggle on key admissions pages, **approved**. Kiswahili text comes from a human translator; until a page has a translation, the toggle shows the English text with a note. No machine translation. | Confirmed (owner, 2026-10-22) |
+| DQ-13 | Languages | **English only for now** (owner, 2026-10-22, replaces the earlier approval). No Kiswahili toggle is built in Stage 7. Content is not structured in a way that blocks adding Kiswahili later. | Confirmed (owner, 2026-10-22) |
 | DQ-14 | Who edits and who approves content | Content Editor writes; Registrar or Principal approves (publish permission). | Confirmed (owner, 2026-10-22) |
 | DQ-15 | Existing student data to import | None in v1. CSV import is a Could. | Open |
 | DQ-16 | Staff list, Super Admin, recovery contact | Starter roles from brief section 11; developer holds Super Admin until handover. | Confirmed (owner, 2026-10-22) |
@@ -46,7 +46,7 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 |---|---|---|
 | A-08 | The logo files in `docs/brand/dakota-logo/` are the approved vector rebuild described in brief 14.1. They are used as supplied and never redrawn. | Confirmed (owner, 2026-10-22) |
 | A-09 | The tagline "Turning Potential into Progression" and the ribbon text "SKILLS · DISCIPLINE · OPPORTUNITY" are correct, so tagline logo variants may be used. | Confirmed (owner, 2026-10-22) |
-| A-10 | Kiswahili toggle approved (see DQ-13). Content tables for key admissions pages get a language column from Stage 3. | Replaced by DQ-13 answer (2026-10-22) |
+| A-10 | Kiswahili deferred (see DQ-13). No language columns in Stage 3; adding Kiswahili later means a translations table, not a schema rewrite. | Replaced by DQ-13 answer (2026-10-22) |
 | A-11 | The first Super Admin email for local development is a `.invalid` address set in `.env`; the real one comes from the client at handover (DQ-16). | Confirmed (owner, 2026-10-22) |
 | A-12 | The GitHub repository stays public during scaffold stages and becomes private before Stage 5. Making it private does not change commits or the workflow; the only effect is that GitHub Actions on a free private repo is capped at 2,000 minutes a month, which this CI fits within. | Confirmed (owner, 2026-10-22) |
 | A-13 | Toolchain on the developer machine: Go 1.25, Node 24, npm, Docker 29, PostgreSQL client. Versions are pinned in Stage 1. | Open |

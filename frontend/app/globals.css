@@ -1,9 +1,90 @@
 @import "tailwindcss";
 
-/* Brand tokens and fontsource fonts arrive in Stage 2 (design system). */
+/*
+ * Design tokens (CLAUDE.md section 2, brief 14.2). Each token is a CSS
+ * variable on :root and a Tailwind theme colour (bg-navy-900, text-gold-text…).
+ * Gold (#C9A227) is for fills and accents only: never text on light surfaces.
+ */
+@theme {
+  --color-navy-900: #0a1f4d;
+  --color-royal: #1e3a8a;
+  --color-gold: #c9a227;
+  --color-gold-text: #7a5c00;
+  --color-ivory: #fbf8f1;
+  --color-ink: #1b2430;
+  --color-ink-muted: #4a5565;
+  --color-stone: #e5e0d5;
+  --color-white: #ffffff;
+  --color-success: #1e7a46;
+  --color-danger: #b42318;
+  --color-warning: #8a4b00;
+
+  /* School accents: tags and cards only, always with a text label. */
+  --color-school-medical: #0f766e;
+  --color-school-hospitality: #b45309;
+  --color-school-ict: #6d28d9;
+  --color-school-business: #15803d;
+  --color-school-pool: #0369a1;
+
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+  --spacing-touch: 2.75rem; /* 44 px minimum touch target */
+}
+
+:root {
+  /* Focus ring needs 3:1 against its surroundings: royal on light, gold on navy. */
+  --focus-ring: var(--color-royal);
+  color-scheme: light;
+}
+
+.on-dark {
+  --focus-ring: var(--color-gold);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 
 body {
-  background: #ffffff;
-  color: #1b2430;
-  font-family: system-ui, sans-serif;
+  background: var(--color-ivory);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem; /* 17 px: easier reading on phones */
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  color: var(--color-navy-900);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Money and IDs line up in columns. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

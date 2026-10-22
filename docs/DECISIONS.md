@@ -41,3 +41,16 @@ Architecture and process decisions. ADR-xx come from the brief (section 18). D-x
 | D-23 | Every API error uses one JSON shape: `{"error": {"code", "message", "request_id"}}`. Every response carries `X-Request-ID` (a well-formed caller value is reused, otherwise generated). | Plain-language messages for users, stable codes for the frontend, and a correlation ID for support. | 1 |
 | D-24 | Go integration tests use `TEST_DATABASE_URL` (a separate `dakota_test` database). They skip locally without it but fail when `REQUIRE_DB_TESTS=1`, which CI and `make test-db` set. | Real PostgreSQL in tests, and a missing database is never reported as a pass. | 1 |
 | D-25 | The scaffold home page is marked noindex. Stage 6 replaces it with real SEO metadata. | A placeholder must never be indexed. | 1 |
+
+## Made in Stage 2
+
+| ID | Decision | Reason | Stage |
+|---|---|---|---|
+| D-26 | Icons come from `lucide-react` (ISC), re-exported through `components/icons.tsx` only. School icons: stethoscope (medical), chef hat (hospitality), monitor (ICT), briefcase (business), waves (pool). | One consistent, tree-shaken set; school icons live in the UI set, not the crest (ADR-09). | 2 |
+| D-27 | Fonts load with `next/font/local` from the fontsource packages' latin woff2 files (Newsreader and Inter variable, IBM Plex Mono 400/500). Plex Mono is not preloaded. | Self-hosted, preloaded and metric-matched fallbacks without any Google Fonts request. | 2 |
+| D-28 | Tokens live in `app/globals.css` (`@theme`) and in `lib/contrast.ts`. A unit test checks every text/background pair the UI uses against WCAG AA and checks the two files agree. Added tokens: `ink-muted` #4A5565, `warning` #8A4B00, gold hover #B8931F, danger hover #8F1C13 (all measured). | Contrast is measured, not assumed; tokens cannot drift silently. | 2 |
+| D-29 | Focus ring is 3 px royal on light surfaces and gold on navy (`.on-dark`). | Gold on ivory is 2.4:1 and fails the 3:1 non-text minimum. | 2 |
+| D-30 | Accordion uses native `<details>`; Dialog uses native `<dialog>`; Tabs, Toast and the header menu are the only client components. | Accessible by default and the least JavaScript. | 2 |
+| D-31 | `/design` is served in development, and in production builds only when `ENABLE_DESIGN_PAGE=1` (CI sets it for axe). Otherwise it returns 404. Always noindex. | Dev-only page that CI can still test. | 2 |
+| D-32 | Public pages live in the `app/(site)` route group, which renders the shell (skip link, announcement bar, utility bar, header, footer). Portals will get their own layouts. | Keeps portal layouts separate from the marketing shell. | 2 |
+
