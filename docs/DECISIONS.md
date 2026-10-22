@@ -27,7 +27,7 @@ Architecture and process decisions. ADR-xx come from the brief (section 18). D-x
 | D-14 | npm is the frontend package manager, with a committed `package-lock.json`. | Ships with Node; one fewer tool for the client's future maintainer. | 0 |
 | D-15 | (Confirmed by owner 2026-10-22.) Brief safeguard "a role in use cannot be deleted" (brief 11) is added to Stage 4 alongside the two protections in CLAUDE.md. | Brief wins where it adds to the prompt. | 0 |
 | D-16 | `CLAUDE.md` is the canonical master prompt. `docs/claude/MASTER_PROMPT.md` is a copy; if they differ, `CLAUDE.md` wins and I will flag the drift. | Avoids two sources of truth (R-13). | 0 |
-| D-17 | Seed and fixture data use names like "Test Student 001", emails at `example.invalid`, and phone numbers in the form `+254 700 000 0NN` flagged as test data in the seed; programmes carry "(Sample)" in the title. | Reserved, obviously fake values (NN-06). Exact phone range confirmed in Stage 3. | 0 |
+| D-17 | Seed and fixture data use names like "Test Student 001", emails at `example.invalid`, and phone numbers in the form `+254 000 000 0NN` (not a routable Kenyan number); programmes carry "(Sample)" in the title. Updated in Stage 3: the earlier `+254 700 …` form could belong to a real subscriber. | Reserved, obviously fake values (NN-06). | 0 |
 | D-18 | (Confirmed by owner 2026-10-22.) Password reset is by email in Stage 4. SMS reset (brief 5.1) is added only after DG-03 clears. | SMS provider is a decision gate. | 0 |
 | D-19 | (Confirmed by owner 2026-10-22.) Upload scanning sits behind a scanner interface. Stage 9 ships a ClamAV adapter for Compose if it fits; otherwise uploads are marked "not scanned" and the report says so. | Brief 8 requires scanning "if available" (brief 13); we never claim scanning that is not running (R-15). | 0 |
 
@@ -53,4 +53,19 @@ Architecture and process decisions. ADR-xx come from the brief (section 18). D-x
 | D-30 | Accordion uses native `<details>`; Dialog uses native `<dialog>`; Tabs, Toast and the header menu are the only client components. | Accessible by default and the least JavaScript. | 2 |
 | D-31 | `/design` is served in development, and in production builds only when `ENABLE_DESIGN_PAGE=1` (CI sets it for axe). Otherwise it returns 404. Always noindex. | Dev-only page that CI can still test. | 2 |
 | D-32 | Public pages live in the `app/(site)` route group, which renders the shell (skip link, announcement bar, utility bar, header, footer). Portals will get their own layouts. | Keeps portal layouts separate from the marketing shell. | 2 |
+
+## Made in Stage 3
+
+| ID | Decision | Reason | Stage |
+|---|---|---|---|
+| D-33 | Go moves from 1.25 to **1.26** (`go.mod`, Dockerfile `golang:1.26.10-alpine`, CI `1.26.x`). | goose 3.28+ and `x/crypto` 0.56+ need Go 1.26, and Go 1.25 is no longer supported (Go supports the two newest releases: 1.27 and 1.26). Pinning old dependencies to stay on an unsupported Go would trade security fixes for nothing. | 3 |
+| D-34 | An `accreditations` table (body, reference, evidence note, verification date) is added beyond brief section 10. | The About page needs "accreditation and registration" (brief 6.1) with the same evidence rule as statistics (NN-01). | 3 |
+| D-35 | Two permission keys are added beyond brief 11: `enquiries.view` and `enquiries.manage`. | The enquiry inbox (Stage 8) needs its own permissions; reusing admissions keys would over-grant. | 3 |
+| D-36 | Every content table has `is_sample`. The seed sets it on everything it creates; `CountSampleRows` is the launch check (AC-17). | Sample data can be found and removed reliably before launch. | 3 |
+| D-37 | Honesty and integrity rules are also database constraints: statistics and accreditations need a verification date and evidence to be published; gallery items need consent; audit log, status history and consents are append-only (trigger); one live application per applicant, programme and intake; rejection needs a reason; money columns are `bigint` cents with KES only. | NN-01, NN-03, NN-05, NN-08 and AC-04 hold even if application code has a bug. | 3 |
+| D-38 | Primary keys are UUIDs (`gen_random_uuid()`), except append-only logs (`bigint` identity). Human references (application, student, receipt numbers) come from `document_counters`, gapless per year. | IDs in URLs do not reveal counts; references stay readable and gapless (A-06). | 3 |
+| D-39 | The seed refuses unless `APP_ENV` is development or test, and also refuses database hosts on Supabase, Render, Neon and AWS RDS. Test accounts use `SEED_PASSWORD` (dev only, at least 12 characters). | Two independent guards against sample data reaching a real database (NN-06, AC-17). | 3 |
+| D-40 | `migrate` changes a production database only with `-confirm-production`, and never runs `reset` there. The API never migrates on start-up. | CLAUDE.md: migrations are never run automatically against production. | 3 |
+| D-41 | Argon2id parameters: 19 MiB, 2 passes, 1 lane, 16-byte salt, 32-byte key, PHC string format. Minimum password length 12. | OWASP minimum, sized for small hosting instances; parameters are stored in each hash so they can be raised later. | 3 |
+| D-42 | Kiswahili: no language columns now (DQ-13). Adding it later means a translations table keyed by entity and field. | Avoids empty columns while keeping the option open. | 3 |
 

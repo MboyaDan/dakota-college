@@ -4,18 +4,19 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 2, Design system. Done, awaiting review.
-- **Next stage:** 3, Database and migrations.
-- **Branch:** `stage-02-design-system` (stacked on `stage-01-scaffold`, PR #1 not merged yet)
+- **Current stage:** 3, Database and migrations. Done, awaiting review.
+- **Next stage:** 4, Auth and RBAC.
+- **Branch:** `stage-03-database` (from `main`)
 
 ## Stage status
 
 | Stage | Title | Status |
 |---|---|---|
-| 0 | Orientation and plan | Done, approved by owner 2026-10-22; PR not merged |
-| 1 | Repo scaffold and tooling | Done, PR #1 open |
-| 2 | Design system | Done, awaiting review |
-| 3 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 0 | Orientation and plan | Merged (#1) |
+| 1 | Repo scaffold and tooling | Merged (#1) |
+| 2 | Design system | Merged (#9, #10) |
+| 3 | Database and migrations | Done, awaiting review |
+| 4 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -28,6 +29,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 3: Database and migrations (2026-10-22)
+
+- Five goose migrations (embedded): foundation (helpers, counters), identity and access (users, roles, permissions, sessions, password resets, audit log, starter roles and grants), files, consents and idempotency, public content (schools to site settings), enquiries and admissions.
+- sqlc queries and generated code in `internal/db/dbq`; `migrate` and `seed` commands; Argon2id password hashing.
+- Go moved to 1.26 (D-33).
+- Verified: migrations apply from empty, roll back fully and re-apply (test); seed is idempotent and refuses production, staging and hosted hosts.
 
 ### Stage 2: Design system (2026-10-22)
 

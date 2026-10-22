@@ -17,14 +17,14 @@ Status values: **Planned**, **In progress**, **Pass** (with evidence), **Fail**,
 | AC-07 | Backend denies unauthorised API calls even if frontend bypassed | 4, 17 | Go tests calling every protected route without and with wrong permissions | Planned | |
 | AC-08 | Student sees only own data; trainer only assigned units | 11, 12 | Go tests with two students and two trainers | Planned | |
 | AC-09 | Results visible only after approval and release; every change audited | 13 | Go tests on result visibility and audit rows | Planned | |
-| AC-10 | Statements reconcile from records; no floating point money | 14 | Reconciliation test; schema check that money columns are BIGINT | Planned | |
+| AC-10 | Statements reconcile from records; no floating point money | 3, 14 | Reconciliation test; schema check that money columns are BIGINT | In progress | Stage 3: `TestMoneyIsIntegerCents` (every `*_cents` column bigint, no float or numeric columns, negative and non-KES amounts rejected). Reconciliation: Stage 14. |
 | AC-11 | M-Pesa paid only through verified flow or finance confirmation | 14, 15 | Go tests: typed reference alone never marks paid | Planned (manual path); Gated (DG-02) | |
-| AC-12 | Last active Super Admin cannot be removed; system.admin not grantable via roles | 4 | Go tests for each protection | Planned | |
+| AC-12 | Last active Super Admin cannot be removed; system.admin not grantable via roles | 3, 4 | Go tests for each protection | In progress | Stage 3: `TestRolesAndPermissions` (only super_admin holds system.admin after migration; a role in use cannot be deleted). API protections: Stage 4. |
 | AC-13 | Privacy notice, consent, parental consent live before real applications | 7, 9, 20 | Page present; consent rows stored; under-18 path test | Planned (gated by DG-06) | |
 | AC-14 | Backups run, restore tested, HTTPS only, no secrets committed | 1, 19 | Restore drill log; secret scan in CI; HSTS check | In progress | Stage 1: gitleaks in CI; local `gitleaks git` scan of history found no leaks (2026-10-22). Backups, restore, HTTPS: Stage 19. |
 | AC-15 | Public pages serve from cache when API is unavailable | 6 | Playwright with API stopped | Planned | |
-| AC-16 | No unverified statistic, ranking or accreditation claim on public pages | 3, 5, 6, 20 | Statistics require verification date (DB constraint); empty hides; launch content review | Planned | |
-| AC-17 | Test data and test users absent from production | 3, 20 | Seed refuses in production (test); go-live query check | Planned | |
+| AC-16 | No unverified statistic, ranking or accreditation claim on public pages | 3, 5, 6, 20 | Statistics require verification date (DB constraint); empty hides; launch content review | In progress | Stage 3: `TestUnverifiedClaimsCannotBePublished` (DB refuses to publish statistics or accreditations without verification date and evidence). |
+| AC-17 | Test data and test users absent from production | 3, 20 | Seed refuses in production (test); go-live query check | In progress | Stage 3: `TestGuardRefuses*` and manual run (seed exits 1 for production, staging and a Supabase host); `is_sample` on all seeded content with `CountSampleRows` for the go-live check; test users all `@example.invalid`. |
 | AC-18 | Training, runbooks, known limitations, handover complete | 19, 21 | Documents present and reviewed by client | Planned | |
 
 ## Non-negotiable rules
@@ -35,7 +35,7 @@ Status values: **Planned**, **In progress**, **Pass** (with evidence), **Fail**,
 | NN-02 | Backend enforces authorisation | 4 onward | Permission middleware on every route; route table test |
 | NN-03 | Money integer cents; balances derived | 14 | BIGINT columns, no stored balances |
 | NN-04 | Idempotent submissions and payments | 9, 14, 15 | `idempotency_records` table and middleware |
-| NN-05 | No destructive edits to completed records | 10, 13, 14 | Append-only tables, compensating entries, triggers where needed |
+| NN-05 | No destructive edits to completed records | 3, 10, 13, 14 | Append-only triggers on audit log, status history, consents (Stage 3, `TestAppendOnlyTables`); compensating entries later |
 | NN-06 | No real data in seed or tests | 3 onward | Seed conventions (D-17), production refusal |
 | NN-07 | Production DB is managed or operated, never a throwaway container | 19 | Deployment docs, DG-04 |
 | NN-08 | Personal data and photos used only with consent | 7, 9 | `consents` table; gallery items require consent flag |
