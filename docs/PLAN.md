@@ -49,3 +49,5 @@ These look bigger than one review sitting. I will propose a split when I reach t
 | R-17 | AC-02 asks Lighthouse 90+ in all four categories; free-tier cold starts hurt real-world performance. | Cached pages plus fallback snapshot (ADR-03). Measure in Stage 6, fix in Stage 18, report real numbers. |
 | R-18 | Many applicants are minors; seed or test fixtures could leak realistic personal data. | Seed uses "Test Student 001", `.invalid` emails, reserved test phone numbers; seed refuses in production (NN-06). |
 | R-19 | Library churn (Next.js, Tailwind v4, Gin, sqlc) between stages. | Pin exact versions, lockfiles committed, Dependabot from Stage 1. |
+| R-20 | MinIO no longer publishes official images; the Chainguard build could change terms or disappear. | Digest pin (D-20). Storage code in Stage 9 talks plain S3, so Garage or SeaweedFS can replace MinIO locally without code changes. |
+| R-21 | `npm audit` reports 5 high-severity issues in the dev-only lint chain (`eslint-config-next` pulls `fast-glob` and `micromatch`). Production dependencies: 0. | Not shipped to browsers or servers. Dependabot watches for a fixed `eslint-config-next`; recheck in Stage 17. |

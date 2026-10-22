@@ -21,7 +21,7 @@ Status values: **Planned**, **In progress**, **Pass** (with evidence), **Fail**,
 | AC-11 | M-Pesa paid only through verified flow or finance confirmation | 14, 15 | Go tests: typed reference alone never marks paid | Planned (manual path); Gated (DG-02) | |
 | AC-12 | Last active Super Admin cannot be removed; system.admin not grantable via roles | 4 | Go tests for each protection | Planned | |
 | AC-13 | Privacy notice, consent, parental consent live before real applications | 7, 9, 20 | Page present; consent rows stored; under-18 path test | Planned (gated by DG-06) | |
-| AC-14 | Backups run, restore tested, HTTPS only, no secrets committed | 1, 19 | Restore drill log; secret scan in CI; HSTS check | Planned | |
+| AC-14 | Backups run, restore tested, HTTPS only, no secrets committed | 1, 19 | Restore drill log; secret scan in CI; HSTS check | In progress | Stage 1: gitleaks in CI; local `gitleaks git` scan of history found no leaks (2026-10-22). Backups, restore, HTTPS: Stage 19. |
 | AC-15 | Public pages serve from cache when API is unavailable | 6 | Playwright with API stopped | Planned | |
 | AC-16 | No unverified statistic, ranking or accreditation claim on public pages | 3, 5, 6, 20 | Statistics require verification date (DB constraint); empty hides; launch content review | Planned | |
 | AC-17 | Test data and test users absent from production | 3, 20 | Seed refuses in production (test); go-live query check | Planned | |

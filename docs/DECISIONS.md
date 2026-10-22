@@ -30,3 +30,14 @@ Architecture and process decisions. ADR-xx come from the brief (section 18). D-x
 | D-17 | Seed and fixture data use names like "Test Student 001", emails at `example.invalid`, and phone numbers in the form `+254 700 000 0NN` flagged as test data in the seed; programmes carry "(Sample)" in the title. | Reserved, obviously fake values (NN-06). Exact phone range confirmed in Stage 3. | 0 |
 | D-18 | (Confirmed by owner 2026-10-22.) Password reset is by email in Stage 4. SMS reset (brief 5.1) is added only after DG-03 clears. | SMS provider is a decision gate. | 0 |
 | D-19 | (Confirmed by owner 2026-10-22.) Upload scanning sits behind a scanner interface. Stage 9 ships a ClamAV adapter for Compose if it fits; otherwise uploads are marked "not scanned" and the report says so. | Brief 8 requires scanning "if available" (brief 13); we never claim scanning that is not running (R-15). | 0 |
+
+## Made in Stage 1
+
+| ID | Decision | Reason | Stage |
+|---|---|---|---|
+| D-20 | Local S3 storage uses `cgr.dev/chainguard/minio` (MinIO built from source by Chainguard), pinned by digest. | MinIO stopped publishing official images: `minio/minio` is gone from Docker Hub and Quay (checked 2026-10-22). Chainguard's free tier only offers `:latest`, so a digest pin keeps builds reproducible. MinIO is AGPLv3; we run it unmodified as a local dev tool and never ship it. Production storage stays Supabase Storage. | 1 |
+| D-21 | Default local host ports are API 8180 and PostgreSQL 5442 (not 8080 and 5432). Inside Compose the API still listens on 8080. | Other projects on the developer machine already hold 8080 and 5432. A unique port also stops the frontend proxying to someone else's API by accident. | 1 |
+| D-22 | `/api/v1/health` is liveness (process up, no dependency checks). `/api/v1/ready` is readiness (database ping, 2 s timeout, 503 with no error detail when down; detail goes to logs). | A slow or sleeping database must not get the API restarted, and probe responses must not leak infrastructure detail. | 1 |
+| D-23 | Every API error uses one JSON shape: `{"error": {"code", "message", "request_id"}}`. Every response carries `X-Request-ID` (a well-formed caller value is reused, otherwise generated). | Plain-language messages for users, stable codes for the frontend, and a correlation ID for support. | 1 |
+| D-24 | Go integration tests use `TEST_DATABASE_URL` (a separate `dakota_test` database). They skip locally without it but fail when `REQUIRE_DB_TESTS=1`, which CI and `make test-db` set. | Real PostgreSQL in tests, and a missing database is never reported as a pass. | 1 |
+| D-25 | The scaffold home page is marked noindex. Stage 6 replaces it with real SEO metadata. | A placeholder must never be indexed. | 1 |
