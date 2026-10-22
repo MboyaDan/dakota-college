@@ -1,6 +1,6 @@
 # DAKOTA TRAINING COLLEGE: CLAUDE CODE MASTER BUILD PROMPT
 
-Save this file in the repo as `CLAUDE.md` (Claude Code reads it automatically at the start of every session) and keep a copy at `docs/claude/MASTER_PROMPT.md`. Also add `docs/brief.docx` (the v1 brief) and `docs/brand/` (logo files).
+Save this file in the repo as `CLAUDE.md` (Claude Code reads it automatically at the start of every session) and keep a copy at `docs/claude/MASTER_PROMPT.md`. Also add `docs/brief.docx` (the v1 brief) and `Logos are in docs/brand/dakota-logo/ (svg, png, ico)` (logo files).
 
 ---
 
