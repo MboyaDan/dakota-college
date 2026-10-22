@@ -1,0 +1,104 @@
+openapi: 3.1.0
+info:
+  title: Dakota Training College API
+  version: 0.1.0
+  description: |
+    The contract between the Go API and the Next.js frontend. Frontend types
+    are generated from this file (`npm run gen:api` in frontend/).
+
+    The browser calls `/api/*` on the frontend origin; the frontend rewrites
+    those requests to this API (D-11).
+servers:
+  - url: /
+tags:
+  - name: system
+    description: Liveness and readiness probes.
+paths:
+  /api/v1/health:
+    get:
+      tags: [system]
+      operationId: getHealth
+      summary: Liveness probe
+      description: Returns 200 while the process is serving HTTP. Does not check dependencies.
+      responses:
+        "200":
+          description: The API process is up.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /api/v1/ready:
+    get:
+      tags: [system]
+      operationId: getReady
+      summary: Readiness probe
+      description: Returns 200 when the database is reachable, 503 otherwise. Never includes error detail.
+      responses:
+        "200":
+          description: Ready to serve requests.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ready"
+        "503":
+          description: A dependency is unavailable.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ready"
+components:
+  headers:
+    RequestID:
+      description: Request correlation ID. Echoes a well-formed caller value or is generated.
+      schema:
+        type: string
+  schemas:
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+    CheckStatus:
+      type: string
+      enum: [ok, unavailable]
+    Ready:
+      type: object
+      required: [status, checks]
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+        checks:
+          type: object
+          required: [database]
+          properties:
+            database:
+              $ref: "#/components/schemas/CheckStatus"
+    Error:
+      description: Error body returned by every endpoint on failure.
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Stable machine-readable code, e.g. not_found.
+            message:
+              type: string
+              description: Plain-language message safe to show to users.
+            request_id:
+              type: string
