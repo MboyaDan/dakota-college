@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 7a, Pages content type, news and events API, legal drafts. Done, awaiting review.
-- **Next stage:** 7b, Public site part 2 pages (admissions, fees, intake calendar, FAQs, news and events, student life, alumni, legal pages, custom 404 and 500).
-- **Branch:** `stage-07a-content-pages` (from `main` after #18)
+- **Current stage:** 7b, Public site part 2 pages. Done, awaiting review.
+- **Next stage:** 8, Enquiries inbox and applicant accounts.
+- **Branch:** `stage-07b-public-pages-2` (from `main` after #20)
 
 ## Stage status
 
@@ -22,8 +22,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 5c | Brand refresh | Merged (#16) |
 | 6a | Public API | Merged (#17) |
 | 6b | Public pages | Merged (#18) |
-| 7a | Pages type, news and events API, legal drafts | Done, awaiting review |
-| 7b | Public site part 2 pages | Not started |
+| 7a | Pages type, news and events API, legal drafts | Merged (#19, tagline artwork #20) |
+| 7b | Public site part 2 pages | Done, awaiting review |
 | 8 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -37,6 +37,14 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 7b: Public site part 2 pages (2026-10-23)
+
+- Admissions (how to apply), entry requirements, fees, intake calendar, searchable FAQs, news and articles, events, student life with gallery, alumni with transcript requests, privacy, cookies, terms, accessibility statement.
+- Branded 404 and error pages (D-87); news and events cached with snapshot fallback (D-88); unpublished text pages say so and are not indexed (D-89).
+- Sitemap lists published text pages, all news and events.
+- Dev seed: sample news and events (D-91). WhatsApp button icon-only on phones (D-90).
+- Verified: 107 Playwright tests (axe and 360 px on every public page, 404 status, FAQ search, news and events, text pages); 28 offline tests with the API stopped.
 
 ### Tagline artwork (2026-10-23)
 
