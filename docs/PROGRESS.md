@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 5b, Staff portal screens. Done, awaiting review.
-- **Next stage:** 6, Public site part 1 (home, schools, course finder, programme pages, about, contact).
-- **Branch:** `stage-05b-staff-portal` (from `main`)
+- **Current stage:** 6a, Public API (content snapshot and contact form). Done, awaiting review.
+- **Next stage:** 6b, Public pages (home, schools, course finder, programme pages, about, contact, SEO, cached rendering with fallback).
+- **Branch:** `stage-06a-public-api` (from `stage-05c-brand-refresh`, PR #16, not yet merged)
 
 ## Stage status
 
@@ -18,8 +18,11 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 3 | Database and migrations | Merged (#11) |
 | 4 | Auth and RBAC | Merged (#12) |
 | 5a | Content API | Merged (#14) |
-| 5b | Staff content screens | Done, awaiting review |
-| 6 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 5b | Staff content screens | Merged (#15) |
+| 5c | Brand refresh | Done, awaiting review (#16) |
+| 6a | Public API | Done, awaiting review |
+| 6b | Public pages | Not started |
+| 7 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -33,12 +36,21 @@ DQ-02 (Pool Management content is editable by the college) and DQ-13 (English on
 
 ## Log
 
+### Stage 6a: Public API (2026-10-22)
+
+- Stage 6 split into 6a (API) and 6b (pages), approved by the owner.
+- `GET /api/v1/public/site`: one snapshot of published content for the public site (D-69).
+- `POST /api/v1/public/enquiries`: contact form, saved to `enquiries`, emailed to the right office with Reply-To (D-71); built-in spam protection (D-70).
+- Tagline corrected to "Turning Potential into Progress" (D-72, A-09); tagline artwork needs correcting (R-24).
+- Verified: Go tests against PostgreSQL (published-only snapshot, hidden unverified claims, routing and fallback, validation, honeypot, fill time, per-contact limit, cross-site refusal); live through the Next.js rewrite with Mailpit.
+
 ### Stage 5b: Staff portal screens (2026-10-22)
 
 - `/staff` portal: sign in (split layout), forgot and reset password, overview, approval queue, list and editor screens for all ten content types with preview, image upload, site settings. Navigation and actions follow permissions.
 - Typed API client from the OpenAPI types; money and Nairobi date helpers.
 - CI: new end-to-end job with the real API and database.
 - Verified: editor drafts a programme in the browser, cannot publish; registrar publishes from the approval queue; an edit of the live programme waits for approval; axe clean on each screen; credentials never appear in a URL.
+- Revised logo set from the owner: favicons, Apple touch icon, and Open Graph and Twitter image wired in the root metadata (D-68); `SITE_URL` added to `frontend/.env.example`. Header, footer, sign-in and portal shell checked at 360 px and 1280 px.
 
 ### Stage 5a: Content API (2026-10-22)
 

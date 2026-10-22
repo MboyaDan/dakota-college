@@ -455,6 +455,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Published content snapshot for the public website
+         * @description Everything published that the public pages need, in one document, so the website caches
+         *     one response and keeps a bundled copy for when the API is asleep (AC-15). Programmes
+         *     include requirements, upcoming intakes (not closed, not started; Nairobi date) and fees.
+         *     Statistics and accreditations are verified by construction (AC-16). Events: the next 6.
+         *     News: the latest 6, without bodies. `is_sample` marks dev seed rows.
+         */
+        get: operations["getPublicSite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/enquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a question from the contact form
+         * @description Saves the enquiry and emails the office for its query type (admissions and programmes:
+         *     contact.admissions_email; fees: contact.finance_email; others: contact.email, which is
+         *     also the fallback). Replies go to the visitor's email (Reply-To).
+         *
+         *     Spam protection (D-70): `website` is a honeypot that must stay empty, and `elapsed_ms`
+         *     (time the form was open) must be at least 3000. Submissions failing either get 202 but are
+         *     neither saved nor emailed. At most 2 links per message; 3 enquiries an hour per email
+         *     address or phone number; 60 an hour overall.
+         */
+        post: operations["createEnquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -721,6 +772,143 @@ export interface components {
             checks: {
                 database: components["schemas"]["CheckStatus"];
             };
+        };
+        PublicSite: {
+            /** Format: date-time */
+            generated_at: string;
+            /** @description Visitor-facing settings (contact.*, campus.*, about.*, social.*). Empty values are hidden on the site. */
+            settings: {
+                [key: string]: string;
+            };
+            banners: components["schemas"]["PublicBanner"][];
+            schools: components["schemas"]["PublicSchool"][];
+            programmes: components["schemas"]["PublicProgramme"][];
+            faqs: components["schemas"]["PublicFAQ"][];
+            statistics: components["schemas"]["PublicStatistic"][];
+            accreditations: components["schemas"]["PublicAccreditation"][];
+            events: components["schemas"]["PublicEvent"][];
+            news: components["schemas"]["PublicNews"][];
+        };
+        PublicBanner: {
+            message: string;
+            link_label: string | null;
+            link_href: string | null;
+            /** Format: date-time */
+            ends_at: string;
+            is_sample: boolean;
+        };
+        PublicSchool: {
+            slug: string;
+            name: string;
+            short_name: string;
+            /** @enum {string} */
+            accent_key: "medical" | "hospitality" | "ict" | "business" | "pool";
+            summary: string;
+            description: string;
+            head_message: string;
+            is_sample: boolean;
+        };
+        PublicProgramme: {
+            slug: string;
+            title: string;
+            school_slug: string;
+            /** @enum {string} */
+            level: "short_course" | "artisan" | "certificate" | "diploma" | "higher_diploma";
+            /** @enum {string} */
+            mode: "full_time" | "part_time" | "blended";
+            duration_months: number | null;
+            duration_note: string;
+            /** @enum {string|null} */
+            min_kcse_grade: "A" | "A-" | "B+" | "B" | "B-" | "C+" | "C" | "C-" | "D+" | "D" | "D-" | "E" | null;
+            summary: string;
+            overview: string;
+            what_you_learn: string;
+            career_outcomes: string;
+            seo_title: string;
+            seo_description: string;
+            requirements: {
+                /** @enum {string} */
+                kind: "academic" | "document" | "other";
+                requirement: string;
+            }[];
+            intakes: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                /** Format: date */
+                starts_on: string;
+                /** Format: date */
+                applications_open_on: string | null;
+                /** Format: date */
+                application_deadline: string | null;
+                /** @enum {string} */
+                status: "planned" | "open";
+            }[];
+            fees: {
+                /**
+                 * Format: uuid
+                 * @description Set when the line applies to one intake only.
+                 */
+                intake_id: string | null;
+                label: string;
+                /** @enum {string} */
+                category: "tuition" | "registration" | "assessment" | "caution" | "other";
+                /** @description Whole cents of KES: KES 1,000.00 is 100000. */
+                amount_cents: number;
+                /** @enum {string} */
+                frequency: "once" | "per_term" | "per_year" | "whole_programme";
+                notes: string;
+            }[];
+            /** Format: date-time */
+            published_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            is_sample: boolean;
+        };
+        PublicFAQ: {
+            category_slug: string;
+            category_name: string;
+            /** @description Set for questions about one programme. */
+            programme_slug: string | null;
+            question: string;
+            answer: string;
+            is_sample: boolean;
+        };
+        PublicStatistic: {
+            label: string;
+            value: string;
+            /** Format: date */
+            verified_on: string;
+            is_sample: boolean;
+        };
+        PublicAccreditation: {
+            body: string;
+            reference: string;
+            description: string;
+            /** Format: date */
+            verified_on: string;
+            is_sample: boolean;
+        };
+        PublicEvent: {
+            slug: string;
+            title: string;
+            summary: string;
+            location: string;
+            /** Format: date-time */
+            starts_at: string;
+            /** Format: date-time */
+            ends_at: string | null;
+            is_sample: boolean;
+        };
+        PublicNews: {
+            slug: string;
+            title: string;
+            summary: string;
+            /** Format: date-time */
+            published_at: string | null;
+            cover: components["schemas"]["ImageFile"] | null;
+            cover_alt: string;
+            is_sample: boolean;
         };
         /** @description Error body returned by every endpoint on failure. */
         Error: {
@@ -1599,6 +1787,74 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
+        };
+    };
+    getPublicSite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The snapshot. */
+            200: {
+                headers: {
+                    /** @description public, max-age=60 */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSite"];
+                };
+            };
+        };
+    };
+    createEnquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    full_name: string;
+                    /** @description Email or phone (or both) is required. */
+                    email?: string;
+                    /** @description Digits and spaces, optional leading +. */
+                    phone?: string;
+                    /** @enum {string} */
+                    query_type: "admissions" | "programmes" | "fees" | "student_life" | "other";
+                    /** @description Slug of a published programme, optional. */
+                    programme?: string;
+                    message: string;
+                    /** @description Honeypot. Hidden from people; leave empty. */
+                    website?: string;
+                    /** @description Milliseconds between showing the form and sending it. */
+                    elapsed_ms: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Received. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "received";
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["Error"];
         };
     };
 }

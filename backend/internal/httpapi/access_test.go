@@ -30,6 +30,7 @@ func TestEveryRouteIsProtected(t *testing.T) {
 	public := map[string]bool{
 		"GET /api/v1/health": true, "GET /api/v1/ready": true, "POST /api/v1/auth/login": true,
 		"POST /api/v1/auth/password-reset": true, "POST /api/v1/auth/password-reset/confirm": true,
+		"GET /api/v1/public/site": true, "POST /api/v1/public/enquiries": true,
 	}
 	permissions := map[string]bool{}
 	for _, r := range h.router.Routes {

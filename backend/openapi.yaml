@@ -22,6 +22,10 @@ tags:
       Staff content manager. Content Editors (content.write) create and edit; publishers
       (content.publish, Registrar and Principal) publish. Editing a published item saves a
       pending version that goes live only when published again.
+  - name: public
+    description: |
+      Public website. No session. Only published content is returned, and only content whose
+      parent is published (a programme of an unpublished school is hidden).
 security:
   - session: []
 paths:
@@ -611,6 +615,73 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+  /api/v1/public/site:
+    get:
+      security: []
+      tags: [public]
+      operationId: getPublicSite
+      summary: Published content snapshot for the public website
+      description: |
+        Everything published that the public pages need, in one document, so the website caches
+        one response and keeps a bundled copy for when the API is asleep (AC-15). Programmes
+        include requirements, upcoming intakes (not closed, not started; Nairobi date) and fees.
+        Statistics and accreditations are verified by construction (AC-16). Events: the next 6.
+        News: the latest 6, without bodies. `is_sample` marks dev seed rows.
+      responses:
+        "200":
+          description: The snapshot.
+          headers:
+            Cache-Control:
+              schema: { type: string }
+              description: "public, max-age=60"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicSite" }
+  /api/v1/public/enquiries:
+    post:
+      security: []
+      tags: [public]
+      operationId: createEnquiry
+      summary: Send a question from the contact form
+      description: |
+        Saves the enquiry and emails the office for its query type (admissions and programmes:
+        contact.admissions_email; fees: contact.finance_email; others: contact.email, which is
+        also the fallback). Replies go to the visitor's email (Reply-To).
+
+        Spam protection (D-70): `website` is a honeypot that must stay empty, and `elapsed_ms`
+        (time the form was open) must be at least 3000. Submissions failing either get 202 but are
+        neither saved nor emailed. At most 2 links per message; 3 enquiries an hour per email
+        address or phone number; 60 an hour overall.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [full_name, query_type, message, elapsed_ms]
+              properties:
+                full_name: { type: string, maxLength: 120 }
+                email: { type: string, description: "Email or phone (or both) is required." }
+                phone: { type: string, description: "Digits and spaces, optional leading +." }
+                query_type: { type: string, enum: [admissions, programmes, fees, student_life, other] }
+                programme: { type: string, description: "Slug of a published programme, optional." }
+                message: { type: string, maxLength: 5000 }
+                website: { type: string, description: "Honeypot. Hidden from people; leave empty." }
+                elapsed_ms: { type: integer, description: "Milliseconds between showing the form and sending it." }
+      responses:
+        "202":
+          description: Received.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [received] }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     csrf:
@@ -953,6 +1024,149 @@ components:
           properties:
             database:
               $ref: "#/components/schemas/CheckStatus"
+    PublicSite:
+      type: object
+      required: [generated_at, settings, banners, schools, programmes, faqs, statistics, accreditations, events, news]
+      properties:
+        generated_at: { type: string, format: date-time }
+        settings:
+          type: object
+          description: "Visitor-facing settings (contact.*, campus.*, about.*, social.*). Empty values are hidden on the site."
+          additionalProperties: { type: string }
+        banners: { type: array, items: { $ref: "#/components/schemas/PublicBanner" } }
+        schools: { type: array, items: { $ref: "#/components/schemas/PublicSchool" } }
+        programmes: { type: array, items: { $ref: "#/components/schemas/PublicProgramme" } }
+        faqs: { type: array, items: { $ref: "#/components/schemas/PublicFAQ" } }
+        statistics: { type: array, items: { $ref: "#/components/schemas/PublicStatistic" } }
+        accreditations: { type: array, items: { $ref: "#/components/schemas/PublicAccreditation" } }
+        events: { type: array, items: { $ref: "#/components/schemas/PublicEvent" } }
+        news: { type: array, items: { $ref: "#/components/schemas/PublicNews" } }
+    PublicBanner:
+      type: object
+      required: [message, link_label, link_href, ends_at, is_sample]
+      properties:
+        message: { type: string }
+        link_label: { type: [string, "null"] }
+        link_href: { type: [string, "null"] }
+        ends_at: { type: string, format: date-time }
+        is_sample: { type: boolean }
+    PublicSchool:
+      type: object
+      required: [slug, name, short_name, accent_key, summary, description, head_message, is_sample]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        short_name: { type: string }
+        accent_key: { type: string, enum: [medical, hospitality, ict, business, pool] }
+        summary: { type: string }
+        description: { type: string }
+        head_message: { type: string }
+        is_sample: { type: boolean }
+    PublicProgramme:
+      type: object
+      required: [slug, title, school_slug, level, mode, duration_months, duration_note, min_kcse_grade, summary, overview, what_you_learn, career_outcomes, seo_title, seo_description, requirements, intakes, fees, published_at, updated_at, is_sample]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        school_slug: { type: string }
+        level: { type: string, enum: [short_course, artisan, certificate, diploma, higher_diploma] }
+        mode: { type: string, enum: [full_time, part_time, blended] }
+        duration_months: { type: [integer, "null"] }
+        duration_note: { type: string }
+        min_kcse_grade: { type: [string, "null"], enum: [A, A-, B+, B, B-, C+, C, C-, D+, D, D-, E, null] }
+        summary: { type: string }
+        overview: { type: string }
+        what_you_learn: { type: string }
+        career_outcomes: { type: string }
+        seo_title: { type: string }
+        seo_description: { type: string }
+        requirements:
+          type: array
+          items:
+            type: object
+            required: [kind, requirement]
+            properties:
+              kind: { type: string, enum: [academic, document, other] }
+              requirement: { type: string }
+        intakes:
+          type: array
+          items:
+            type: object
+            required: [id, name, starts_on, applications_open_on, application_deadline, status]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              starts_on: { type: string, format: date }
+              applications_open_on: { type: [string, "null"], format: date }
+              application_deadline: { type: [string, "null"], format: date }
+              status: { type: string, enum: [planned, open] }
+        fees:
+          type: array
+          items:
+            type: object
+            required: [intake_id, label, category, amount_cents, frequency, notes]
+            properties:
+              intake_id: { type: [string, "null"], format: uuid, description: "Set when the line applies to one intake only." }
+              label: { type: string }
+              category: { type: string, enum: [tuition, registration, assessment, caution, other] }
+              amount_cents: { type: integer, description: "Whole cents of KES: KES 1,000.00 is 100000." }
+              frequency: { type: string, enum: [once, per_term, per_year, whole_programme] }
+              notes: { type: string }
+        published_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: string, format: date-time }
+        is_sample: { type: boolean }
+    PublicFAQ:
+      type: object
+      required: [category_slug, category_name, programme_slug, question, answer, is_sample]
+      properties:
+        category_slug: { type: string }
+        category_name: { type: string }
+        programme_slug: { type: [string, "null"], description: "Set for questions about one programme." }
+        question: { type: string }
+        answer: { type: string }
+        is_sample: { type: boolean }
+    PublicStatistic:
+      type: object
+      required: [label, value, verified_on, is_sample]
+      properties:
+        label: { type: string }
+        value: { type: string }
+        verified_on: { type: string, format: date }
+        is_sample: { type: boolean }
+    PublicAccreditation:
+      type: object
+      required: [body, reference, description, verified_on, is_sample]
+      properties:
+        body: { type: string }
+        reference: { type: string }
+        description: { type: string }
+        verified_on: { type: string, format: date }
+        is_sample: { type: boolean }
+    PublicEvent:
+      type: object
+      required: [slug, title, summary, location, starts_at, ends_at, is_sample]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        location: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: [string, "null"], format: date-time }
+        is_sample: { type: boolean }
+    PublicNews:
+      type: object
+      required: [slug, title, summary, published_at, cover, cover_alt, is_sample]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        published_at: { type: [string, "null"], format: date-time }
+        cover:
+          oneOf:
+            - $ref: "#/components/schemas/ImageFile"
+            - type: "null"
+        cover_alt: { type: string }
+        is_sample: { type: boolean }
     Error:
       description: Error body returned by every endpoint on failure.
       type: object

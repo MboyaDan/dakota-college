@@ -149,8 +149,8 @@ export default function DesignPage() {
             <Image
               src="/brand/dakota-logo-horizontal.svg"
               alt="Dakota Training College logo, horizontal"
-              width={890}
-              height={330}
+              width={1339}
+              height={442}
               unoptimized
               className="h-auto w-full"
             />
@@ -159,8 +159,8 @@ export default function DesignPage() {
             <Image
               src="/brand/dakota-logo-reversed.svg"
               alt="Dakota Training College logo, reversed for dark backgrounds"
-              width={890}
-              height={330}
+              width={1339}
+              height={442}
               unoptimized
               className="h-auto w-full"
             />
@@ -169,8 +169,8 @@ export default function DesignPage() {
             <Image
               src="/brand/dakota-logo-stacked-tagline.svg"
               alt="Dakota Training College logo, stacked, with the tagline Turning Potential into Progression"
-              width={567}
-              height={543}
+              width={916}
+              height={858}
               unoptimized
               className="mx-auto h-56 w-auto"
             />
@@ -179,8 +179,8 @@ export default function DesignPage() {
             <Image
               src="/brand/dakota-ribbon-banner.svg"
               alt="Skills, Discipline, Opportunity"
-              width={900}
-              height={140}
+              width={3646}
+              height={330}
               unoptimized
               className="h-auto w-full"
             />

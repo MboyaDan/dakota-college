@@ -11,6 +11,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
+	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 )
 
@@ -32,7 +33,8 @@ type Deps struct {
 	Content        *content.Service
 	// Images may be nil when object storage is not configured; uploads then
 	// answer 503.
-	Images *media.Images
+	Images    *media.Images
+	Enquiries *enquiry.Service
 }
 
 const defaultBodyLimit = 1 << 20 // 1 MB for JSON endpoints
@@ -137,6 +139,12 @@ func NewRouter(d Deps) (*Router, error) {
 		ih := imageHandlers{images: d.Images}
 		addWithLimit(media.MaxUploadBytes+(1<<20), http.MethodPost, "/staff/images", false, content.PermWrite, ih.upload)
 		add(http.MethodGet, "/staff/images/:id", false, content.PermRead, ih.get)
+	}
+
+	if d.Content != nil && d.Enquiries != nil {
+		ph := publicHandlers{content: d.Content, images: d.Images, enquiries: d.Enquiries}
+		add(http.MethodGet, "/public/site", true, "", ph.site)
+		add(http.MethodPost, "/public/enquiries", true, "", ph.createEnquiry)
 	}
 
 	return rt, nil
