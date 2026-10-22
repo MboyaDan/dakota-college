@@ -45,7 +45,7 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | ID | Assumption | Status |
 |---|---|---|
 | A-08 | The logo files in `docs/brand/dakota-logo/` are the approved vector rebuild described in brief 14.1. They are used as supplied and never redrawn. | Confirmed (owner, 2026-10-22) |
-| A-09 | The tagline is "Turning Potential into Progress" and the ribbon text "SKILLS · DISCIPLINE · OPPORTUNITY" is correct. The tagline artwork reads "Progression", so the site shows the logo without a tagline and sets the tagline as text (D-81, R-24). | Confirmed (owner, 2026-10-22) |
+| A-09 | The tagline is "Turning Potential into Progress" and the ribbon text "SKILLS · DISCIPLINE · OPPORTUNITY" is correct. The tagline artwork reads "Progression", so `docs/brand/retagline.py` derives "Progress" versions from the original letter outlines (D-86, R-24). | Confirmed (owner, 2026-10-22) |
 | A-10 | Kiswahili deferred (see DQ-13). No language columns in Stage 3; adding Kiswahili later means a translations table, not a schema rewrite. | Replaced by DQ-13 answer (2026-10-22) |
 | A-11 | The first Super Admin email for local development is a `.invalid` address set in `.env`; the real one comes from the client at handover (DQ-16). | Confirmed (owner, 2026-10-22) |
 | A-12 | The GitHub repository stays public during scaffold stages and becomes private before Stage 5. Making it private does not change commits or the workflow; the only effect is that GitHub Actions on a free private repo is capped at 2,000 minutes a month, which this CI fits within. | Confirmed (owner, 2026-10-22) |
