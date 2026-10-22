@@ -34,6 +34,12 @@ func TestFromLookupDefaults(t *testing.T) {
 	if len(cfg.TrustedProxies) != 0 {
 		t.Errorf("TrustedProxies = %v, want none", cfg.TrustedProxies)
 	}
+	if !cfg.Session.CookieSecure || cfg.Session.TTL != 12*time.Hour || cfg.Session.IdleTimeout != 30*time.Minute {
+		t.Errorf("session defaults = %+v", cfg.Session)
+	}
+	if strings.Join(cfg.AllowedOrigins, ",") != "http://localhost:3000" || cfg.AppBaseURL != "http://localhost:3000" {
+		t.Errorf("origin defaults = %v %q", cfg.AllowedOrigins, cfg.AppBaseURL)
+	}
 	if cfg.IsProduction() {
 		t.Error("development config reports production")
 	}
@@ -43,6 +49,8 @@ func TestFromLookupOverrides(t *testing.T) {
 	cfg, err := FromLookup(lookupFrom(map[string]string{
 		"APP_ENV":          "production",
 		"DATABASE_URL":     "postgres://x",
+		"APP_BASE_URL":     "https://dakota.example/",
+		"ALLOWED_ORIGINS":  "https://dakota.example",
 		"HTTP_ADDR":        ":9000",
 		"LOG_LEVEL":        "debug",
 		"SHUTDOWN_TIMEOUT": "5s",
@@ -60,11 +68,24 @@ func TestFromLookupOverrides(t *testing.T) {
 }
 
 func TestFromLookupErrors(t *testing.T) {
+	prod := func(extra map[string]string) map[string]string {
+		m := map[string]string{"APP_ENV": "production", "DATABASE_URL": "x", "APP_BASE_URL": "https://dakota.example", "ALLOWED_ORIGINS": "https://dakota.example"}
+		for k, v := range extra {
+			m[k] = v
+		}
+		return m
+	}
 	tests := []struct {
 		name string
 		env  map[string]string
 		want string
 	}{
+		{"insecure cookie in production", prod(map[string]string{"SESSION_COOKIE_SECURE": "false"}), "SESSION_COOKIE_SECURE must be true"},
+		{"http base URL in production", prod(map[string]string{"APP_BASE_URL": "http://dakota.example"}), "APP_BASE_URL must use https"},
+		{"http origin in production", prod(map[string]string{"ALLOWED_ORIGINS": "http://dakota.example"}), "ALLOWED_ORIGINS must use https"},
+		{"origin with path", map[string]string{"APP_ENV": "test", "DATABASE_URL": "x", "ALLOWED_ORIGINS": "http://a.test/app"}, "not an origin"},
+		{"idle longer than ttl", map[string]string{"APP_ENV": "test", "DATABASE_URL": "x", "SESSION_TTL": "10m", "SESSION_IDLE_TIMEOUT": "1h"}, "SESSION_IDLE_TIMEOUT"},
+		{"bad smtp port", map[string]string{"APP_ENV": "test", "DATABASE_URL": "x", "SMTP_PORT": "abc"}, "SMTP_PORT"},
 		{"missing APP_ENV", map[string]string{"DATABASE_URL": "x"}, "APP_ENV is required"},
 		{"unknown APP_ENV", map[string]string{"APP_ENV": "prod", "DATABASE_URL": "x"}, `APP_ENV "prod"`},
 		{"missing DATABASE_URL", map[string]string{"APP_ENV": "test"}, "DATABASE_URL is required"},
