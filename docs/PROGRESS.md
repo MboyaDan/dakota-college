@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 6b, Public pages. Done, awaiting review.
-- **Next stage:** 7, Public site part 2 (admissions, fees, intake calendar, FAQs, news and events, student life, alumni, legal pages, custom 404 and 500).
-- **Branch:** `stage-06b-public-pages` (from `main` after #17)
+- **Current stage:** 7a, Pages content type, news and events API, legal drafts. Done, awaiting review.
+- **Next stage:** 7b, Public site part 2 pages (admissions, fees, intake calendar, FAQs, news and events, student life, alumni, legal pages, custom 404 and 500).
+- **Branch:** `stage-07a-content-pages` (from `main` after #18)
 
 ## Stage status
 
@@ -21,8 +21,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 5b | Staff content screens | Merged (#15) |
 | 5c | Brand refresh | Merged (#16) |
 | 6a | Public API | Merged (#17) |
-| 6b | Public pages | Done, awaiting review |
-| 7 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 6b | Public pages | Merged (#18) |
+| 7a | Pages type, news and events API, legal drafts | Done, awaiting review |
+| 7b | Public site part 2 pages | Not started |
+| 8 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -35,6 +37,14 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 7a: Pages type, news and events API, legal drafts (2026-10-22)
+
+- Stage 7 split into 7a (backend, editor) and 7b (pages), approved by the owner.
+- Pages content type (migration 00008) with staff editor; snapshot carries pages and gallery; news list and detail, events list and detail endpoints (D-82, D-83).
+- Legal page drafts for review in `docs/legal/` (D-84); alumni enquiry type (D-85).
+- Tagline corrected to "Progress" on the home hero, as text under the untagged logo (D-81).
+- Owner supplied the phone and WhatsApp number; recorded in `docs/launch-content.md` for go-live.
 
 ### Stage 6b: Public pages (2026-10-22)
 

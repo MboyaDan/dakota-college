@@ -110,3 +110,18 @@ var userSeeds = []userSeed{
 	{"editor@example.invalid", "Test Content Editor 001", "staff", "content_editor"},
 	{"student001@example.invalid", "Test Student 001", "student", "student"},
 }
+
+type pageSeed struct {
+	slug, title, summary, body string
+}
+
+// Sample text pages. The legal ones carry the review drafts from docs/legal
+// (see pages.go); the others are placeholders for the college's own words.
+var pageSeeds = []pageSeed{
+	{"admissions", "How to apply (Sample)", "(Sample) How applications work.",
+		"(Sample) The college will explain its application steps here.\n\n## Before you apply\n\n- (Sample) Check the entry requirements on the programme page.\n- (Sample) Have copies of your documents ready."},
+	{"student-life", "Student life (Sample)", "(Sample) Life on campus.",
+		"(Sample) The college will describe clubs, sports, accommodation guidance, health and safety, and student support here."},
+	{"alumni", "Alumni (Sample)", "(Sample) For former students.",
+		"(Sample) The college will describe its alumni community here.\n\n## Transcripts and certificates\n\n(Sample) Former students can request a transcript or a certificate copy through the contact form, choosing Alumni."},
+}

@@ -27,11 +27,12 @@ func init() {
 	register(galleryKind)
 	register(statisticKind)
 	register(accreditationKind)
+	register(pageKind)
 }
 
 // KindNames lists the registered content types (for docs and tests).
 func KindNames() []string {
-	return []string{"schools", "programmes", "news", "events", "faq-categories", "faqs", "banners", "gallery", "statistics", "accreditations"}
+	return []string{"schools", "programmes", "news", "events", "faq-categories", "faqs", "banners", "gallery", "statistics", "accreditations", "pages"}
 }
 
 func summaries[T any](rows []T, err error, f func(T) Summary) ([]Summary, error) {
@@ -178,6 +179,68 @@ var newsKind = def[NewsDoc]{
 		}
 		if d.Body == "" {
 			p.add("body", "Write the article before publishing.")
+		}
+		return p.Err()
+	},
+}
+
+// ---------- pages ----------
+
+// PageDoc is a text page such as student life or the privacy notice. Body is
+// plain text: blank lines separate paragraphs, "## " starts a heading and
+// "- " a list item (rendered by the website, never as HTML).
+type PageDoc struct {
+	Slug           string `json:"slug"`
+	Title          string `json:"title"`
+	Summary        string `json:"summary"`
+	Body           string `json:"body"`
+	SEOTitle       string `json:"seo_title"`
+	SEODescription string `json:"seo_description"`
+}
+
+func (d PageDoc) Validate() error {
+	var p Problems
+	p.slug("slug", d.Slug)
+	p.required("title", d.Title, 160)
+	p.optional("summary", d.Summary, 400)
+	p.optional("body", d.Body, 100000)
+	p.optional("seo_title", d.SEOTitle, 70)
+	p.optional("seo_description", d.SEODescription, 170)
+	return p.Err()
+}
+
+var pageKind = def[PageDoc]{
+	name: "pages", workflow: true,
+	list: func(ctx context.Context, q *dbq.Queries) ([]Summary, error) {
+		rows, err := q.StaffListPages(ctx)
+		return summaries(rows, err, func(r dbq.StaffListPagesRow) Summary {
+			return Summary{ID: r.ID, Label: r.Label, Context: "/" + r.Slug, Status: r.Status, IsSample: r.IsSample, UpdatedAt: r.UpdatedAt}
+		})
+	},
+	load: func(ctx context.Context, q *dbq.Queries, id uuid.UUID) (PageDoc, State, error) {
+		r, err := q.StaffGetPage(ctx, id)
+		if err != nil {
+			return PageDoc{}, State{}, notFound(err)
+		}
+		return PageDoc{Slug: r.Slug, Title: r.Title, Summary: r.Summary, Body: r.Body, SEOTitle: r.SeoTitle, SEODescription: r.SeoDescription},
+			State{Status: r.Status, PublishedAt: r.PublishedAt, IsSample: r.IsSample, UpdatedAt: r.UpdatedAt}, nil
+	},
+	create: func(ctx context.Context, q *dbq.Queries, d PageDoc, actor uuid.UUID) (uuid.UUID, error) {
+		return q.StaffInsertPage(ctx, dbq.StaffInsertPageParams{Slug: d.Slug, Title: d.Title, Summary: d.Summary, Body: d.Body,
+			SeoTitle: d.SEOTitle, SeoDescription: d.SEODescription, Actor: &actor})
+	},
+	save: func(ctx context.Context, q *dbq.Queries, id uuid.UUID, d PageDoc, actor uuid.UUID) error {
+		return q.StaffUpdatePage(ctx, dbq.StaffUpdatePageParams{ID: id, Slug: d.Slug, Title: d.Title, Summary: d.Summary, Body: d.Body,
+			SeoTitle: d.SEOTitle, SeoDescription: d.SEODescription, Actor: &actor})
+	},
+	setStatus: func(ctx context.Context, q *dbq.Queries, id uuid.UUID, status string, at *time.Time, actor uuid.UUID) error {
+		return q.StaffSetPageStatus(ctx, dbq.StaffSetPageStatusParams{ID: id, Status: status, PublishedAt: at, Actor: &actor})
+	},
+	remove: func(ctx context.Context, q *dbq.Queries, id uuid.UUID) error { return q.StaffDeletePage(ctx, id) },
+	readyToPublish: func(_ context.Context, _ *dbq.Queries, d PageDoc) error {
+		var p Problems
+		if d.Body == "" {
+			p.add("body", "Write the page before publishing.")
 		}
 		return p.Err()
 	},

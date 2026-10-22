@@ -306,6 +306,23 @@ type Offer struct {
 	DeclinedAt    *time.Time
 }
 
+type Page struct {
+	ID             uuid.UUID
+	Slug           string
+	Title          string
+	Summary        string
+	Body           string
+	SeoTitle       string
+	SeoDescription string
+	Status         string
+	PublishedAt    *time.Time
+	IsSample       bool
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	CreatedBy      *uuid.UUID
+	UpdatedBy      *uuid.UUID
+}
+
 type PasswordReset struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID

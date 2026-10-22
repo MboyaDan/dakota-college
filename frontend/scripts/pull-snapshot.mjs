@@ -29,6 +29,8 @@ const empty = {
   accreditations: [],
   events: [],
   news: [],
+  pages: [],
+  gallery: [],
 };
 
 let snapshot = empty;

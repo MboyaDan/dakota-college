@@ -145,6 +145,10 @@ func NewRouter(d Deps) (*Router, error) {
 		ph := publicHandlers{content: d.Content, images: d.Images, enquiries: d.Enquiries}
 		add(http.MethodGet, "/public/site", true, "", ph.site)
 		add(http.MethodPost, "/public/enquiries", true, "", ph.createEnquiry)
+		add(http.MethodGet, "/public/news", true, "", ph.newsList)
+		add(http.MethodGet, "/public/news/:slug", true, "", ph.newsArticle)
+		add(http.MethodGet, "/public/events", true, "", ph.events)
+		add(http.MethodGet, "/public/events/:slug", true, "", ph.event)
 	}
 
 	return rt, nil

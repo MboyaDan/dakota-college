@@ -468,7 +468,8 @@ export interface paths {
          *     one response and keeps a bundled copy for when the API is asleep (AC-15). Programmes
          *     include requirements, upcoming intakes (not closed, not started; Nairobi date) and fees.
          *     Statistics and accreditations are verified by construction (AC-16). Events: the next 6.
-         *     News: the latest 6, without bodies. `is_sample` marks dev seed rows.
+         *     News: the latest 6, without bodies. Pages: every published text page, with body.
+         *     Gallery: published photos (all have recorded consent). `is_sample` marks dev seed rows.
          */
         get: operations["getPublicSite"];
         put?: never;
@@ -492,7 +493,7 @@ export interface paths {
          * Send a question from the contact form
          * @description Saves the enquiry and emails the office for its query type (admissions and programmes:
          *     contact.admissions_email; fees: contact.finance_email; others: contact.email, which is
-         *     also the fallback). Replies go to the visitor's email (Reply-To).
+         *     also the fallback; alumni requests go to contact.email). Replies go to the visitor's email (Reply-To).
          *
          *     Spam protection (D-70): `website` is a honeypot that must stay empty, and `elapsed_ms`
          *     (time the form was open) must be at least 3000. Submissions failing either get 202 but are
@@ -500,6 +501,74 @@ export interface paths {
          *     address or phone number; 60 an hour overall.
          */
         post: operations["createEnquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/news": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Published news, newest first, 12 per page */
+        get: operations["listPublicNews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/news/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One published article */
+        get: operations["getPublicNews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Upcoming published events and the 12 most recent past ones */
+        get: operations["listPublicEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/events/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One published event */
+        get: operations["getPublicEvent"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -544,7 +613,7 @@ export interface components {
             version: string;
         };
         /** @description The document for the content type in the path. */
-        ContentDocument: components["schemas"]["SchoolDoc"] | components["schemas"]["ProgrammeDoc"] | components["schemas"]["NewsDoc"] | components["schemas"]["EventDoc"] | components["schemas"]["FaqCategoryDoc"] | components["schemas"]["FaqDoc"] | components["schemas"]["BannerDoc"] | components["schemas"]["GalleryDoc"] | components["schemas"]["StatisticDoc"] | components["schemas"]["AccreditationDoc"];
+        ContentDocument: components["schemas"]["SchoolDoc"] | components["schemas"]["ProgrammeDoc"] | components["schemas"]["NewsDoc"] | components["schemas"]["EventDoc"] | components["schemas"]["FaqCategoryDoc"] | components["schemas"]["FaqDoc"] | components["schemas"]["BannerDoc"] | components["schemas"]["GalleryDoc"] | components["schemas"]["StatisticDoc"] | components["schemas"]["AccreditationDoc"] | components["schemas"]["PageDoc"];
         SchoolDoc: {
             slug: string;
             name: string;
@@ -619,6 +688,16 @@ export interface components {
             /** Format: uuid */
             cover_file_id: string | null;
             cover_alt: string;
+            seo_title: string;
+            seo_description: string;
+        };
+        PageDoc: {
+            /** @description The page's address, e.g. privacy for /privacy. */
+            slug: string;
+            title: string;
+            summary: string;
+            /** @description Plain text. Blank lines separate paragraphs; "## " starts a heading; "- " a list item. Never HTML. */
+            body: string;
             seo_title: string;
             seo_description: string;
         };
@@ -788,6 +867,8 @@ export interface components {
             accreditations: components["schemas"]["PublicAccreditation"][];
             events: components["schemas"]["PublicEvent"][];
             news: components["schemas"]["PublicNews"][];
+            pages: components["schemas"]["PublicPage"][];
+            gallery: components["schemas"]["PublicPhoto"][];
         };
         PublicBanner: {
             message: string;
@@ -910,6 +991,51 @@ export interface components {
             cover_alt: string;
             is_sample: boolean;
         };
+        PublicPage: {
+            slug: string;
+            title: string;
+            summary: string;
+            /** @description Plain text with "## " headings and "- " list items. */
+            body: string;
+            seo_title: string;
+            seo_description: string;
+            /** Format: date-time */
+            published_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            is_sample: boolean;
+        };
+        PublicPhoto: {
+            image: components["schemas"]["ImageFile"];
+            caption: string;
+            alt_text: string;
+            is_sample: boolean;
+        };
+        NewsList: {
+            items: components["schemas"]["PublicNews"][];
+            page: number;
+            total_pages: number;
+            total: number;
+        };
+        NewsArticle: components["schemas"]["PublicNews"] & {
+            body: string;
+            seo_title: string;
+            seo_description: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EventList: {
+            upcoming: components["schemas"]["PublicEvent"][];
+            /** @description The 12 most recent. */
+            past: components["schemas"]["PublicEvent"][];
+        };
+        EventDetail: components["schemas"]["PublicEvent"] & {
+            body: string;
+            /** Format: date-time */
+            published_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
         /** @description Error body returned by every endpoint on failure. */
         Error: {
             error: {
@@ -956,7 +1082,7 @@ export interface components {
         };
     };
     parameters: {
-        Kind: "schools" | "programmes" | "news" | "events" | "faq-categories" | "faqs" | "banners" | "gallery" | "statistics" | "accreditations";
+        Kind: "schools" | "programmes" | "news" | "events" | "faq-categories" | "faqs" | "banners" | "gallery" | "statistics" | "accreditations" | "pages";
         ID: string;
     };
     requestBodies: never;
@@ -1827,7 +1953,7 @@ export interface operations {
                     /** @description Digits and spaces, optional leading +. */
                     phone?: string;
                     /** @enum {string} */
-                    query_type: "admissions" | "programmes" | "fees" | "student_life" | "other";
+                    query_type: "admissions" | "programmes" | "fees" | "student_life" | "alumni" | "other";
                     /** @description Slug of a published programme, optional. */
                     programme?: string;
                     message: string;
@@ -1855,6 +1981,95 @@ export interface operations {
             403: components["responses"]["Error"];
             422: components["responses"]["Error"];
             429: components["responses"]["Error"];
+        };
+    };
+    listPublicNews: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of articles (without bodies). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewsList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    getPublicNews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The article. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewsArticle"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    listPublicEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Events, without bodies. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventList"];
+                };
+            };
+        };
+    };
+    getPublicEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The event. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventDetail"];
+                };
+            };
+            404: components["responses"]["Error"];
         };
     };
 }

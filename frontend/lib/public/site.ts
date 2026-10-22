@@ -13,7 +13,9 @@ import bundled from "./snapshot.json";
 //   - during `next build` and `next dev`, and for pages rendered per request
 //     (the filtered course finder), the copy bundled at build time is used.
 
-const fallback = bundled as PublicSite;
+// The file is the API's own response (D-74), so it has the contract's shape;
+// cast through unknown because JSON imports type their literal values.
+const fallback = bundled as unknown as PublicSite;
 
 export const PUBLIC_SITE_TAG = "public-site";
 

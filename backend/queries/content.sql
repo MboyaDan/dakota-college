@@ -94,4 +94,12 @@ SELECT
   + (SELECT count(*) FROM gallery_items WHERE is_sample)
   + (SELECT count(*) FROM statistics WHERE is_sample)
   + (SELECT count(*) FROM accreditations WHERE is_sample)
+  + (SELECT count(*) FROM pages WHERE is_sample)
   AS total;
+
+-- name: UpsertPage :exec
+INSERT INTO pages (slug, title, summary, body, status, published_at, is_sample)
+VALUES (@slug, @title, @summary, @body, @status, @published_at, @is_sample)
+ON CONFLICT (slug) DO UPDATE
+  SET title = EXCLUDED.title, summary = EXCLUDED.summary, body = EXCLUDED.body, status = EXCLUDED.status,
+      published_at = EXCLUDED.published_at, is_sample = EXCLUDED.is_sample;

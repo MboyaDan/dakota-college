@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -276,4 +277,105 @@ func TestEnquirySpamProtection(t *testing.T) {
 	// Another site cannot post the form from a visitor's browser.
 	w = h.do(req{method: http.MethodPost, path: "/api/v1/public/enquiries", body: enquiryBody(nil), headers: map[string]string{"Origin": "https://evil.example"}})
 	expectStatus(t, w, http.StatusForbidden, "cross_site_request")
+}
+
+// Stage 7: text pages and consented photos reach the snapshot only when
+// published; a page cannot be published empty.
+func TestPublicSitePagesAndGallery(t *testing.T) {
+	h := newHarness(t)
+	h.firstSuperAdmin("owner@example.invalid")
+	owner := h.mustLogin("owner@example.invalid")
+
+	empty := map[string]any{"slug": "privacy", "title": "Privacy notice", "summary": "", "body": "", "seo_title": "", "seo_description": ""}
+	pageID := h.create(owner, "pages", empty)
+	h.publish(owner, "pages", pageID, http.StatusUnprocessableEntity)
+	if len(h.site()["pages"].([]any)) != 0 {
+		t.Fatal("draft page is public")
+	}
+	cur := h.item(owner, "pages", pageID)
+	full := map[string]any{"slug": "privacy", "title": "Privacy notice", "summary": "How we use data.", "body": "## Who we are\n\nText.",
+		"seo_title": "", "seo_description": ""}
+	h.call(req{method: http.MethodPut, path: contentPath("pages", pageID), body: map[string]any{"document": full, "base_version": cur["version"]}, sess: owner}, http.StatusOK)
+	h.publish(owner, "pages", pageID, http.StatusOK)
+
+	img := h.upload(owner, "photo.png", pngBytes(t, 800, 600))
+	draftPhoto := map[string]any{"file_id": img.body["id"], "caption": "Library", "alt_text": "Students reading", "consent_confirmed": true,
+		"consent_note": "Forms on file.", "sort_order": 0}
+	photoID := h.create(owner, "gallery", draftPhoto)
+	if len(h.site()["gallery"].([]any)) != 0 {
+		t.Fatal("draft photo is public")
+	}
+	h.publish(owner, "gallery", photoID, http.StatusOK)
+
+	site := h.site()
+	pages := site["pages"].([]any)
+	if len(pages) != 1 || pages[0].(map[string]any)["slug"] != "privacy" || pages[0].(map[string]any)["body"] != "## Who we are\n\nText." {
+		t.Fatalf("pages %v", pages)
+	}
+	photos := site["gallery"].([]any)
+	if len(photos) != 1 {
+		t.Fatalf("gallery %v", photos)
+	}
+	photo := photos[0].(map[string]any)
+	if photo["alt_text"] != "Students reading" || !strings.HasPrefix(photo["image"].(map[string]any)["url"].(string), "https://cdn.example/dakota-public/") {
+		t.Fatalf("photo %v", photo)
+	}
+}
+
+func TestPublicNewsAndEvents(t *testing.T) {
+	h := newHarness(t)
+	for i := 0; i < 13; i++ {
+		h.exec(`INSERT INTO news_posts (slug, title, summary, body, status, published_at)
+		        VALUES ($1, $2, 'Summary', 'Body text', 'published', now() - make_interval(days => $3))`,
+			fmt.Sprintf("article-%02d", i), fmt.Sprintf("Article %02d", i), i)
+	}
+	h.exec(`INSERT INTO news_posts (slug, title, body, status) VALUES ('draft-article', 'Draft', 'Secret', 'draft')`)
+
+	first := h.call(req{method: http.MethodGet, path: "/api/v1/public/news"}, http.StatusOK)
+	if len(first["items"].([]any)) != 12 || first["total"] != float64(13) || first["total_pages"] != float64(2) {
+		t.Fatalf("page 1: %v items, total %v, pages %v", len(first["items"].([]any)), first["total"], first["total_pages"])
+	}
+	if first["items"].([]any)[0].(map[string]any)["slug"] != "article-00" {
+		t.Fatal("news is not newest first")
+	}
+	second := h.call(req{method: http.MethodGet, path: "/api/v1/public/news?page=2"}, http.StatusOK)
+	if len(second["items"].([]any)) != 1 {
+		t.Fatalf("page 2 has %d items", len(second["items"].([]any)))
+	}
+	expectStatus(t, h.do(req{method: http.MethodGet, path: "/api/v1/public/news?page=0"}), http.StatusBadRequest, "invalid_request")
+
+	article := h.call(req{method: http.MethodGet, path: "/api/v1/public/news/article-03"}, http.StatusOK)
+	if article["body"] != "Body text" || article["title"] != "Article 03" {
+		t.Fatalf("article %v", article)
+	}
+	expectStatus(t, h.do(req{method: http.MethodGet, path: "/api/v1/public/news/draft-article"}), http.StatusNotFound, "not_found")
+
+	h.exec(`INSERT INTO events (slug, title, body, location, starts_at, status, published_at)
+	        VALUES ('open-day', 'Open day', 'Come and see us.', 'Campus', now() + interval '10 days', 'published', now())`)
+	h.exec(`INSERT INTO events (slug, title, starts_at, status, published_at)
+	        VALUES ('graduation', 'Graduation', now() - interval '10 days', 'published', now())`)
+	h.exec(`INSERT INTO events (slug, title, starts_at, status) VALUES ('draft-event', 'Draft', now() + interval '5 days', 'draft')`)
+
+	events := h.call(req{method: http.MethodGet, path: "/api/v1/public/events"}, http.StatusOK)
+	if got := slugsOf(events["upcoming"]); len(got) != 1 || got[0] != "open-day" {
+		t.Fatalf("upcoming %v", got)
+	}
+	if got := slugsOf(events["past"]); len(got) != 1 || got[0] != "graduation" {
+		t.Fatalf("past %v", got)
+	}
+	event := h.call(req{method: http.MethodGet, path: "/api/v1/public/events/open-day"}, http.StatusOK)
+	if event["body"] != "Come and see us." || event["location"] != "Campus" {
+		t.Fatalf("event %v", event)
+	}
+	expectStatus(t, h.do(req{method: http.MethodGet, path: "/api/v1/public/events/draft-event"}), http.StatusNotFound, "not_found")
+}
+
+func TestAlumniEnquiryGoesToTheGeneralOffice(t *testing.T) {
+	h := newHarness(t)
+	h.setSetting("contact.email", "info@example.invalid")
+	h.setSetting("contact.admissions_email", "admissions@example.invalid")
+	h.sendEnquiry(enquiryBody(map[string]any{"query_type": "alumni", "message": "Please send my transcript."}), http.StatusAccepted)
+	if m := h.waitForMail(1)[0]; m.To != "info@example.invalid" || !strings.Contains(m.Subject, "Alumni") {
+		t.Fatalf("alumni email: %+v", m)
+	}
 }
