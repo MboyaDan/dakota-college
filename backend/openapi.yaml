@@ -17,6 +17,11 @@ tags:
     description: Sign in, sign out, session and password reset.
   - name: admin
     description: Staff accounts and roles. Every route needs the permission named in its description.
+  - name: content
+    description: |
+      Staff content manager. Content Editors (content.write) create and edit; publishers
+      (content.publish, Registrar and Principal) publish. Editing a published item saves a
+      pending version that goes live only when published again.
 security:
   - session: []
 paths:
@@ -349,6 +354,251 @@ paths:
                   permissions: { type: array, items: { $ref: "#/components/schemas/Permission" } }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/content/{kind}:
+    get:
+      tags: [content]
+      operationId: listContent
+      summary: List items of one content type (content.read)
+      parameters: [{ $ref: "#/components/parameters/Kind" }]
+      responses:
+        "200":
+          description: Items, newest or in display order.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/ContentSummary" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [content]
+      operationId: createContent
+      summary: Create a draft (content.write; faq-categories need content.publish)
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document]
+              properties:
+                document: { $ref: "#/components/schemas/ContentDocument" }
+      responses:
+        "201":
+          description: Created as a draft.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Created" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/content/{kind}/{id}:
+    get:
+      tags: [content]
+      operationId: getContent
+      summary: One item with its live and pending versions (content.read)
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }]
+      responses:
+        "200":
+          description: The item.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContentItem" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [content]
+      operationId: updateContent
+      summary: Save an edit (content.write)
+      description: Drafts change in place. A published item gets a pending version instead. base_version must match the item's current version, or 409.
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document, base_version]
+              properties:
+                document: { $ref: "#/components/schemas/ContentDocument" }
+                base_version: { type: string }
+      responses:
+        "200":
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContentItem" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [content]
+      operationId: deleteContent
+      summary: Delete a draft that was never published (content.write)
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/content/{kind}/{id}/pending:
+    delete:
+      tags: [content]
+      operationId: discardPendingContent
+      summary: Throw away a pending edit (content.write)
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Discarded. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/content/{kind}/{id}/publish:
+    post:
+      tags: [content]
+      operationId: publishContent
+      summary: Publish the item, applying any pending edit (content.publish)
+      description: Refused with 422 and a list of fields when the item is not complete (for example a programme without fees, or a statistic without a verification date).
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [base_version]
+              properties:
+                base_version: { type: string }
+      responses:
+        "200":
+          description: Published.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContentItem" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/content/{kind}/{id}/unpublish:
+    post:
+      tags: [content]
+      operationId: unpublishContent
+      summary: Take the item off the site, back to draft (content.publish)
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200":
+          description: Now a draft.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContentItem" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/content/{kind}/{id}/archive:
+    post:
+      tags: [content]
+      operationId: archiveContent
+      summary: Archive the item (content.publish)
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200":
+          description: Archived.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContentItem" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/settings:
+    get:
+      tags: [content]
+      operationId: listSettings
+      summary: Site settings (content.read)
+      responses:
+        "200":
+          description: Settings. Empty values are hidden on the site.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [settings]
+                properties:
+                  settings: { type: array, items: { $ref: "#/components/schemas/Setting" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [content]
+      operationId: updateSettings
+      summary: Change site settings (content.publish)
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [values]
+              properties:
+                values: { type: object, additionalProperties: { type: string } }
+      responses:
+        "204": { description: Saved. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/images:
+    post:
+      tags: [content]
+      operationId: uploadImage
+      summary: Upload a public website image (content.write)
+      description: JPG, PNG or WebP up to 10 MB. Checked by content, rotated upright, metadata removed, stored at widths 480, 960 and 1600 (no wider than the original).
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "201":
+          description: Stored.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImageFile" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/images/{id}:
+    get:
+      tags: [content]
+      operationId: getImage
+      summary: An uploaded image's URLs (content.read)
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200":
+          description: The image.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImageFile" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     session:
@@ -357,6 +607,13 @@ components:
       name: __Host-dtc_session
       description: Server-side session cookie (dtc_session in local development).
   parameters:
+    Kind:
+      name: kind
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [schools, programmes, news, events, faq-categories, faqs, banners, gallery, statistics, accreditations]
     CSRF:
       name: X-CSRF-Token
       in: header
@@ -390,6 +647,223 @@ components:
       schema:
         type: string
   schemas:
+    ContentSummary:
+      type: object
+      required: [id, label, status, is_sample, updated_at, has_pending]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string }
+        context: { type: string, description: "Parent, e.g. the school of a programme." }
+        status: { type: string, enum: [draft, published, archived] }
+        is_sample: { type: boolean }
+        updated_at: { type: string, format: date-time }
+        has_pending: { type: boolean }
+    ContentItem:
+      type: object
+      required: [kind, id, status, published_at, is_sample, updated_at, workflow, live, pending, pending_updated_at, version]
+      properties:
+        kind: { type: string }
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [draft, published, archived] }
+        published_at: { type: [string, "null"], format: date-time }
+        is_sample: { type: boolean }
+        updated_at: { type: string, format: date-time }
+        workflow: { type: boolean, description: "False for types without draft and publish (faq-categories)." }
+        live: { $ref: "#/components/schemas/ContentDocument" }
+        pending:
+          oneOf:
+            - { $ref: "#/components/schemas/ContentDocument" }
+            - { type: "null" }
+        pending_updated_at: { type: [string, "null"], format: date-time }
+        version: { type: string, description: "Send back as base_version when saving or publishing." }
+    ContentDocument:
+      description: The document for the content type in the path.
+      oneOf:
+        - { $ref: "#/components/schemas/SchoolDoc" }
+        - { $ref: "#/components/schemas/ProgrammeDoc" }
+        - { $ref: "#/components/schemas/NewsDoc" }
+        - { $ref: "#/components/schemas/EventDoc" }
+        - { $ref: "#/components/schemas/FaqCategoryDoc" }
+        - { $ref: "#/components/schemas/FaqDoc" }
+        - { $ref: "#/components/schemas/BannerDoc" }
+        - { $ref: "#/components/schemas/GalleryDoc" }
+        - { $ref: "#/components/schemas/StatisticDoc" }
+        - { $ref: "#/components/schemas/AccreditationDoc" }
+    SchoolDoc:
+      type: object
+      additionalProperties: false
+      required: [slug, name, short_name, accent_key, summary, description, head_message, sort_order]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        short_name: { type: string }
+        accent_key: { type: string, enum: [medical, hospitality, ict, business, pool] }
+        summary: { type: string }
+        description: { type: string }
+        head_message: { type: string }
+        sort_order: { type: integer }
+    ProgrammeDoc:
+      type: object
+      additionalProperties: false
+      required: [school_id, slug, title, level, mode, duration_months, duration_note, min_kcse_grade, summary, overview, what_you_learn, career_outcomes, assessment_model, seo_title, seo_description, sort_order, requirements, intakes, fees]
+      properties:
+        school_id: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+        level: { type: string, enum: [short_course, artisan, certificate, diploma, higher_diploma] }
+        mode: { type: string, enum: [full_time, part_time, blended] }
+        duration_months: { type: [integer, "null"] }
+        duration_note: { type: string }
+        min_kcse_grade: { type: [string, "null"], enum: [A, A-, B+, B, B-, C+, C, C-, D+, D, D-, E, null] }
+        summary: { type: string }
+        overview: { type: string }
+        what_you_learn: { type: string }
+        career_outcomes: { type: string }
+        assessment_model: { type: string, enum: [marks, competency, both] }
+        seo_title: { type: string }
+        seo_description: { type: string }
+        sort_order: { type: integer }
+        requirements:
+          type: array
+          items:
+            type: object
+            required: [kind, requirement]
+            properties:
+              kind: { type: string, enum: [academic, document, other] }
+              requirement: { type: string }
+        intakes:
+          type: array
+          items:
+            type: object
+            required: [id, name, starts_on, applications_open_on, application_deadline, capacity, status]
+            properties:
+              id: { type: [string, "null"], format: uuid, description: "Null for a new intake; keep it for existing ones." }
+              name: { type: string }
+              starts_on: { type: string, format: date }
+              applications_open_on: { type: [string, "null"], format: date }
+              application_deadline: { type: [string, "null"], format: date }
+              capacity: { type: [integer, "null"] }
+              status: { type: string, enum: [planned, open, closed] }
+        fees:
+          type: array
+          items:
+            type: object
+            required: [label, category, amount_cents, frequency, notes]
+            properties:
+              label: { type: string }
+              category: { type: string, enum: [tuition, registration, assessment, caution, other] }
+              amount_cents: { type: integer, description: "Whole cents of KES: KES 1,000.00 is 100000." }
+              frequency: { type: string, enum: [once, per_term, per_year, whole_programme] }
+              notes: { type: string }
+    NewsDoc:
+      type: object
+      additionalProperties: false
+      required: [slug, title, summary, body, cover_file_id, cover_alt, seo_title, seo_description]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        body: { type: string }
+        cover_file_id: { type: [string, "null"], format: uuid }
+        cover_alt: { type: string }
+        seo_title: { type: string }
+        seo_description: { type: string }
+    EventDoc:
+      type: object
+      additionalProperties: false
+      required: [slug, title, summary, body, location, starts_at, ends_at]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        body: { type: string }
+        location: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: [string, "null"], format: date-time }
+    FaqCategoryDoc:
+      type: object
+      additionalProperties: false
+      required: [slug, name, sort_order]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        sort_order: { type: integer }
+    FaqDoc:
+      type: object
+      additionalProperties: false
+      required: [category_id, programme_id, question, answer, sort_order]
+      properties:
+        category_id: { type: string, format: uuid }
+        programme_id: { type: [string, "null"], format: uuid }
+        question: { type: string }
+        answer: { type: string }
+        sort_order: { type: integer }
+    BannerDoc:
+      type: object
+      additionalProperties: false
+      required: [message, link_label, link_href, starts_at, ends_at]
+      properties:
+        message: { type: string, maxLength: 200 }
+        link_label: { type: [string, "null"] }
+        link_href: { type: [string, "null"] }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+    GalleryDoc:
+      type: object
+      additionalProperties: false
+      required: [file_id, caption, alt_text, consent_confirmed, consent_note, sort_order]
+      properties:
+        file_id: { type: string, format: uuid }
+        caption: { type: string }
+        alt_text: { type: string }
+        consent_confirmed: { type: boolean, description: "Written consent from everyone recognisable. Required to publish." }
+        consent_note: { type: string }
+        sort_order: { type: integer }
+    StatisticDoc:
+      type: object
+      additionalProperties: false
+      required: [label, value, source_note, verified_on, sort_order]
+      properties:
+        label: { type: string }
+        value: { type: string }
+        source_note: { type: string, description: "Where the evidence is. Required to publish." }
+        verified_on: { type: [string, "null"], format: date, description: "Required to publish; not in the future." }
+        sort_order: { type: integer }
+    AccreditationDoc:
+      type: object
+      additionalProperties: false
+      required: [body, reference, description, evidence_note, verified_on, sort_order]
+      properties:
+        body: { type: string }
+        reference: { type: string }
+        description: { type: string }
+        evidence_note: { type: string, description: "Required to publish." }
+        verified_on: { type: [string, "null"], format: date, description: "Required to publish." }
+        sort_order: { type: integer }
+    Setting:
+      type: object
+      required: [key, value, description, updated_at]
+      properties:
+        key: { type: string }
+        value: { type: string }
+        description: { type: string }
+        updated_at: { type: string, format: date-time }
+    ImageFile:
+      type: object
+      required: [id, width, height, url, variants]
+      properties:
+        id: { type: string, format: uuid }
+        width: { type: integer }
+        height: { type: integer }
+        url: { type: string, description: "Largest stored width." }
+        variants:
+          type: array
+          items:
+            type: object
+            required: [width, url]
+            properties:
+              width: { type: integer }
+              url: { type: string }
     Session:
       type: object
       required: [user, permissions, csrf_token]
@@ -485,3 +959,12 @@ components:
               description: Plain-language message safe to show to users.
             request_id:
               type: string
+            fields:
+              type: array
+              description: For validation_failed, what to fix in each field.
+              items:
+                type: object
+                required: [field, message]
+                properties:
+                  field: { type: string }
+                  message: { type: string }

@@ -289,10 +289,376 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/content/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List items of one content type (content.read) */
+        get: operations["listContent"];
+        put?: never;
+        /** Create a draft (content.write; faq-categories need content.publish) */
+        post: operations["createContent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/content/{kind}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One item with its live and pending versions (content.read) */
+        get: operations["getContent"];
+        /**
+         * Save an edit (content.write)
+         * @description Drafts change in place. A published item gets a pending version instead. base_version must match the item's current version, or 409.
+         */
+        put: operations["updateContent"];
+        post?: never;
+        /** Delete a draft that was never published (content.write) */
+        delete: operations["deleteContent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/content/{kind}/{id}/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Throw away a pending edit (content.write) */
+        delete: operations["discardPendingContent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/content/{kind}/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the item, applying any pending edit (content.publish)
+         * @description Refused with 422 and a list of fields when the item is not complete (for example a programme without fees, or a statistic without a verification date).
+         */
+        post: operations["publishContent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/content/{kind}/{id}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take the item off the site, back to draft (content.publish) */
+        post: operations["unpublishContent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/content/{kind}/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive the item (content.publish) */
+        post: operations["archiveContent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Site settings (content.read) */
+        get: operations["listSettings"];
+        /** Change site settings (content.publish) */
+        put: operations["updateSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a public website image (content.write)
+         * @description JPG, PNG or WebP up to 10 MB. Checked by content, rotated upright, metadata removed, stored at widths 480, 960 and 1600 (no wider than the original).
+         */
+        post: operations["uploadImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/images/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An uploaded image's URLs (content.read) */
+        get: operations["getImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ContentSummary: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** @description Parent, e.g. the school of a programme. */
+            context?: string;
+            /** @enum {string} */
+            status: "draft" | "published" | "archived";
+            is_sample: boolean;
+            /** Format: date-time */
+            updated_at: string;
+            has_pending: boolean;
+        };
+        ContentItem: {
+            kind: string;
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "published" | "archived";
+            /** Format: date-time */
+            published_at: string | null;
+            is_sample: boolean;
+            /** Format: date-time */
+            updated_at: string;
+            /** @description False for types without draft and publish (faq-categories). */
+            workflow: boolean;
+            live: components["schemas"]["ContentDocument"];
+            pending: components["schemas"]["ContentDocument"] | null;
+            /** Format: date-time */
+            pending_updated_at: string | null;
+            /** @description Send back as base_version when saving or publishing. */
+            version: string;
+        };
+        /** @description The document for the content type in the path. */
+        ContentDocument: components["schemas"]["SchoolDoc"] | components["schemas"]["ProgrammeDoc"] | components["schemas"]["NewsDoc"] | components["schemas"]["EventDoc"] | components["schemas"]["FaqCategoryDoc"] | components["schemas"]["FaqDoc"] | components["schemas"]["BannerDoc"] | components["schemas"]["GalleryDoc"] | components["schemas"]["StatisticDoc"] | components["schemas"]["AccreditationDoc"];
+        SchoolDoc: {
+            slug: string;
+            name: string;
+            short_name: string;
+            /** @enum {string} */
+            accent_key: "medical" | "hospitality" | "ict" | "business" | "pool";
+            summary: string;
+            description: string;
+            head_message: string;
+            sort_order: number;
+        };
+        ProgrammeDoc: {
+            /** Format: uuid */
+            school_id: string;
+            slug: string;
+            title: string;
+            /** @enum {string} */
+            level: "short_course" | "artisan" | "certificate" | "diploma" | "higher_diploma";
+            /** @enum {string} */
+            mode: "full_time" | "part_time" | "blended";
+            duration_months: number | null;
+            duration_note: string;
+            /** @enum {string|null} */
+            min_kcse_grade: "A" | "A-" | "B+" | "B" | "B-" | "C+" | "C" | "C-" | "D+" | "D" | "D-" | "E" | null;
+            summary: string;
+            overview: string;
+            what_you_learn: string;
+            career_outcomes: string;
+            /** @enum {string} */
+            assessment_model: "marks" | "competency" | "both";
+            seo_title: string;
+            seo_description: string;
+            sort_order: number;
+            requirements: {
+                /** @enum {string} */
+                kind: "academic" | "document" | "other";
+                requirement: string;
+            }[];
+            intakes: {
+                /**
+                 * Format: uuid
+                 * @description Null for a new intake; keep it for existing ones.
+                 */
+                id: string | null;
+                name: string;
+                /** Format: date */
+                starts_on: string;
+                /** Format: date */
+                applications_open_on: string | null;
+                /** Format: date */
+                application_deadline: string | null;
+                capacity: number | null;
+                /** @enum {string} */
+                status: "planned" | "open" | "closed";
+            }[];
+            fees: {
+                label: string;
+                /** @enum {string} */
+                category: "tuition" | "registration" | "assessment" | "caution" | "other";
+                /** @description Whole cents of KES: KES 1,000.00 is 100000. */
+                amount_cents: number;
+                /** @enum {string} */
+                frequency: "once" | "per_term" | "per_year" | "whole_programme";
+                notes: string;
+            }[];
+        };
+        NewsDoc: {
+            slug: string;
+            title: string;
+            summary: string;
+            body: string;
+            /** Format: uuid */
+            cover_file_id: string | null;
+            cover_alt: string;
+            seo_title: string;
+            seo_description: string;
+        };
+        EventDoc: {
+            slug: string;
+            title: string;
+            summary: string;
+            body: string;
+            location: string;
+            /** Format: date-time */
+            starts_at: string;
+            /** Format: date-time */
+            ends_at: string | null;
+        };
+        FaqCategoryDoc: {
+            slug: string;
+            name: string;
+            sort_order: number;
+        };
+        FaqDoc: {
+            /** Format: uuid */
+            category_id: string;
+            /** Format: uuid */
+            programme_id: string | null;
+            question: string;
+            answer: string;
+            sort_order: number;
+        };
+        BannerDoc: {
+            message: string;
+            link_label: string | null;
+            link_href: string | null;
+            /** Format: date-time */
+            starts_at: string;
+            /** Format: date-time */
+            ends_at: string;
+        };
+        GalleryDoc: {
+            /** Format: uuid */
+            file_id: string;
+            caption: string;
+            alt_text: string;
+            /** @description Written consent from everyone recognisable. Required to publish. */
+            consent_confirmed: boolean;
+            consent_note: string;
+            sort_order: number;
+        };
+        StatisticDoc: {
+            label: string;
+            value: string;
+            /** @description Where the evidence is. Required to publish. */
+            source_note: string;
+            /**
+             * Format: date
+             * @description Required to publish; not in the future.
+             */
+            verified_on: string | null;
+            sort_order: number;
+        };
+        AccreditationDoc: {
+            body: string;
+            reference: string;
+            description: string;
+            /** @description Required to publish. */
+            evidence_note: string;
+            /**
+             * Format: date
+             * @description Required to publish.
+             */
+            verified_on: string | null;
+            sort_order: number;
+        };
+        Setting: {
+            key: string;
+            value: string;
+            description: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ImageFile: {
+            /** Format: uuid */
+            id: string;
+            width: number;
+            height: number;
+            /** @description Largest stored width. */
+            url: string;
+            variants: {
+                width: number;
+                url: string;
+            }[];
+        };
         Session: {
             user: {
                 /** Format: uuid */
@@ -364,6 +730,11 @@ export interface components {
                 /** @description Plain-language message safe to show to users. */
                 message: string;
                 request_id?: string;
+                /** @description For validation_failed, what to fix in each field. */
+                fields?: {
+                    field: string;
+                    message: string;
+                }[];
             };
         };
     };
@@ -397,6 +768,7 @@ export interface components {
         };
     };
     parameters: {
+        Kind: "schools" | "programmes" | "news" | "events" | "faq-categories" | "faqs" | "banners" | "gallery" | "statistics" | "accreditations";
         /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
         CSRF: string;
         ID: string;
@@ -885,6 +1257,401 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Error"];
+        };
+    };
+    listContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: components["parameters"]["Kind"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Items, newest or in display order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ContentSummary"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    createContent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                kind: components["parameters"]["Kind"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document: components["schemas"]["ContentDocument"];
+                };
+            };
+        };
+        responses: {
+            /** @description Created as a draft. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Created"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: components["parameters"]["Kind"];
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The item. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentItem"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    updateContent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                kind: components["parameters"]["Kind"];
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document: components["schemas"]["ContentDocument"];
+                    base_version: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentItem"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    deleteContent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                kind: components["parameters"]["Kind"];
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    discardPendingContent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                kind: components["parameters"]["Kind"];
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discarded. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    publishContent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                kind: components["parameters"]["Kind"];
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    base_version: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Published. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentItem"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    unpublishContent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                kind: components["parameters"]["Kind"];
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Now a draft. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentItem"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    archiveContent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path: {
+                kind: components["parameters"]["Kind"];
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archived. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentItem"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    listSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings. Empty values are hidden on the site. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        settings: components["schemas"]["Setting"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    updateSettings: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    values: {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    uploadImage: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
+                "X-CSRF-Token": components["parameters"]["CSRF"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Stored. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageFile"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+        };
+    };
+    getImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageFile"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
 }
