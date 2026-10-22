@@ -12,6 +12,92 @@ import (
 	"github.com/google/uuid"
 )
 
+const publicCountNews = `-- name: PublicCountNews :one
+SELECT count(*) FROM news_posts WHERE status = 'published'
+`
+
+func (q *Queries) PublicCountNews(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, publicCountNews)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const publicGetEvent = `-- name: PublicGetEvent :one
+SELECT slug, title, summary, body, location, starts_at, ends_at, published_at, updated_at, is_sample FROM events
+WHERE slug = $1 AND status = 'published'
+`
+
+type PublicGetEventRow struct {
+	Slug        string
+	Title       string
+	Summary     string
+	Body        string
+	Location    string
+	StartsAt    time.Time
+	EndsAt      *time.Time
+	PublishedAt *time.Time
+	UpdatedAt   time.Time
+	IsSample    bool
+}
+
+func (q *Queries) PublicGetEvent(ctx context.Context, slug string) (PublicGetEventRow, error) {
+	row := q.db.QueryRow(ctx, publicGetEvent, slug)
+	var i PublicGetEventRow
+	err := row.Scan(
+		&i.Slug,
+		&i.Title,
+		&i.Summary,
+		&i.Body,
+		&i.Location,
+		&i.StartsAt,
+		&i.EndsAt,
+		&i.PublishedAt,
+		&i.UpdatedAt,
+		&i.IsSample,
+	)
+	return i, err
+}
+
+const publicGetNewsPost = `-- name: PublicGetNewsPost :one
+SELECT slug, title, summary, body, published_at, updated_at, cover_file_id, cover_alt, seo_title, seo_description, is_sample
+FROM news_posts
+WHERE slug = $1 AND status = 'published'
+`
+
+type PublicGetNewsPostRow struct {
+	Slug           string
+	Title          string
+	Summary        string
+	Body           string
+	PublishedAt    *time.Time
+	UpdatedAt      time.Time
+	CoverFileID    *uuid.UUID
+	CoverAlt       string
+	SeoTitle       string
+	SeoDescription string
+	IsSample       bool
+}
+
+func (q *Queries) PublicGetNewsPost(ctx context.Context, slug string) (PublicGetNewsPostRow, error) {
+	row := q.db.QueryRow(ctx, publicGetNewsPost, slug)
+	var i PublicGetNewsPostRow
+	err := row.Scan(
+		&i.Slug,
+		&i.Title,
+		&i.Summary,
+		&i.Body,
+		&i.PublishedAt,
+		&i.UpdatedAt,
+		&i.CoverFileID,
+		&i.CoverAlt,
+		&i.SeoTitle,
+		&i.SeoDescription,
+		&i.IsSample,
+	)
+	return i, err
+}
+
 const publicListAccreditations = `-- name: PublicListAccreditations :many
 SELECT body, reference, description, verified_on, is_sample FROM accreditations
 WHERE status = 'published'
@@ -79,6 +165,50 @@ func (q *Queries) PublicListActiveBanners(ctx context.Context) ([]PublicListActi
 			&i.Message,
 			&i.LinkLabel,
 			&i.LinkHref,
+			&i.EndsAt,
+			&i.IsSample,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const publicListAllUpcomingEvents = `-- name: PublicListAllUpcomingEvents :many
+SELECT slug, title, summary, location, starts_at, ends_at, is_sample FROM events
+WHERE status = 'published' AND coalesce(ends_at, starts_at) >= now()
+ORDER BY starts_at
+`
+
+type PublicListAllUpcomingEventsRow struct {
+	Slug     string
+	Title    string
+	Summary  string
+	Location string
+	StartsAt time.Time
+	EndsAt   *time.Time
+	IsSample bool
+}
+
+func (q *Queries) PublicListAllUpcomingEvents(ctx context.Context) ([]PublicListAllUpcomingEventsRow, error) {
+	rows, err := q.db.Query(ctx, publicListAllUpcomingEvents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PublicListAllUpcomingEventsRow{}
+	for rows.Next() {
+		var i PublicListAllUpcomingEventsRow
+		if err := rows.Scan(
+			&i.Slug,
+			&i.Title,
+			&i.Summary,
+			&i.Location,
+			&i.StartsAt,
 			&i.EndsAt,
 			&i.IsSample,
 		); err != nil {
@@ -183,6 +313,45 @@ func (q *Queries) PublicListFees(ctx context.Context) ([]PublicListFeesRow, erro
 	return items, nil
 }
 
+const publicListGallery = `-- name: PublicListGallery :many
+SELECT g.file_id, g.caption, g.alt_text, g.is_sample FROM gallery_items g
+WHERE g.status = 'published'
+ORDER BY g.sort_order, g.created_at
+`
+
+type PublicListGalleryRow struct {
+	FileID   uuid.UUID
+	Caption  string
+	AltText  string
+	IsSample bool
+}
+
+// Every published photo has written consent (table check, NN-08).
+func (q *Queries) PublicListGallery(ctx context.Context) ([]PublicListGalleryRow, error) {
+	rows, err := q.db.Query(ctx, publicListGallery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PublicListGalleryRow{}
+	for rows.Next() {
+		var i PublicListGalleryRow
+		if err := rows.Scan(
+			&i.FileID,
+			&i.Caption,
+			&i.AltText,
+			&i.IsSample,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const publicListLatestNews = `-- name: PublicListLatestNews :many
 SELECT slug, title, summary, published_at, cover_file_id, cover_alt, is_sample FROM news_posts
 WHERE status = 'published'
@@ -216,6 +385,149 @@ func (q *Queries) PublicListLatestNews(ctx context.Context, maxItems int32) ([]P
 			&i.PublishedAt,
 			&i.CoverFileID,
 			&i.CoverAlt,
+			&i.IsSample,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const publicListNewsPage = `-- name: PublicListNewsPage :many
+SELECT slug, title, summary, published_at, cover_file_id, cover_alt, is_sample FROM news_posts
+WHERE status = 'published'
+ORDER BY published_at DESC
+LIMIT $2 OFFSET $1
+`
+
+type PublicListNewsPageParams struct {
+	Skip     int32
+	MaxItems int32
+}
+
+type PublicListNewsPageRow struct {
+	Slug        string
+	Title       string
+	Summary     string
+	PublishedAt *time.Time
+	CoverFileID *uuid.UUID
+	CoverAlt    string
+	IsSample    bool
+}
+
+func (q *Queries) PublicListNewsPage(ctx context.Context, arg PublicListNewsPageParams) ([]PublicListNewsPageRow, error) {
+	rows, err := q.db.Query(ctx, publicListNewsPage, arg.Skip, arg.MaxItems)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PublicListNewsPageRow{}
+	for rows.Next() {
+		var i PublicListNewsPageRow
+		if err := rows.Scan(
+			&i.Slug,
+			&i.Title,
+			&i.Summary,
+			&i.PublishedAt,
+			&i.CoverFileID,
+			&i.CoverAlt,
+			&i.IsSample,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const publicListPages = `-- name: PublicListPages :many
+SELECT slug, title, summary, body, seo_title, seo_description, published_at, updated_at, is_sample FROM pages
+WHERE status = 'published'
+ORDER BY slug
+`
+
+type PublicListPagesRow struct {
+	Slug           string
+	Title          string
+	Summary        string
+	Body           string
+	SeoTitle       string
+	SeoDescription string
+	PublishedAt    *time.Time
+	UpdatedAt      time.Time
+	IsSample       bool
+}
+
+func (q *Queries) PublicListPages(ctx context.Context) ([]PublicListPagesRow, error) {
+	rows, err := q.db.Query(ctx, publicListPages)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PublicListPagesRow{}
+	for rows.Next() {
+		var i PublicListPagesRow
+		if err := rows.Scan(
+			&i.Slug,
+			&i.Title,
+			&i.Summary,
+			&i.Body,
+			&i.SeoTitle,
+			&i.SeoDescription,
+			&i.PublishedAt,
+			&i.UpdatedAt,
+			&i.IsSample,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const publicListPastEvents = `-- name: PublicListPastEvents :many
+SELECT slug, title, summary, location, starts_at, ends_at, is_sample FROM events
+WHERE status = 'published' AND coalesce(ends_at, starts_at) < now()
+ORDER BY starts_at DESC
+LIMIT $1
+`
+
+type PublicListPastEventsRow struct {
+	Slug     string
+	Title    string
+	Summary  string
+	Location string
+	StartsAt time.Time
+	EndsAt   *time.Time
+	IsSample bool
+}
+
+func (q *Queries) PublicListPastEvents(ctx context.Context, maxItems int32) ([]PublicListPastEventsRow, error) {
+	rows, err := q.db.Query(ctx, publicListPastEvents, maxItems)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PublicListPastEventsRow{}
+	for rows.Next() {
+		var i PublicListPastEventsRow
+		if err := rows.Scan(
+			&i.Slug,
+			&i.Title,
+			&i.Summary,
+			&i.Location,
+			&i.StartsAt,
+			&i.EndsAt,
 			&i.IsSample,
 		); err != nil {
 			return nil, err

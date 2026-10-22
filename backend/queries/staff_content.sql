@@ -318,3 +318,28 @@ RETURNING id, created_at;
 -- name: GetFile :one
 SELECT id, bucket, object_key, original_name, content_type, size_bytes, width, height, image_widths, created_at
 FROM files WHERE id = @id AND deleted_at IS NULL;
+
+-- ---------- pages ----------
+
+-- name: StaffGetPage :one
+SELECT id, slug, title, summary, body, seo_title, seo_description, status, published_at, is_sample, updated_at
+FROM pages WHERE id = @id;
+
+-- name: StaffListPages :many
+SELECT id, title AS label, slug, status, is_sample, updated_at FROM pages ORDER BY title;
+
+-- name: StaffInsertPage :one
+INSERT INTO pages (slug, title, summary, body, seo_title, seo_description, created_by, updated_by)
+VALUES (@slug, @title, @summary, @body, @seo_title, @seo_description, @actor, @actor)
+RETURNING id;
+
+-- name: StaffUpdatePage :exec
+UPDATE pages SET slug = @slug, title = @title, summary = @summary, body = @body, seo_title = @seo_title,
+  seo_description = @seo_description, updated_by = @actor
+WHERE id = @id;
+
+-- name: StaffSetPageStatus :exec
+UPDATE pages SET status = @status, published_at = @published_at, updated_by = @actor WHERE id = @id;
+
+-- name: StaffDeletePage :exec
+DELETE FROM pages WHERE id = @id;

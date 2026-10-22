@@ -26,6 +26,7 @@ SELECT
   + (SELECT count(*) FROM gallery_items WHERE is_sample)
   + (SELECT count(*) FROM statistics WHERE is_sample)
   + (SELECT count(*) FROM accreditations WHERE is_sample)
+  + (SELECT count(*) FROM pages WHERE is_sample)
   AS total
 `
 
@@ -338,6 +339,37 @@ func (q *Queries) UpsertIntake(ctx context.Context, arg UpsertIntakeParams) (uui
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const upsertPage = `-- name: UpsertPage :exec
+INSERT INTO pages (slug, title, summary, body, status, published_at, is_sample)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (slug) DO UPDATE
+  SET title = EXCLUDED.title, summary = EXCLUDED.summary, body = EXCLUDED.body, status = EXCLUDED.status,
+      published_at = EXCLUDED.published_at, is_sample = EXCLUDED.is_sample
+`
+
+type UpsertPageParams struct {
+	Slug        string
+	Title       string
+	Summary     string
+	Body        string
+	Status      string
+	PublishedAt *time.Time
+	IsSample    bool
+}
+
+func (q *Queries) UpsertPage(ctx context.Context, arg UpsertPageParams) error {
+	_, err := q.db.Exec(ctx, upsertPage,
+		arg.Slug,
+		arg.Title,
+		arg.Summary,
+		arg.Body,
+		arg.Status,
+		arg.PublishedAt,
+		arg.IsSample,
+	)
+	return err
 }
 
 const upsertProgramme = `-- name: UpsertProgramme :one

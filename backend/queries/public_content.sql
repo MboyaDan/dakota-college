@@ -83,3 +83,43 @@ SELECT slug, title, summary, published_at, cover_file_id, cover_alt, is_sample F
 WHERE status = 'published'
 ORDER BY published_at DESC
 LIMIT @max_items;
+
+-- name: PublicListPages :many
+SELECT slug, title, summary, body, seo_title, seo_description, published_at, updated_at, is_sample FROM pages
+WHERE status = 'published'
+ORDER BY slug;
+
+-- name: PublicListGallery :many
+-- Every published photo has written consent (table check, NN-08).
+SELECT g.file_id, g.caption, g.alt_text, g.is_sample FROM gallery_items g
+WHERE g.status = 'published'
+ORDER BY g.sort_order, g.created_at;
+
+-- name: PublicCountNews :one
+SELECT count(*) FROM news_posts WHERE status = 'published';
+
+-- name: PublicListNewsPage :many
+SELECT slug, title, summary, published_at, cover_file_id, cover_alt, is_sample FROM news_posts
+WHERE status = 'published'
+ORDER BY published_at DESC
+LIMIT @max_items OFFSET @skip;
+
+-- name: PublicGetNewsPost :one
+SELECT slug, title, summary, body, published_at, updated_at, cover_file_id, cover_alt, seo_title, seo_description, is_sample
+FROM news_posts
+WHERE slug = @slug AND status = 'published';
+
+-- name: PublicListPastEvents :many
+SELECT slug, title, summary, location, starts_at, ends_at, is_sample FROM events
+WHERE status = 'published' AND coalesce(ends_at, starts_at) < now()
+ORDER BY starts_at DESC
+LIMIT @max_items;
+
+-- name: PublicListAllUpcomingEvents :many
+SELECT slug, title, summary, location, starts_at, ends_at, is_sample FROM events
+WHERE status = 'published' AND coalesce(ends_at, starts_at) >= now()
+ORDER BY starts_at;
+
+-- name: PublicGetEvent :one
+SELECT slug, title, summary, body, location, starts_at, ends_at, published_at, updated_at, is_sample FROM events
+WHERE slug = @slug AND status = 'published';

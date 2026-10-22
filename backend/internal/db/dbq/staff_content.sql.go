@@ -380,6 +380,15 @@ func (q *Queries) StaffDeleteNewsPost(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const staffDeletePage = `-- name: StaffDeletePage :exec
+DELETE FROM pages WHERE id = $1
+`
+
+func (q *Queries) StaffDeletePage(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, staffDeletePage, id)
+	return err
+}
+
 const staffDeleteProgramme = `-- name: StaffDeleteProgramme :exec
 DELETE FROM programmes WHERE id = $1
 `
@@ -654,6 +663,46 @@ func (q *Queries) StaffGetNewsPost(ctx context.Context, id uuid.UUID) (StaffGetN
 		&i.Body,
 		&i.CoverFileID,
 		&i.CoverAlt,
+		&i.SeoTitle,
+		&i.SeoDescription,
+		&i.Status,
+		&i.PublishedAt,
+		&i.IsSample,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const staffGetPage = `-- name: StaffGetPage :one
+
+SELECT id, slug, title, summary, body, seo_title, seo_description, status, published_at, is_sample, updated_at
+FROM pages WHERE id = $1
+`
+
+type StaffGetPageRow struct {
+	ID             uuid.UUID
+	Slug           string
+	Title          string
+	Summary        string
+	Body           string
+	SeoTitle       string
+	SeoDescription string
+	Status         string
+	PublishedAt    *time.Time
+	IsSample       bool
+	UpdatedAt      time.Time
+}
+
+// ---------- pages ----------
+func (q *Queries) StaffGetPage(ctx context.Context, id uuid.UUID) (StaffGetPageRow, error) {
+	row := q.db.QueryRow(ctx, staffGetPage, id)
+	var i StaffGetPageRow
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.Title,
+		&i.Summary,
+		&i.Body,
 		&i.SeoTitle,
 		&i.SeoDescription,
 		&i.Status,
@@ -997,6 +1046,37 @@ func (q *Queries) StaffInsertNewsPost(ctx context.Context, arg StaffInsertNewsPo
 		arg.Body,
 		arg.CoverFileID,
 		arg.CoverAlt,
+		arg.SeoTitle,
+		arg.SeoDescription,
+		arg.Actor,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const staffInsertPage = `-- name: StaffInsertPage :one
+INSERT INTO pages (slug, title, summary, body, seo_title, seo_description, created_by, updated_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
+RETURNING id
+`
+
+type StaffInsertPageParams struct {
+	Slug           string
+	Title          string
+	Summary        string
+	Body           string
+	SeoTitle       string
+	SeoDescription string
+	Actor          *uuid.UUID
+}
+
+func (q *Queries) StaffInsertPage(ctx context.Context, arg StaffInsertPageParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, staffInsertPage,
+		arg.Slug,
+		arg.Title,
+		arg.Summary,
+		arg.Body,
 		arg.SeoTitle,
 		arg.SeoDescription,
 		arg.Actor,
@@ -1385,6 +1465,46 @@ func (q *Queries) StaffListNewsPosts(ctx context.Context) ([]StaffListNewsPostsR
 	return items, nil
 }
 
+const staffListPages = `-- name: StaffListPages :many
+SELECT id, title AS label, slug, status, is_sample, updated_at FROM pages ORDER BY title
+`
+
+type StaffListPagesRow struct {
+	ID        uuid.UUID
+	Label     string
+	Slug      string
+	Status    string
+	IsSample  bool
+	UpdatedAt time.Time
+}
+
+func (q *Queries) StaffListPages(ctx context.Context) ([]StaffListPagesRow, error) {
+	rows, err := q.db.Query(ctx, staffListPages)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []StaffListPagesRow{}
+	for rows.Next() {
+		var i StaffListPagesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Label,
+			&i.Slug,
+			&i.Status,
+			&i.IsSample,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const staffListProgrammes = `-- name: StaffListProgrammes :many
 SELECT p.id, p.title AS label, p.status, p.is_sample, p.updated_at, s.short_name AS school_name
 FROM programmes p JOIN schools s ON s.id = p.school_id
@@ -1625,6 +1745,27 @@ type StaffSetNewsPostStatusParams struct {
 
 func (q *Queries) StaffSetNewsPostStatus(ctx context.Context, arg StaffSetNewsPostStatusParams) error {
 	_, err := q.db.Exec(ctx, staffSetNewsPostStatus, arg.Status, arg.PublishedAt, arg.ID)
+	return err
+}
+
+const staffSetPageStatus = `-- name: StaffSetPageStatus :exec
+UPDATE pages SET status = $1, published_at = $2, updated_by = $3 WHERE id = $4
+`
+
+type StaffSetPageStatusParams struct {
+	Status      string
+	PublishedAt *time.Time
+	Actor       *uuid.UUID
+	ID          uuid.UUID
+}
+
+func (q *Queries) StaffSetPageStatus(ctx context.Context, arg StaffSetPageStatusParams) error {
+	_, err := q.db.Exec(ctx, staffSetPageStatus,
+		arg.Status,
+		arg.PublishedAt,
+		arg.Actor,
+		arg.ID,
+	)
 	return err
 }
 
@@ -1878,6 +2019,37 @@ func (q *Queries) StaffUpdateNewsPost(ctx context.Context, arg StaffUpdateNewsPo
 		arg.CoverAlt,
 		arg.SeoTitle,
 		arg.SeoDescription,
+		arg.ID,
+	)
+	return err
+}
+
+const staffUpdatePage = `-- name: StaffUpdatePage :exec
+UPDATE pages SET slug = $1, title = $2, summary = $3, body = $4, seo_title = $5,
+  seo_description = $6, updated_by = $7
+WHERE id = $8
+`
+
+type StaffUpdatePageParams struct {
+	Slug           string
+	Title          string
+	Summary        string
+	Body           string
+	SeoTitle       string
+	SeoDescription string
+	Actor          *uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) StaffUpdatePage(ctx context.Context, arg StaffUpdatePageParams) error {
+	_, err := q.db.Exec(ctx, staffUpdatePage,
+		arg.Slug,
+		arg.Title,
+		arg.Summary,
+		arg.Body,
+		arg.SeoTitle,
+		arg.SeoDescription,
+		arg.Actor,
 		arg.ID,
 	)
 	return err
