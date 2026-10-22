@@ -8,7 +8,7 @@ Status values: **Planned**, **In progress**, **Pass** (with evidence), **Fail**,
 
 | ID | Criterion (short) | Stage(s) | Verification | Status | Evidence |
 |---|---|---|---|---|---|
-| AC-01 | Every public page passes axe and keyboard navigation, no critical issues | 2, 6, 7, 18 | Playwright plus axe on every public route; manual keyboard checklist | Planned | |
+| AC-01 | Every public page passes axe and keyboard navigation, no critical issues | 2, 6, 7, 18 | Playwright plus axe on every public route; manual keyboard checklist | In progress | Stage 2: `tests/e2e/design-system.spec.ts`: axe clean (critical and serious) on `/` and `/design`, with dialog and menus open, at 360 px and desktop; keyboard tests for skip link, tabs, dialog, menus (2026-10-22). |
 | AC-02 | Lighthouse mobile 90+ on home, programme, admissions (all four categories) | 6, 18 | Lighthouse CLI mobile preset, scores recorded with date | Planned | |
 | AC-03 | Find programme, see fees, requirements, intake, start application in at most 4 clicks | 6, 9 | Playwright test counting navigations from home | Planned | |
 | AC-04 | Application saves, resumes, submits once (retry never duplicates), tracked by reference | 9 | Go tests (idempotent submit with repeated key), Playwright resume flow | Planned | |

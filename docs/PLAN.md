@@ -51,3 +51,5 @@ These look bigger than one review sitting. I will propose a split when I reach t
 | R-19 | Library churn (Next.js, Tailwind v4, Gin, sqlc) between stages. | Pin exact versions, lockfiles committed, Dependabot from Stage 1. |
 | R-20 | MinIO no longer publishes official images; the Chainguard build could change terms or disappear. | Digest pin (D-20). Storage code in Stage 9 talks plain S3, so Garage or SeaweedFS can replace MinIO locally without code changes. |
 | R-21 | `npm audit` reports 5 high-severity issues in the dev-only lint chain (`eslint-config-next` pulls `fast-glob` and `micromatch`). Production dependencies: 0. | Not shipped to browsers or servers. Dependabot watches for a fixed `eslint-config-next`; recheck in Stage 17. |
+| R-22 | JavaScript budget: the placeholder home page ships 182 KB of JS (gzip -9, measured 2026-10-22); about 165 KB of that is the Next.js 16 and React 19 runtime, ours is about 10 KB. Budget is about 150 KB. | Measure with Brotli on staging. Stage 18 evaluates options (for example turning off `partialPrefetching`, or trimming client components). Reported as below target until then. |
+
