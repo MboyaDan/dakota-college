@@ -1,34 +1,21 @@
-package db
+package db_test
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/MboyaDan/dakota-college/backend/internal/db"
+	"github.com/MboyaDan/dakota-college/backend/internal/testdb"
 )
 
-// testDatabaseURL returns TEST_DATABASE_URL. Without it the test is skipped
-// locally, but fails when REQUIRE_DB_TESTS=1 (set in CI) so a missing
-// database is never reported as a pass.
-func testDatabaseURL(t *testing.T) string {
-	t.Helper()
-	url := os.Getenv("TEST_DATABASE_URL")
-	if url == "" {
-		if os.Getenv("REQUIRE_DB_TESTS") == "1" {
-			t.Fatal("TEST_DATABASE_URL is not set but REQUIRE_DB_TESTS=1")
-		}
-		t.Skip("TEST_DATABASE_URL not set; start Postgres with `make up` to run")
-	}
-	return url
-}
-
 func TestOpenAndPing(t *testing.T) {
-	url := testDatabaseURL(t)
+	url := testdb.URL(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	pool, err := Open(ctx, url)
+	pool, err := db.Open(ctx, url)
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -44,7 +31,7 @@ func TestOpenAndPing(t *testing.T) {
 }
 
 func TestOpenRejectsBadURLWithoutLeakingIt(t *testing.T) {
-	_, err := Open(context.Background(), "postgres://user:s3cret@host:notaport/db")
+	_, err := db.Open(context.Background(), "postgres://user:s3cret@host:notaport/db")
 	if err == nil {
 		t.Fatal("expected error")
 	}
