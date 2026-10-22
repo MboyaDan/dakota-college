@@ -19,6 +19,8 @@ type Message struct {
 	To      string
 	Subject string
 	Text    string
+	// ReplyTo is optional, e.g. the visitor who sent a website enquiry.
+	ReplyTo string
 }
 
 type Mailer interface {
@@ -53,6 +55,14 @@ func (s SMTP) Send(ctx context.Context, m Message) error {
 	var b strings.Builder
 	fmt.Fprintf(&b, "From: %s\r\n", from.String())
 	fmt.Fprintf(&b, "To: %s\r\n", to.String())
+	if m.ReplyTo != "" {
+		// Parsing and re-serialising also blocks header injection.
+		replyTo, err := mail.ParseAddress(m.ReplyTo)
+		if err != nil {
+			return fmt.Errorf("reply-to: %w", err)
+		}
+		fmt.Fprintf(&b, "Reply-To: %s\r\n", replyTo.String())
+	}
 	fmt.Fprintf(&b, "Subject: %s\r\n", m.Subject)
 	fmt.Fprintf(&b, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
 	b.WriteString("MIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n")

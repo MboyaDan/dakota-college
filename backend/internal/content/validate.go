@@ -134,3 +134,13 @@ func timePtr(d *Date) *time.Time {
 	t := d.Time
 	return &t
 }
+
+// Exported checks, so other packages (enquiries) validate with the same rules
+// and wording as the content editor.
+
+func (p *Problems) Add(field, message string)                { p.add(field, "%s", message) }
+func (p *Problems) Required(field, v string, max int)        { p.required(field, v, max) }
+func (p *Problems) Optional(field, v string, max int)        { p.optional(field, v, max) }
+func (p *Problems) OneOf(field, v string, allowed ...string) { p.oneOf(field, v, allowed...) }
+func (p *Problems) Email(field, v string)                    { p.email(field, v) }
+func (p *Problems) Phone(field, v string)                    { p.phone(field, v) }

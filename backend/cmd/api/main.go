@@ -26,6 +26,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/config"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/db"
+	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
 	"github.com/MboyaDan/dakota-college/backend/internal/httpapi"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
@@ -64,9 +65,10 @@ func run() error {
 	}
 	defer pool.Close()
 
+	mailer := mail.SMTP{Host: cfg.SMTP.Host, Port: cfg.SMTP.Port, Username: cfg.SMTP.Username, Password: cfg.SMTP.Password, From: cfg.SMTP.From}
 	authSvc, err := auth.NewService(auth.Options{
 		Pool:       pool,
-		Mailer:     mail.SMTP{Host: cfg.SMTP.Host, Port: cfg.SMTP.Port, Username: cfg.SMTP.Username, Password: cfg.SMTP.Password, From: cfg.SMTP.From},
+		Mailer:     mailer,
 		Logger:     logger,
 		Session:    cfg.Session,
 		AppBaseURL: cfg.AppBaseURL,
@@ -102,6 +104,7 @@ func run() error {
 		Access:         access.NewService(pool),
 		Content:        content.NewService(pool),
 		Images:         images,
+		Enquiries:      enquiry.NewService(pool, mailer, logger),
 	})
 	if err != nil {
 		return fmt.Errorf("router: %w", err)
