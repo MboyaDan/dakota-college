@@ -51,3 +51,4 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-12 | The GitHub repository stays public during scaffold stages and becomes private before Stage 5. Making it private does not change commits or the workflow; the only effect is that GitHub Actions on a free private repo is capped at 2,000 minutes a month, which this CI fits within. | Confirmed (owner, 2026-10-22) |
 | A-13 | Toolchain: Go 1.26 (D-33; the local 1.25 install downloads 1.26.10 automatically via `toolchain`), Node 24, npm, Docker 29, PostgreSQL client. | Open |
 | A-14 | Staging gets no seed data: the seed refuses anything but development and test (CLAUDE.md). A staging demo will need a separate, clearly fake demo-data decision in Stage 19. | Open |
+| A-15 | Optional TOTP for finance, registrar and admin accounts is built in Stage 17 (brief 13), not Stage 4. | Open |

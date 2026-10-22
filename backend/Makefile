@@ -6,7 +6,7 @@ export
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down logs ps run build test test-db lint fmt docker-build migrate-status migrate-up migrate-down seed sqlc
+.PHONY: help up down logs ps run build test test-db lint fmt docker-build migrate-status migrate-up migrate-down seed setup-admin sqlc
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -53,6 +53,9 @@ migrate-down: ## Roll back the most recent migration on DATABASE_URL
 
 seed: ## Load fake sample data (development and test only; refuses elsewhere)
 	go run ./cmd/seed
+
+setup-admin: ## Create the first Super Admin from SUPER_ADMIN_* (empty systems only)
+	go run ./cmd/setup
 
 sqlc: ## Regenerate Go code from queries/ (commit the result)
 	sqlc generate

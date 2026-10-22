@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/mail"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -31,6 +34,36 @@ type Config struct {
 	// TrustedProxies lists proxy IPs or CIDRs whose X-Forwarded-For headers
 	// are believed. Empty means the client IP is the TCP peer.
 	TrustedProxies []string
+
+	// AllowedOrigins are the browser origins allowed to make state-changing
+	// requests (the frontend). Requests from any other Origin are refused.
+	AllowedOrigins []string
+	// AppBaseURL is the public frontend URL, used in links inside emails.
+	AppBaseURL string
+
+	Session SessionConfig
+	SMTP    SMTPConfig
+}
+
+// SessionConfig controls the session cookie (ADR-04).
+type SessionConfig struct {
+	// CookieSecure must be true outside local development. When true the
+	// cookie uses the __Host- prefix.
+	CookieSecure bool
+	// TTL is the absolute session lifetime; IdleTimeout ends a session after
+	// that long without a request.
+	TTL         time.Duration
+	IdleTimeout time.Duration
+}
+
+// SMTPConfig is the outgoing mail server. Locally this is Mailpit. From is a
+// bare address; the display name is added when sending.
+type SMTPConfig struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+	From     string
 }
 
 // Load reads configuration from the process environment.
@@ -81,9 +114,55 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 		cfg.ShutdownTimeout = timeout
 	}
 
-	for _, p := range strings.Split(get("TRUSTED_PROXIES", ""), ",") {
-		if p = strings.TrimSpace(p); p != "" {
-			cfg.TrustedProxies = append(cfg.TrustedProxies, p)
+	cfg.TrustedProxies = splitList(get("TRUSTED_PROXIES", ""))
+
+	cfg.AllowedOrigins = splitList(get("ALLOWED_ORIGINS", "http://localhost:3000"))
+	for _, o := range cfg.AllowedOrigins {
+		if u, err := url.Parse(o); err != nil || u.Scheme == "" || u.Host == "" || (u.Path != "" && u.Path != "/") {
+			errs = append(errs, fmt.Errorf("ALLOWED_ORIGINS: %q is not an origin like https://example.com", o))
+		}
+	}
+
+	cfg.AppBaseURL = strings.TrimRight(get("APP_BASE_URL", "http://localhost:3000"), "/")
+	if u, err := url.Parse(cfg.AppBaseURL); err != nil || u.Scheme == "" || u.Host == "" {
+		errs = append(errs, fmt.Errorf("APP_BASE_URL %q is not a URL", cfg.AppBaseURL))
+	}
+
+	cfg.Session.CookieSecure, err = strconv.ParseBool(get("SESSION_COOKIE_SECURE", "true"))
+	if err != nil {
+		errs = append(errs, errors.New("SESSION_COOKIE_SECURE must be true or false"))
+	}
+	cfg.Session.TTL = duration(get("SESSION_TTL", "12h"), "SESSION_TTL", &errs)
+	cfg.Session.IdleTimeout = duration(get("SESSION_IDLE_TIMEOUT", "30m"), "SESSION_IDLE_TIMEOUT", &errs)
+	if cfg.Session.IdleTimeout > cfg.Session.TTL {
+		errs = append(errs, errors.New("SESSION_IDLE_TIMEOUT must not be longer than SESSION_TTL"))
+	}
+
+	cfg.SMTP = SMTPConfig{
+		Host:     get("SMTP_HOST", "localhost"),
+		Username: get("SMTP_USERNAME", ""),
+		Password: get("SMTP_PASSWORD", ""),
+		From:     get("SMTP_FROM", "no-reply@example.invalid"),
+	}
+	if _, err := mail.ParseAddress(cfg.SMTP.From); err != nil || strings.ContainsAny(cfg.SMTP.From, "<> ") {
+		errs = append(errs, fmt.Errorf("SMTP_FROM must be a plain email address like no-reply@college.example"))
+	}
+	if cfg.SMTP.Port, err = strconv.Atoi(get("SMTP_PORT", "1025")); err != nil || cfg.SMTP.Port <= 0 {
+		errs = append(errs, errors.New("SMTP_PORT must be a positive number"))
+	}
+
+	// Production must not run with development-only settings.
+	if cfg.Env == EnvProduction || cfg.Env == EnvStaging {
+		if !cfg.Session.CookieSecure {
+			errs = append(errs, fmt.Errorf("SESSION_COOKIE_SECURE must be true when APP_ENV=%s", cfg.Env))
+		}
+		if !strings.HasPrefix(cfg.AppBaseURL, "https://") {
+			errs = append(errs, fmt.Errorf("APP_BASE_URL must use https when APP_ENV=%s", cfg.Env))
+		}
+		for _, o := range cfg.AllowedOrigins {
+			if !strings.HasPrefix(o, "https://") {
+				errs = append(errs, fmt.Errorf("ALLOWED_ORIGINS must use https when APP_ENV=%s (got %q)", cfg.Env, o))
+			}
 		}
 	}
 
@@ -92,3 +171,22 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 
 // IsProduction reports whether the API runs against production data.
 func (c Config) IsProduction() bool { return c.Env == EnvProduction }
+
+func splitList(v string) []string {
+	var out []string
+	for _, p := range strings.Split(v, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func duration(v, name string, errs *[]error) time.Duration {
+	d, err := time.ParseDuration(v)
+	if err != nil || d <= 0 {
+		*errs = append(*errs, fmt.Errorf("%s must be a positive duration like 30m", name))
+		return 0
+	}
+	return d
+}
