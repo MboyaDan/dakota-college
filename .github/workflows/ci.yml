@@ -74,7 +74,10 @@ jobs:
           git diff --exit-code -- lib/api/schema.d.ts || { echo "Run 'npm run gen:api' and commit lib/api/schema.d.ts"; exit 1; }
       - run: npm run typecheck
       - run: npm test
-      - run: npm run build
+      - name: Build (with the dev-only /design page so axe can check every component)
+        run: npm run build
+        env:
+          ENABLE_DESIGN_PAGE: "1"
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v7
