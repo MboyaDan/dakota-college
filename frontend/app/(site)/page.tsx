@@ -79,15 +79,22 @@ export default async function Home() {
               </p>
             ) : null}
           </div>
-          <Image
-            src="/brand/dakota-logo-stacked-tagline.svg"
-            alt="Dakota Training College logo with the tagline Turning Potential into Progression"
-            width={916}
-            height={858}
-            unoptimized
-            priority
-            className="mx-auto h-auto w-full max-w-xs sm:max-w-sm"
-          />
+          {/* Supplied logo without the tagline; the tagline is real text, as the
+              owner's wording differs from the tagline artwork (D-81, R-24). */}
+          <div className="mx-auto flex w-full max-w-xs flex-col items-center sm:max-w-sm">
+            <Image
+              src="/brand/dakota-logo-stacked.svg"
+              alt="Dakota Training College logo"
+              width={916}
+              height={798}
+              unoptimized
+              priority
+              className="h-auto w-full"
+            />
+            <p className="-mt-1 font-serif text-xl text-navy-900 italic sm:text-2xl">
+              Turning Potential into Progress
+            </p>
+          </div>
         </div>
       </section>
 
