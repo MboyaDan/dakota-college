@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+/* Brand tokens and fontsource fonts arrive in Stage 2 (design system). */
+
+body {
+  background: #ffffff;
+  color: #1b2430;
+  font-family: system-ui, sans-serif;
+}
