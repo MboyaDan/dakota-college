@@ -167,8 +167,8 @@ export default function DesignPage() {
           </Card>
           <Card>
             <Image
-              src="/brand/dakota-logo-stacked-tagline.svg"
-              alt="Dakota Training College logo, stacked, with the tagline Turning Potential into Progression"
+              src="/brand/dakota-logo-stacked-tagline-progress.svg"
+              alt="Dakota Training College logo, stacked, with the tagline Turning Potential into Progress"
               width={916}
               height={858}
               unoptimized
