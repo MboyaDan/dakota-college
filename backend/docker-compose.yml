@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:17.11-alpine
+    image: postgres:18.4-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-dakota}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dakota_dev_only}
