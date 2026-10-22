@@ -6,7 +6,7 @@ export
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down logs ps run build test test-db lint fmt docker-build
+.PHONY: help up down logs ps run build test test-db lint fmt docker-build migrate-status migrate-up migrate-down seed sqlc
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -41,6 +41,21 @@ lint: ## Check formatting and run go vet
 
 fmt: ## Format Go code
 	gofmt -w .
+
+migrate-status: ## Show which migrations are applied (DATABASE_URL)
+	go run ./cmd/migrate status
+
+migrate-up: ## Apply pending migrations to DATABASE_URL (never automatic in production)
+	go run ./cmd/migrate up
+
+migrate-down: ## Roll back the most recent migration on DATABASE_URL
+	go run ./cmd/migrate down
+
+seed: ## Load fake sample data (development and test only; refuses elsewhere)
+	go run ./cmd/seed
+
+sqlc: ## Regenerate Go code from queries/ (commit the result)
+	sqlc generate
 
 docker-build: ## Build the production API image
 	docker build -t dakota-api:local .
