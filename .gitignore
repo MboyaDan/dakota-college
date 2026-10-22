@@ -1,0 +1,22 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# frontend
+node_modules/
+.next/
+out/
+
+# backend
+backend/bin/
+*.test
+coverage/
+
+# misc
+*.zip
+*.log
+go.sandbox.mod
