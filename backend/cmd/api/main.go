@@ -104,7 +104,7 @@ func run() error {
 		Access:         access.NewService(pool),
 		Content:        content.NewService(pool),
 		Images:         images,
-		Enquiries:      enquiry.NewService(pool, mailer, logger),
+		Enquiries:      enquiry.NewService(pool, mailer, logger, cfg.AppBaseURL),
 	})
 	if err != nil {
 		return fmt.Errorf("router: %w", err)

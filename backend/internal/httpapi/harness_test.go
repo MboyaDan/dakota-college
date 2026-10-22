@@ -67,7 +67,7 @@ func (h *harness) rebuild() {
 		Logger: logger, DB: h.pool, AllowedOrigins: []string{testOrigin}, CookieSecure: true,
 		Auth: h.auth, Access: h.access, Content: content.NewService(h.pool),
 		Images:    &media.Images{Pool: h.pool, Storage: h.storage, Bucket: "dakota-public", PublicBaseURL: "https://cdn.example/dakota-public"},
-		Enquiries: enquiry.NewService(h.pool, h.mailer, logger),
+		Enquiries: enquiry.NewService(h.pool, h.mailer, logger, testOrigin),
 	})
 	if err != nil {
 		h.t.Fatal(err)

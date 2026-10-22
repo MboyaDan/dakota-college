@@ -22,6 +22,10 @@ tags:
       Staff content manager. Content Editors (content.write) create and edit; publishers
       (content.publish, Registrar and Principal) publish. Editing a published item saves a
       pending version that goes live only when published again.
+  - name: enquiries
+    description: |
+      Staff enquiry inbox. enquiries.view to read; enquiries.manage to assign, change status and
+      add notes. Every change is audited, and the audit log is the enquiry's history.
   - name: public
     description: |
       Public website. No session. Only published content is returned, and only content whose
@@ -740,6 +744,170 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/EventDetail" }
         "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/enquiries:
+    get:
+      tags: [enquiries]
+      operationId: listEnquiries
+      summary: Inbox, newest first, 25 per page (enquiries.view)
+      parameters:
+        - { name: office, in: query, required: false, schema: { type: string, enum: [admissions, finance, general] }, description: "admissions: admissions and programmes; finance: fees; general: student life, alumni, other." }
+        - { name: status, in: query, required: false, schema: { type: string, enum: [new, open, waiting, closed] } }
+        - { name: assigned, in: query, required: false, schema: { type: string }, description: "me, none, or a user id." }
+        - { name: q, in: query, required: false, schema: { type: string }, description: "Searches name, email, phone and message." }
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: One page of enquiries.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnquiryPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/enquiries/counts:
+    get:
+      tags: [enquiries]
+      operationId: enquiryCounts
+      summary: New enquiries, and open ones assigned to you (enquiries.view)
+      responses:
+        "200":
+          description: Counts for the staff overview.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [new, mine]
+                properties:
+                  new: { type: integer }
+                  mine: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/enquiries/assignees:
+    get:
+      tags: [enquiries]
+      operationId: enquiryAssignees
+      summary: Active staff who can be given an enquiry (enquiries.manage)
+      responses:
+        "200":
+          description: People whose roles include enquiries.view.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, full_name]
+                      properties:
+                        id: { type: string, format: uuid }
+                        full_name: { type: string }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/enquiries/{id}:
+    get:
+      tags: [enquiries]
+      operationId: getEnquiry
+      summary: One enquiry with notes and history (enquiries.view)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The enquiry.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnquiryDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/enquiries/{id}/assign:
+    post:
+      tags: [enquiries]
+      operationId: assignEnquiry
+      summary: Give the enquiry to someone, or clear the owner (enquiries.manage)
+      description: The new owner gets an email with a link, without the visitor's details. 422 not_assignable if the person cannot see the inbox; 409 unchanged if they already own it.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignee_id]
+              properties:
+                assignee_id: { type: [string, "null"], format: uuid }
+      responses:
+        "200":
+          description: The enquiry after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnquiryDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/enquiries/{id}/status:
+    post:
+      tags: [enquiries]
+      operationId: setEnquiryStatus
+      summary: Move to open, waiting or closed (enquiries.manage)
+      description: Closing records the time; reopening clears it. "new" cannot be set.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [open, waiting, closed] }
+      responses:
+        "200":
+          description: The enquiry after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnquiryDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/enquiries/{id}/notes:
+    post:
+      tags: [enquiries]
+      operationId: addEnquiryNote
+      summary: Add an internal note (enquiries.manage)
+      description: Notes are visible to staff only. A note on a new enquiry also marks it open.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, maxLength: 5000 }
+      responses:
+        "201":
+          description: The enquiry with the new note.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnquiryDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     csrf:
@@ -1295,6 +1463,61 @@ components:
             body: { type: string }
             published_at: { type: [string, "null"], format: date-time }
             updated_at: { type: string, format: date-time }
+    EnquiryItem:
+      type: object
+      required: [id, full_name, email, phone, query_type, office, programme_title, status, assigned_to, assignee_name, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string }
+        email: { type: [string, "null"] }
+        phone: { type: [string, "null"] }
+        query_type: { type: string, enum: [admissions, programmes, fees, student_life, alumni, other] }
+        office: { type: string, enum: [admissions, finance, general] }
+        programme_title: { type: [string, "null"] }
+        status: { type: string, enum: [new, open, waiting, closed] }
+        assigned_to: { type: [string, "null"], format: uuid }
+        assignee_name: { type: [string, "null"] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    EnquiryPage:
+      type: object
+      required: [items, page, total_pages, total]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/EnquiryItem" } }
+        page: { type: integer }
+        total_pages: { type: integer }
+        total: { type: integer }
+    EnquiryDetail:
+      allOf:
+        - { $ref: "#/components/schemas/EnquiryItem" }
+        - type: object
+          required: [message, source, programme_slug, closed_at, notes, history]
+          properties:
+            message: { type: string }
+            source: { type: string }
+            programme_slug: { type: [string, "null"] }
+            closed_at: { type: [string, "null"], format: date-time }
+            notes:
+              type: array
+              items:
+                type: object
+                required: [id, body, author_name, created_at]
+                properties:
+                  id: { type: string, format: uuid }
+                  body: { type: string }
+                  author_name: { type: string }
+                  created_at: { type: string, format: date-time }
+            history:
+              type: array
+              description: From the audit log, oldest first.
+              items:
+                type: object
+                required: [at, action, actor_name, details]
+                properties:
+                  at: { type: string, format: date-time }
+                  action: { type: string, enum: [enquiry.assigned, enquiry.status_changed, enquiry.note_added] }
+                  actor_name: { type: [string, "null"] }
+                  details: { type: object, additionalProperties: true }
     Error:
       description: Error body returned by every endpoint on failure.
       type: object
