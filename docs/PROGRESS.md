@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 3, Database and migrations. Done, awaiting review.
-- **Next stage:** 4, Auth and RBAC.
-- **Branch:** `stage-03-database` (from `main`)
+- **Current stage:** 4, Auth and RBAC. Done, awaiting review.
+- **Next stage:** 5, Content API and staff content manager.
+- **Branch:** `stage-04-auth` (from `main`)
 
 ## Stage status
 
@@ -15,8 +15,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 0 | Orientation and plan | Merged (#1) |
 | 1 | Repo scaffold and tooling | Merged (#1) |
 | 2 | Design system | Merged (#9, #10) |
-| 3 | Database and migrations | Done, awaiting review |
-| 4 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 3 | Database and migrations | Merged (#11) |
+| 4 | Auth and RBAC | Done, awaiting review |
+| 5 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -29,6 +30,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 4: Auth and RBAC (2026-10-22)
+
+- Login, logout, session endpoint, password reset by email, lockout, rate limits, CSRF and origin checks, audit entries for every auth and access change.
+- Admin API for staff users and roles with the AC-12 protections; permission checks by key on every route.
+- `setup` command for the first Super Admin from environment variables.
+- Migration 00006 (index). Verified end to end through the Next.js rewrite with Mailpit.
 
 ### Stage 3: Database and migrations (2026-10-22)
 
