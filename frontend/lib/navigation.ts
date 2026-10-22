@@ -57,7 +57,7 @@ export const mainNav: NavItem[] = [
         label: "The college",
         links: [
           { label: "Our story", href: "/about" },
-          { label: "Campus and facilities", href: "/about/campus" },
+          { label: "Campus and facilities", href: "/about#campus" },
           { label: "Student life", href: "/student-life" },
         ],
       },

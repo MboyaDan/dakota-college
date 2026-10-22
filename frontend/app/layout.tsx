@@ -1,22 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import { inter, newsreader, plexMono } from "@/lib/fonts";
-import { site } from "@/lib/site";
+import { indexable, site } from "@/lib/site";
+import { ogImage } from "@/lib/seo";
 import { resolveSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
-// Supplied social card (docs/brand/dakota-logo), 1200 x 630.
-const ogImage = {
-  url: "/brand/dakota-og-image.png",
-  width: 1200,
-  height: 630,
-  alt: site.name,
-};
-
 export const metadata: Metadata = {
   metadataBase: resolveSiteUrl(process.env.SITE_URL),
-  title: site.name,
-  // Scaffold only. Stage 6 replaces this with real SEO metadata.
-  robots: { index: false, follow: false },
+  title: { default: site.name, template: `%s | ${site.name}` },
+  description:
+    "Dakota Training College in Makueni, Kenya: programmes, entry requirements, fees and intakes for its five schools, and how to apply.",
+  robots: indexable ? undefined : { index: false, follow: false },
   // Supplied icon files in public/, so browsers that request /favicon.ico
   // directly get the same icon.
   icons: {

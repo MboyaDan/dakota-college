@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 6a, Public API (content snapshot and contact form). Done, awaiting review.
-- **Next stage:** 6b, Public pages (home, schools, course finder, programme pages, about, contact, SEO, cached rendering with fallback).
-- **Branch:** `stage-06a-public-api` (from `stage-05c-brand-refresh`, PR #16, not yet merged)
+- **Current stage:** 6b, Public pages. Done, awaiting review.
+- **Next stage:** 7, Public site part 2 (admissions, fees, intake calendar, FAQs, news and events, student life, alumni, legal pages, custom 404 and 500).
+- **Branch:** `stage-06b-public-pages` (from `main` after #17)
 
 ## Stage status
 
@@ -19,9 +19,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 4 | Auth and RBAC | Merged (#12) |
 | 5a | Content API | Merged (#14) |
 | 5b | Staff content screens | Merged (#15) |
-| 5c | Brand refresh | Done, awaiting review (#16) |
-| 6a | Public API | Done, awaiting review |
-| 6b | Public pages | Not started |
+| 5c | Brand refresh | Merged (#16) |
+| 6a | Public API | Merged (#17) |
+| 6b | Public pages | Done, awaiting review |
 | 7 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -35,6 +35,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 6b: Public pages (2026-10-22)
+
+- Home, schools index and school pages, course finder, programme pages (five questions, Course structured data), about with the campus section, contact page and form, interim apply page, WhatsApp button, footer and announcement bar from site settings, sitemap, robots, per-page metadata with social cards.
+- Cached content with background refresh and a bundled snapshot fallback (D-74); indexing off until launch (D-75).
+- Fixed: headings on navy bands were invisible (D-79).
+- Verified: unit tests; Playwright and axe on every public page at 360 px and desktop; AC-03 path in 3 clicks; AC-15 with the API stopped; build with no API reachable. Lighthouse mobile measured on three pages (AC-02 row).
 
 ### Stage 6a: Public API (2026-10-22)
 
