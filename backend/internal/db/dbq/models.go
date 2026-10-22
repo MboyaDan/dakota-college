@@ -139,6 +139,14 @@ type Consent struct {
 	UserAgent     *string
 }
 
+type ContentPending struct {
+	EntityType string
+	EntityID   uuid.UUID
+	Document   []byte
+	UpdatedBy  uuid.UUID
+	UpdatedAt  time.Time
+}
+
 type DocumentCounter struct {
 	Name      string
 	Period    int32
@@ -238,6 +246,9 @@ type File struct {
 	UploadedByUserID *uuid.UUID
 	CreatedAt        time.Time
 	DeletedAt        *time.Time
+	Width            *int32
+	Height           *int32
+	ImageWidths      []int32
 }
 
 type GalleryItem struct {
