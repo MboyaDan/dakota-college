@@ -1,7 +1,7 @@
 # Backend API image. Built locally by docker compose and by Render in staging
 # and production. The frontend has no Dockerfile.
 
-FROM golang:1.25.14-alpine AS build
+FROM golang:1.27.2-alpine AS build
 WORKDIR /src
 ENV CGO_ENABLED=0 GOFLAGS=-trimpath
 
