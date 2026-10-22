@@ -1,5 +1,7 @@
 package seed
 
+import "time"
+
 // Sample data. Every value is fake and labelled "(Sample)" where it could be
 // mistaken for a fact about the college. School names are the confirmed ones
 // (brief section 2); their descriptions are placeholders. Pool Management has
@@ -124,4 +126,22 @@ var pageSeeds = []pageSeed{
 		"(Sample) The college will describe clubs, sports, accommodation guidance, health and safety, and student support here."},
 	{"alumni", "Alumni (Sample)", "(Sample) For former students.",
 		"(Sample) The college will describe its alumni community here.\n\n## Transcripts and certificates\n\n(Sample) Former students can request a transcript or a certificate copy through the contact form, choosing Alumni."},
+}
+
+type newsSeed struct{ slug, title, summary, body string }
+
+var newsSeeds = []newsSeed{
+	{"sample-news-applications", "(Sample) Applications news", "(Sample) A placeholder news summary.",
+		"(Sample) Placeholder article text. Real news is written by college staff.\n\n## A sample heading\n\n- (Sample) A list item\n- (Sample) Another item"},
+	{"sample-news-campus", "(Sample) Campus news", "(Sample) Another placeholder summary.", "(Sample) Placeholder article text."},
+}
+
+type eventSeed struct {
+	slug, title, summary, body, location string
+	startsIn                             time.Duration
+}
+
+var eventSeeds = []eventSeed{
+	{"sample-open-day", "(Sample) Open day", "(Sample) A placeholder event.", "(Sample) Placeholder event details.", "(Sample) Main campus", 21 * 24 * time.Hour},
+	{"sample-past-event", "(Sample) Past event", "(Sample) An event that has happened.", "(Sample) Placeholder event details.", "(Sample) Main campus", -14 * 24 * time.Hour},
 }

@@ -1,5 +1,5 @@
 import { cacheLife, cacheTag } from "next/cache";
-import { resolveApiOrigin } from "@/lib/api-origin";
+import { buildOrDev, fetchPublic } from "./fetch";
 import type { PublicSite } from "./types";
 import bundled from "./snapshot.json";
 
@@ -24,13 +24,11 @@ async function loadSite(): Promise<PublicSite> {
   cacheLife({ stale: 300, revalidate: 300 });
   cacheTag(PUBLIC_SITE_TAG);
   try {
-    const origin = resolveApiOrigin(process.env.API_ORIGIN);
-    // A free-tier API can take a while to wake up.
-    const res = await fetch(`${origin}/api/v1/public/site`, { signal: AbortSignal.timeout(20_000) });
-    if (!res.ok) throw new Error(`public site snapshot: HTTP ${res.status}`);
-    return (await res.json()) as PublicSite;
+    const site = await fetchPublic<PublicSite>("/api/v1/public/site");
+    if (!site) throw new Error("public site snapshot: HTTP 404");
+    return site;
   } catch (err) {
-    if (process.env.NEXT_PHASE === "phase-production-build" || process.env.NODE_ENV === "development") {
+    if (buildOrDev()) {
       console.warn(`Using the bundled content snapshot: ${(err as Error).message}`);
       return fallback;
     }

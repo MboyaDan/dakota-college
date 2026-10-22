@@ -16,10 +16,11 @@ export function WhatsAppButton({ number, officeHours }: { number: string; office
       rel="noopener noreferrer"
       aria-label={`Chat with us on WhatsApp (opens WhatsApp).${hours}`}
       title={officeHours ? `Office hours: ${officeHours}` : undefined}
-      className="fixed right-4 bottom-4 z-40 inline-flex min-h-touch items-center gap-2 rounded-full bg-[#14532d] px-4 py-3 font-semibold text-white shadow-lg hover:bg-[#0f3f22] print:hidden"
+      className="fixed right-4 bottom-4 z-40 inline-flex min-h-touch min-w-touch items-center justify-center gap-2 rounded-full bg-[#14532d] p-3 font-semibold text-white shadow-lg hover:bg-[#0f3f22] sm:px-4 print:hidden"
     >
-      <MessageCircle aria-hidden className="size-5" />
-      WhatsApp
+      <MessageCircle aria-hidden className="size-6 sm:size-5" />
+      {/* Icon only on phones, so it covers less of the page; the name is in aria-label. */}
+      <span className="hidden sm:inline">WhatsApp</span>
     </a>
   );
 }

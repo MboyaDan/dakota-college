@@ -15,7 +15,7 @@ import (
 
 // Summary counts what one run wrote.
 type Summary struct {
-	Schools, Programmes, Intakes, FeeItems, FAQs, Settings, Pages, Users int
+	Schools, Programmes, Intakes, FeeItems, FAQs, Settings, Pages, News, Events, Users int
 }
 
 // Run writes the sample data in one transaction. It is idempotent: running it
@@ -128,6 +128,26 @@ func Run(ctx context.Context, pool *pgxpool.Pool, password string) (Summary, err
 				return fmt.Errorf("page %s: %w", pg.slug, err)
 			}
 			sum.Pages++
+		}
+
+		// News and events dated relative to now, so there is always one
+		// upcoming and one past event to look at.
+		for i, n := range newsSeeds {
+			at := now.Add(-time.Duration(i+1) * 24 * time.Hour)
+			if err := q.UpsertNewsPost(ctx, dbq.UpsertNewsPostParams{Slug: n.slug, Title: n.title, Summary: n.summary, Body: n.body,
+				PublishedAt: &at, IsSample: true}); err != nil {
+				return fmt.Errorf("news %s: %w", n.slug, err)
+			}
+			sum.News++
+		}
+		for _, e := range eventSeeds {
+			starts := now.Add(e.startsIn).Truncate(time.Hour)
+			ends := starts.Add(3 * time.Hour)
+			if err := q.UpsertEvent(ctx, dbq.UpsertEventParams{Slug: e.slug, Title: e.title, Summary: e.summary, Body: e.body,
+				Location: e.location, StartsAt: starts, EndsAt: &ends, PublishedAt: &now, IsSample: true}); err != nil {
+				return fmt.Errorf("event %s: %w", e.slug, err)
+			}
+			sum.Events++
 		}
 
 		for _, u := range userSeeds {

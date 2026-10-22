@@ -44,13 +44,18 @@ export function ContactForm({
 
   useEffect(() => {
     startedAt.current = Date.now();
-    // "Ask a question" on a programme page links here with ?programme=slug.
+    // "Ask a question" on a programme page links here with ?programme=slug;
     // Read on the client so the page itself stays prerendered.
-    const slug = new URLSearchParams(window.location.search).get("programme");
+    // Other pages link here with ?about=<topic>, e.g. alumni requests.
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("programme");
+    const about = params.get("about");
     /* eslint-disable react-hooks/set-state-in-effect -- runs once after hydration */
     if (slug && programmes.some((p) => p.slug === slug)) {
       setProgramme(slug);
       setQueryType("programmes");
+    } else if (about && queryTypes.some((q) => q.value === about)) {
+      setQueryType(about);
     }
     setHydrated(true);
     /* eslint-enable react-hooks/set-state-in-effect */

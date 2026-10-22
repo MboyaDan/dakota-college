@@ -103,3 +103,18 @@ VALUES (@slug, @title, @summary, @body, @status, @published_at, @is_sample)
 ON CONFLICT (slug) DO UPDATE
   SET title = EXCLUDED.title, summary = EXCLUDED.summary, body = EXCLUDED.body, status = EXCLUDED.status,
       published_at = EXCLUDED.published_at, is_sample = EXCLUDED.is_sample;
+
+-- name: UpsertNewsPost :exec
+INSERT INTO news_posts (slug, title, summary, body, status, published_at, is_sample)
+VALUES (@slug, @title, @summary, @body, 'published', @published_at, @is_sample)
+ON CONFLICT (slug) DO UPDATE
+  SET title = EXCLUDED.title, summary = EXCLUDED.summary, body = EXCLUDED.body, status = EXCLUDED.status,
+      published_at = EXCLUDED.published_at, is_sample = EXCLUDED.is_sample;
+
+-- name: UpsertEvent :exec
+INSERT INTO events (slug, title, summary, body, location, starts_at, ends_at, status, published_at, is_sample)
+VALUES (@slug, @title, @summary, @body, @location, @starts_at, @ends_at, 'published', @published_at, @is_sample)
+ON CONFLICT (slug) DO UPDATE
+  SET title = EXCLUDED.title, summary = EXCLUDED.summary, body = EXCLUDED.body, location = EXCLUDED.location,
+      starts_at = EXCLUDED.starts_at, ends_at = EXCLUDED.ends_at, status = EXCLUDED.status,
+      published_at = EXCLUDED.published_at, is_sample = EXCLUDED.is_sample;

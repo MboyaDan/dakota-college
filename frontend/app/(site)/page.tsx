@@ -213,9 +213,16 @@ export default async function Home() {
                 <ul className="flex flex-col gap-3">
                   {site.events.map((e) => (
                     <li key={e.slug}>
-                      <Card>
+                      <Card className="relative">
                         <p className="text-sm font-semibold text-royal">{formatNairobi(e.starts_at)}</p>
-                        <p className="font-semibold text-navy-900">{e.title}</p>
+                        <h4 className="font-sans text-base font-semibold text-navy-900">
+                          <Link
+                            href={`/events/${e.slug}`}
+                            className="after:absolute after:inset-0 hover:underline"
+                          >
+                            {e.title}
+                          </Link>
+                        </h4>
                         {e.location ? <p className="text-sm">{e.location}</p> : null}
                       </Card>
                     </li>
@@ -229,11 +236,18 @@ export default async function Home() {
                 <ul className="flex flex-col gap-3">
                   {site.news.map((n) => (
                     <li key={n.slug}>
-                      <Card>
+                      <Card className="relative">
                         {n.published_at ? (
                           <p className="text-sm text-ink-muted">{formatDate(n.published_at.slice(0, 10))}</p>
                         ) : null}
-                        <p className="font-semibold text-navy-900">{n.title}</p>
+                        <h4 className="font-sans text-base font-semibold text-navy-900">
+                          <Link
+                            href={`/news/${n.slug}`}
+                            className="after:absolute after:inset-0 hover:underline"
+                          >
+                            {n.title}
+                          </Link>
+                        </h4>
                         {n.summary ? <p className="text-sm">{n.summary}</p> : null}
                       </Card>
                     </li>
