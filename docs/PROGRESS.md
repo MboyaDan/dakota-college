@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 4, Auth and RBAC. Done, awaiting review.
-- **Next stage:** 5, Content API and staff content manager.
-- **Branch:** `stage-04-auth` (from `main`)
+- **Current stage:** 5a, Content API. Done, awaiting review.
+- **Next stage:** 5b, Staff portal screens (login, navigation by permission, content screens with preview, image upload).
+- **Branch:** `stage-05a-content-api` (from `main`)
 
 ## Stage status
 
@@ -16,8 +16,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 1 | Repo scaffold and tooling | Merged (#1) |
 | 2 | Design system | Merged (#9, #10) |
 | 3 | Database and migrations | Merged (#11) |
-| 4 | Auth and RBAC | Done, awaiting review |
-| 5 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 4 | Auth and RBAC | Merged (#12) |
+| 5a | Content API | Done, awaiting review |
+| 5b | Staff content screens | Not started |
+| 6 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -30,6 +32,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 5a: Content API (2026-10-22)
+
+- Staff content API for schools, programmes (with requirements, intakes and fees), news, events, FAQ categories, FAQs, banners, gallery, statistics and accreditations: list, get, create, edit, pending edits of published items, publish, unpublish, archive, delete drafts.
+- Site settings API; image upload with validation, rotation, metadata removal and resizing to MinIO or any S3 store.
+- Migration 00007 (`content_pending`, image sizes on `files`).
+- Verified with real MinIO through the Next.js rewrite: editor uploads an image and drafts a programme; editor cannot publish (403); registrar publishes (200).
 
 ### Stage 4: Auth and RBAC (2026-10-22)
 

@@ -43,7 +43,24 @@ type Config struct {
 
 	Session SessionConfig
 	SMTP    SMTPConfig
+	S3      S3Config
 }
+
+// S3Config is S3-compatible object storage: MinIO locally, Supabase Storage
+// in production. Uploads are disabled when Endpoint or AccessKey is empty.
+type S3Config struct {
+	Endpoint      string
+	Region        string
+	AccessKey     string
+	SecretKey     string
+	UseSSL        bool
+	PublicBucket  string
+	PrivateBucket string
+	// PublicBaseURL is where browsers fetch public bucket objects.
+	PublicBaseURL string
+}
+
+func (c S3Config) Enabled() bool { return c.Endpoint != "" && c.AccessKey != "" }
 
 // SessionConfig controls the session cookie (ADR-04).
 type SessionConfig struct {
@@ -149,6 +166,22 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 	}
 	if cfg.SMTP.Port, err = strconv.Atoi(get("SMTP_PORT", "1025")); err != nil || cfg.SMTP.Port <= 0 {
 		errs = append(errs, errors.New("SMTP_PORT must be a positive number"))
+	}
+
+	cfg.S3 = S3Config{
+		Endpoint:      get("S3_ENDPOINT", ""),
+		Region:        get("S3_REGION", "us-east-1"),
+		AccessKey:     get("S3_ACCESS_KEY", ""),
+		SecretKey:     get("S3_SECRET_KEY", ""),
+		PublicBucket:  get("S3_PUBLIC_BUCKET", "dakota-public"),
+		PrivateBucket: get("S3_PRIVATE_BUCKET", "dakota-private"),
+		PublicBaseURL: strings.TrimRight(get("S3_PUBLIC_BASE_URL", ""), "/"),
+	}
+	if cfg.S3.UseSSL, err = strconv.ParseBool(get("S3_USE_SSL", "true")); err != nil {
+		errs = append(errs, errors.New("S3_USE_SSL must be true or false"))
+	}
+	if cfg.S3.Enabled() && cfg.S3.PublicBaseURL == "" {
+		errs = append(errs, errors.New("S3_PUBLIC_BASE_URL is required when S3_ENDPOINT is set"))
 	}
 
 	// Production must not run with development-only settings.

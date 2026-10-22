@@ -17,8 +17,10 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/config"
+	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
+	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/testdb"
 )
 
@@ -29,18 +31,19 @@ const (
 
 // harness is a full API over a fresh, migrated database.
 type harness struct {
-	t      *testing.T
-	pool   *pgxpool.Pool
-	router *Router
-	auth   *auth.Service
-	access *access.Service
-	mailer *mail.Recorder
+	t       *testing.T
+	pool    *pgxpool.Pool
+	router  *Router
+	auth    *auth.Service
+	access  *access.Service
+	mailer  *mail.Recorder
+	storage *media.Memory
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	pool, _ := testdb.Migrated(t)
-	h := &harness{t: t, pool: pool, mailer: &mail.Recorder{}}
+	h := &harness{t: t, pool: pool, mailer: &mail.Recorder{}, storage: &media.Memory{}}
 	h.rebuild()
 	return h
 }
@@ -61,7 +64,8 @@ func (h *harness) rebuild() {
 	h.access = access.NewService(h.pool)
 	h.router, err = NewRouter(Deps{
 		Logger: logger, DB: h.pool, AllowedOrigins: []string{testOrigin}, CookieSecure: true,
-		Auth: h.auth, Access: h.access,
+		Auth: h.auth, Access: h.access, Content: content.NewService(h.pool),
+		Images: &media.Images{Pool: h.pool, Storage: h.storage, Bucket: "dakota-public", PublicBaseURL: "https://cdn.example/dakota-public"},
 	})
 	if err != nil {
 		h.t.Fatal(err)
@@ -111,9 +115,12 @@ type session struct {
 type req struct {
 	method, path string
 	body         any
-	sess         *session
-	noCSRF       bool
-	headers      map[string]string
+	// raw and contentType send a non-JSON body (file uploads).
+	raw         io.Reader
+	contentType string
+	sess        *session
+	noCSRF      bool
+	headers     map[string]string
 }
 
 func (h *harness) do(r req) *httptest.ResponseRecorder {
@@ -126,8 +133,14 @@ func (h *harness) do(r req) *httptest.ResponseRecorder {
 		}
 		body = bytes.NewReader(b)
 	}
+	if r.raw != nil {
+		body = r.raw
+	}
 	hr := httptest.NewRequest(r.method, r.path, body)
-	if r.body != nil {
+	switch {
+	case r.raw != nil:
+		hr.Header.Set("Content-Type", r.contentType)
+	case r.body != nil:
 		hr.Header.Set("Content-Type", "application/json")
 	}
 	if r.sess != nil {

@@ -13,7 +13,7 @@ Status values: **Planned**, **In progress**, **Pass** (with evidence), **Fail**,
 | AC-03 | Find programme, see fees, requirements, intake, start application in at most 4 clicks | 6, 9 | Playwright test counting navigations from home | Planned | |
 | AC-04 | Application saves, resumes, submits once (retry never duplicates), tracked by reference | 9 | Go tests (idempotent submit with repeated key), Playwright resume flow | Planned | |
 | AC-05 | Documents private, type and size checked, staff-only short-lived links | 9, 17 | Go tests on upload validation and signed link expiry; unauthenticated fetch denied | Planned | |
-| AC-06 | Staff edit programmes, intakes, fees, news, events, FAQs; changes live within cache period | 5, 6 | Playwright: editor publishes, page shows change after revalidation | Planned | |
+| AC-06 | Staff edit programmes, intakes, fees, news, events, FAQs; changes live within cache period | 5, 6 | Playwright: editor publishes, page shows change after revalidation | In progress | Stage 5a API: `TestProgrammeEditorialWorkflow` (editor drafts, registrar publishes, edits of live content wait for approval, fees change only on approval), `TestEveryContentKindWorkflow` (all ten types). Site and cache half: Stage 6. |
 | AC-07 | Backend denies unauthorised API calls even if frontend bypassed | 4, 17 | Go tests calling every protected route without and with wrong permissions | Pass (Stage 4 routes) | `TestEveryRouteIsProtected` walks the route table: every non-public route gives 401 without a session, and 403 to a user holding every other permission; a student gets 403 on every admin route. New routes are covered automatically; `TestOpenAPIMatchesRoutes` keeps the contract in step (2026-10-22). |
 | AC-08 | Student sees only own data; trainer only assigned units | 11, 12 | Go tests with two students and two trainers | Planned | |
 | AC-09 | Results visible only after approval and release; every change audited | 13 | Go tests on result visibility and audit rows | Planned | |
@@ -31,13 +31,13 @@ Status values: **Planned**, **In progress**, **Pass** (with evidence), **Fail**,
 
 | ID | Rule (short) | Enforced in | How |
 |---|---|---|---|
-| NN-01 | No unverified claims | 3, 5, 6 | Verification date required to publish a statistic or accreditation item |
+| NN-01 | No unverified claims | 3, 5, 6 | Verification date and evidence required to publish a statistic or accreditation (DB constraint, Stage 3; API check with field messages, Stage 5a `TestContentRules`) |
 | NN-02 | Backend enforces authorisation | 4 onward | Permission middleware on every route; route table test |
 | NN-03 | Money integer cents; balances derived | 14 | BIGINT columns, no stored balances |
 | NN-04 | Idempotent submissions and payments | 9, 14, 15 | `idempotency_records` table and middleware |
 | NN-05 | No destructive edits to completed records | 3, 10, 13, 14 | Append-only triggers on audit log, status history, consents (Stage 3, `TestAppendOnlyTables`); compensating entries later |
 | NN-06 | No real data in seed or tests | 3 onward | Seed conventions (D-17), production refusal |
 | NN-07 | Production DB is managed or operated, never a throwaway container | 19 | Deployment docs, DG-04 |
-| NN-08 | Personal data and photos used only with consent | 7, 9 | `consents` table; gallery items require consent flag |
+| NN-08 | Personal data and photos used only with consent | 5a, 7, 9 | `consents` table; gallery photos need confirmed consent to publish (DB and API, `TestContentRules`); uploads stripped of metadata including GPS (`TestProcessAppliesOrientationAndStripsMetadata`) |
 | NN-09 | No copying from reference site | All | Patterns only; original copy |
 | NN-10 | M-Pesa paid needs verified path or finance confirmation | 14, 15 | State machine on payments |
