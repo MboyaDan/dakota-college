@@ -15,7 +15,7 @@ import (
 
 // Summary counts what one run wrote.
 type Summary struct {
-	Schools, Programmes, Intakes, FeeItems, FAQs, Settings, Users int
+	Schools, Programmes, Intakes, FeeItems, FAQs, Settings, Pages, Users int
 }
 
 // Run writes the sample data in one transaction. It is idempotent: running it
@@ -112,6 +112,22 @@ func Run(ctx context.Context, pool *pgxpool.Pool, password string) (Summary, err
 			Description: "(Sample) Placeholder until the college supplies verified details.", Status: "draft", IsSample: true,
 		}); err != nil {
 			return err
+		}
+
+		pages := append([]pageSeed(nil), pageSeeds...)
+		for _, l := range legalPages {
+			body, err := legalDrafts.ReadFile("legal/" + l.file)
+			if err != nil {
+				return err
+			}
+			pages = append(pages, pageSeed{slug: l.slug, title: "(Sample) Draft: " + l.title, body: draftNote + string(body)})
+		}
+		for _, pg := range pages {
+			if err := q.UpsertPage(ctx, dbq.UpsertPageParams{Slug: pg.slug, Title: pg.title, Summary: pg.summary, Body: pg.body,
+				Status: "published", PublishedAt: &now, IsSample: true}); err != nil {
+				return fmt.Errorf("page %s: %w", pg.slug, err)
+			}
+			sum.Pages++
 		}
 
 		for _, u := range userSeeds {

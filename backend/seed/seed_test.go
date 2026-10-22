@@ -57,7 +57,7 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 	}
 
 	counts := map[string]int{}
-	for _, table := range []string{"schools", "programmes", "programme_intakes", "fee_items", "faqs", "users", "user_roles", "accreditations"} {
+	for _, table := range []string{"schools", "programmes", "programme_intakes", "fee_items", "faqs", "users", "user_roles", "accreditations", "pages"} {
 		var n int
 		if err := pool.QueryRow(ctx, "SELECT count(*) FROM "+table).Scan(&n); err != nil {
 			t.Fatal(err)
@@ -66,7 +66,7 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 	}
 	want := map[string]int{
 		"schools": 5, "programmes": 8, "programme_intakes": 16, "fee_items": 24,
-		"faqs": 5, "users": 10, "user_roles": 10, "accreditations": 1,
+		"faqs": 5, "users": 10, "user_roles": 10, "accreditations": 1, "pages": 7,
 	}
 	for table, n := range want {
 		if counts[table] != n {
