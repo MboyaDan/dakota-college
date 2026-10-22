@@ -281,6 +281,42 @@ func (q *Queries) SetSiteSetting(ctx context.Context, arg SetSiteSettingParams) 
 	return result.RowsAffected(), nil
 }
 
+const upsertEvent = `-- name: UpsertEvent :exec
+INSERT INTO events (slug, title, summary, body, location, starts_at, ends_at, status, published_at, is_sample)
+VALUES ($1, $2, $3, $4, $5, $6, $7, 'published', $8, $9)
+ON CONFLICT (slug) DO UPDATE
+  SET title = EXCLUDED.title, summary = EXCLUDED.summary, body = EXCLUDED.body, location = EXCLUDED.location,
+      starts_at = EXCLUDED.starts_at, ends_at = EXCLUDED.ends_at, status = EXCLUDED.status,
+      published_at = EXCLUDED.published_at, is_sample = EXCLUDED.is_sample
+`
+
+type UpsertEventParams struct {
+	Slug        string
+	Title       string
+	Summary     string
+	Body        string
+	Location    string
+	StartsAt    time.Time
+	EndsAt      *time.Time
+	PublishedAt *time.Time
+	IsSample    bool
+}
+
+func (q *Queries) UpsertEvent(ctx context.Context, arg UpsertEventParams) error {
+	_, err := q.db.Exec(ctx, upsertEvent,
+		arg.Slug,
+		arg.Title,
+		arg.Summary,
+		arg.Body,
+		arg.Location,
+		arg.StartsAt,
+		arg.EndsAt,
+		arg.PublishedAt,
+		arg.IsSample,
+	)
+	return err
+}
+
 const upsertFaqCategory = `-- name: UpsertFaqCategory :one
 INSERT INTO faq_categories (slug, name, sort_order, is_sample)
 VALUES ($1, $2, $3, $4)
@@ -339,6 +375,35 @@ func (q *Queries) UpsertIntake(ctx context.Context, arg UpsertIntakeParams) (uui
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const upsertNewsPost = `-- name: UpsertNewsPost :exec
+INSERT INTO news_posts (slug, title, summary, body, status, published_at, is_sample)
+VALUES ($1, $2, $3, $4, 'published', $5, $6)
+ON CONFLICT (slug) DO UPDATE
+  SET title = EXCLUDED.title, summary = EXCLUDED.summary, body = EXCLUDED.body, status = EXCLUDED.status,
+      published_at = EXCLUDED.published_at, is_sample = EXCLUDED.is_sample
+`
+
+type UpsertNewsPostParams struct {
+	Slug        string
+	Title       string
+	Summary     string
+	Body        string
+	PublishedAt *time.Time
+	IsSample    bool
+}
+
+func (q *Queries) UpsertNewsPost(ctx context.Context, arg UpsertNewsPostParams) error {
+	_, err := q.db.Exec(ctx, upsertNewsPost,
+		arg.Slug,
+		arg.Title,
+		arg.Summary,
+		arg.Body,
+		arg.PublishedAt,
+		arg.IsSample,
+	)
+	return err
 }
 
 const upsertPage = `-- name: UpsertPage :exec
