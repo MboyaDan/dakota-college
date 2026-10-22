@@ -15,6 +15,12 @@ for (const path of [
   "/programmes/example-health-studies-diploma",
   "/about",
   "/contact",
+  "/admissions/fees",
+  "/admissions/intakes",
+  "/privacy",
+  "/news",
+  "/news/sample-news-applications",
+  "/events",
 ]) {
   test(`${path} still renders its content`, async ({ page }) => {
     const res = await page.goto(path);
@@ -28,4 +34,10 @@ test("filtered course finder falls back to the bundled content", async ({ page }
   const res = await page.goto("/programmes?level=diploma");
   expect(res?.status()).toBe(200);
   await expect(page.getByRole("link", { name: "Diploma in Example Health Studies (Sample)" })).toBeVisible();
+});
+
+test("FAQ search falls back to the bundled content", async ({ page }) => {
+  const res = await page.goto("/faqs?q=instalments");
+  expect(res?.status()).toBe(200);
+  await expect(page.getByText("(Sample) Can I pay in instalments?")).toBeVisible();
 });

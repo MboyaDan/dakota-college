@@ -17,12 +17,29 @@ const pages = [
   "/about",
   "/contact",
   "/apply?programme=example-health-studies-diploma",
+  "/admissions",
+  "/admissions/requirements",
+  "/admissions/fees",
+  "/admissions/intakes",
+  "/faqs",
+  "/faqs?q=fees",
+  "/news",
+  "/news/sample-news-applications",
+  "/events",
+  "/events/sample-open-day",
+  "/student-life",
+  "/alumni",
+  "/privacy",
+  "/cookies",
+  "/terms",
+  "/accessibility",
+  "/no-such-page-anywhere",
 ];
 
 for (const path of pages) {
   test(`${path} has no serious axe issues and fits the screen`, async ({ page }) => {
     const res = await page.goto(path);
-    expect(res?.status()).toBe(200);
+    expect(res?.status()).toBe(path.startsWith("/no-such") ? 404 : 200);
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
     await expectNoSeriousA11yIssues(page);
     expect(await hasHorizontalOverflow(page)).toBe(false);
@@ -34,7 +51,7 @@ for (const path of pages) {
 for (const path of ["/programmes/no-such-programme", "/schools/no-such-school"]) {
   test(`${path} shows not found and is not indexed`, async ({ page }) => {
     await page.goto(path);
-    await expect(page.getByText(/could not be found/i)).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("We could not find that page");
     await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached();
   });
 }
@@ -114,4 +131,47 @@ test("sitemap lists public pages; robots keeps crawlers out before launch", asyn
   expect(sitemap).not.toContain("/staff");
   const robots = await (await request.get("/robots.txt")).text();
   expect(robots).toMatch(/Disallow: \/\s*$/m);
+});
+
+test("unknown addresses get the site's 404 page with a way forward", async ({ page }) => {
+  const res = await page.goto("/no-such-page-anywhere");
+  expect(res?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("We could not find that page");
+  await expect(page.getByRole("search", { name: "Find a course" })).toBeVisible();
+  await expect(page.getByRole("contentinfo")).toBeVisible();
+});
+
+test("FAQ search narrows the questions and keeps the words in the URL", async ({ page }) => {
+  await page.goto("/faqs");
+  await expect(page.getByRole("navigation", { name: "Topics" })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search questions" }).fill("instalments");
+  await page.getByRole("button", { name: "Search" }).click();
+  await expect(page).toHaveURL(/q=instalments/);
+  await expect(page.getByRole("status")).toContainText("1 question matches");
+  await expect(page.getByText("(Sample) Can I pay in instalments?")).toBeVisible();
+  await expect(page.getByText("(Sample) How do I apply?")).toHaveCount(0);
+});
+
+test("news list leads to the article, events list to the event", async ({ page }) => {
+  await page.goto("/news");
+  await page.getByRole("link", { name: "(Sample) Applications news" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("(Sample) Applications news");
+  await expect(page.getByRole("heading", { level: 2, name: "A sample heading" })).toBeVisible();
+  await expect(page.locator("main li", { hasText: "(Sample) A list item" })).toBeVisible();
+
+  await page.goto("/events");
+  await expect(page.getByRole("heading", { level: 2, name: "Coming up" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Recent events" })).toBeVisible();
+  await page.getByRole("link", { name: "(Sample) Open day" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("(Sample) Open day");
+});
+
+test("text pages show the published words; the alumni button preselects the topic", async ({ page }) => {
+  await page.goto("/privacy");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("(Sample) Draft: Privacy notice");
+  await expect(page.getByRole("heading", { level: 2, name: "Your rights" })).toBeVisible();
+
+  await page.goto("/alumni");
+  await page.getByRole("link", { name: "Request a transcript or certificate" }).click();
+  await expect(page.getByLabel("What is your question about?")).toHaveValue("alumni");
 });
