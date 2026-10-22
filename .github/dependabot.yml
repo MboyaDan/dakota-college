@@ -1,4 +1,6 @@
 version: 2
+# Major upgrades (and Go/Postgres version jumps) are taken deliberately, not
+# by bot: Node stays on 24, Go on 1.25 (go.mod), Postgres on 17 (Supabase).
 updates:
   - package-ecosystem: gomod
     directory: /backend
@@ -9,6 +11,9 @@ updates:
     groups:
       go-minor:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /frontend
@@ -19,6 +24,9 @@ updates:
     groups:
       npm-minor:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /backend
@@ -26,6 +34,11 @@ updates:
       interval: weekly
     commit-message:
       prefix: "build(deps)"
+    ignore:
+      - dependency-name: "golang"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker-compose
     directory: /backend
@@ -33,6 +46,9 @@ updates:
       interval: weekly
     commit-message:
       prefix: "build(deps)"
+    ignore:
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
