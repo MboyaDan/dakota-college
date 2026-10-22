@@ -4,7 +4,9 @@ import { expectNoSeriousA11yIssues } from "./axe";
 test("home page renders", async ({ page }) => {
   const response = await page.goto("/");
   expect(response?.status()).toBe(200);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Dakota Training College");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Train for your career at Dakota Training College",
+  );
 });
 
 test("home page has no critical or serious axe violations", async ({ page }) => {

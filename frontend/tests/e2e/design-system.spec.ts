@@ -119,13 +119,13 @@ test.describe("site shell", () => {
     test.skip(testInfo.project.name !== "mobile", "mobile layout only");
     await page.goto("/");
     expect(await hasHorizontalOverflow(page)).toBe(false);
-    await expect(page.getByRole("link", { name: "Apply now" })).toBeVisible();
+    await expect(page.getByRole("banner").getByRole("link", { name: "Apply now" })).toBeVisible();
 
     const toggle = page.getByRole("button", { name: "Menu" });
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await page.getByRole("button", { name: "Programmes" }).click();
-    await expect(page.getByRole("link", { name: "Pool Management" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Pool Management", exact: true })).toBeVisible();
     const menu = page.getByRole("navigation", { name: "Main" });
     await expect(menu.getByRole("link", { name: "Student Portal" })).toBeVisible();
     expect(await hasHorizontalOverflow(page)).toBe(false);
@@ -144,7 +144,7 @@ test.describe("site shell", () => {
     const programmes = page.getByRole("button", { name: "Programmes" });
     await programmes.click();
     await expect(programmes).toHaveAttribute("aria-expanded", "true");
-    await expect(page.getByRole("link", { name: "Medical and Health Sciences" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Medical and Health Sciences", exact: true })).toBeVisible();
     await expectNoSeriousA11yIssues(page);
 
     await page.keyboard.press("Escape");

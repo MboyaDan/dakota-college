@@ -145,6 +145,15 @@ jobs:
         env:
           E2E_API: "1"
           E2E_STAFF_PASSWORD: ci-e2e-only-password
+      # AC-15: public pages keep serving from cached and bundled content with
+      # the API stopped.
+      - name: Stop the API
+        run: pkill -f /tmp/api && sleep 1 && ! curl -sf http://localhost:8180/api/v1/health
+      - name: Public pages with the API down
+        working-directory: frontend
+        run: npx playwright test tests/e2e/offline.spec.ts
+        env:
+          E2E_API_DOWN: "1"
       - name: API log
         if: failure()
         run: cat /tmp/api.log
