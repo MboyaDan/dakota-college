@@ -1,6 +1,6 @@
 version: 2
 # Major upgrades (and Go/Postgres version jumps) are taken deliberately, not
-# by bot: Node stays on 24, Go on 1.25 (go.mod), Postgres on 17 (Supabase).
+# by bot: Node stays on 24, Go on 1.26 (go.mod), Postgres on 17 (Supabase).
 updates:
   - package-ecosystem: gomod
     directory: /backend
