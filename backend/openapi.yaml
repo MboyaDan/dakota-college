@@ -13,9 +13,16 @@ servers:
 tags:
   - name: system
     description: Liveness and readiness probes.
+  - name: auth
+    description: Sign in, sign out, session and password reset.
+  - name: admin
+    description: Staff accounts and roles. Every route needs the permission named in its description.
+security:
+  - session: []
 paths:
   /api/v1/health:
     get:
+      security: []
       tags: [system]
       operationId: getHealth
       summary: Liveness probe
@@ -32,6 +39,7 @@ paths:
                 $ref: "#/components/schemas/Health"
   /api/v1/ready:
     get:
+      security: []
       tags: [system]
       operationId: getReady
       summary: Readiness probe
@@ -55,13 +63,388 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Ready"
+  /api/v1/auth/login:
+    post:
+      security: []
+      tags: [auth]
+      operationId: login
+      summary: Sign in with email and password
+      description: |
+        Sets the HttpOnly session cookie. Wrong email and wrong password give the
+        same answer. Five wrong passwords lock the account for 15 minutes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                password: { type: string }
+      responses:
+        "200":
+          description: Signed in.
+          headers:
+            Set-Cookie:
+              description: Session cookie (HttpOnly, SameSite=Lax, Secure with the __Host- prefix outside local development).
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/session:
+    get:
+      tags: [auth]
+      operationId: getSession
+      summary: The signed-in user, their permissions and the CSRF token
+      responses:
+        "200":
+          description: Current session.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Sign out (revokes the session)
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Signed out. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/password-reset:
+    post:
+      security: []
+      tags: [auth]
+      operationId: requestPasswordReset
+      summary: Email a password reset link
+      description: Always answers the same, whether or not the email has an account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+      responses:
+        "202":
+          description: Accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/v1/auth/password-reset/confirm:
+    post:
+      security: []
+      tags: [auth]
+      operationId: confirmPasswordReset
+      summary: Set a new password from a reset link
+      description: Spends every outstanding link for the user and signs them out everywhere.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string, maxLength: 128 }
+                password: { type: string, minLength: 12, maxLength: 256 }
+      responses:
+        "204": { description: Password changed. }
+        "400": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/users:
+    get:
+      tags: [admin]
+      operationId: listUsers
+      summary: List staff accounts (users.manage)
+      responses:
+        "200":
+          description: Staff accounts.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users]
+                properties:
+                  users: { type: array, items: { $ref: "#/components/schemas/AdminUser" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [admin]
+      operationId: createUser
+      summary: Create a staff account (users.manage)
+      description: The person receives an email to set their password. Giving a role that includes system.admin needs system.admin.
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, full_name]
+              properties:
+                email: { type: string, format: email }
+                full_name: { type: string, maxLength: 200 }
+                role_keys: { type: array, items: { type: string } }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Created" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/users/{id}/roles:
+    put:
+      tags: [admin]
+      operationId: setUserRoles
+      summary: Replace a user's roles (users.manage)
+      description: Refused if it would leave no active Super Admin, or changes a role with system.admin without holding it.
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role_keys]
+              properties:
+                role_keys: { type: array, items: { type: string } }
+      responses:
+        "204": { description: Updated. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/users/{id}/disable:
+    post:
+      tags: [admin]
+      operationId: disableUser
+      summary: Disable an account and sign it out everywhere (users.manage)
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Disabled. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/users/{id}/enable:
+    post:
+      tags: [admin]
+      operationId: enableUser
+      summary: Enable an account (users.manage)
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Enabled. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/roles:
+    get:
+      tags: [admin]
+      operationId: listRoles
+      summary: List roles with their permissions (roles.manage)
+      responses:
+        "200":
+          description: Roles.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [roles]
+                properties:
+                  roles: { type: array, items: { $ref: "#/components/schemas/Role" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [admin]
+      operationId: createRole
+      summary: Create a role (roles.manage)
+      description: system.admin can never be included.
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, name]
+              properties:
+                key: { type: string, pattern: "^[a-z][a-z_]{1,48}$" }
+                name: { type: string, maxLength: 100 }
+                description: { type: string, maxLength: 500 }
+                permission_keys: { type: array, items: { type: string } }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Created" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/roles/{id}/permissions:
+    put:
+      tags: [admin]
+      operationId: setRolePermissions
+      summary: Replace a role's permissions (roles.manage)
+      description: The Super Admin role cannot be edited; system.admin can never be added.
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permission_keys]
+              properties:
+                permission_keys: { type: array, items: { type: string } }
+      responses:
+        "204": { description: Updated. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/roles/{id}:
+    delete:
+      tags: [admin]
+      operationId: deleteRole
+      summary: Delete a custom role that nobody holds (roles.manage)
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/permissions:
+    get:
+      tags: [admin]
+      operationId: listPermissions
+      summary: List permission keys (roles.manage)
+      responses:
+        "200":
+          description: Permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [permissions]
+                properties:
+                  permissions: { type: array, items: { $ref: "#/components/schemas/Permission" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
 components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: __Host-dtc_session
+      description: Server-side session cookie (dtc_session in local development).
+  parameters:
+    CSRF:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      description: The csrf_token from the login or session response. Required on every state-changing request with a session.
+      schema: { type: string }
+    ID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Error:
+      description: Error; the code says which.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadRequest:
+      description: The request body is missing fields or malformed.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthenticated:
+      description: No valid session.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
   headers:
     RequestID:
       description: Request correlation ID. Echoes a well-formed caller value or is generated.
       schema:
         type: string
   schemas:
+    Session:
+      type: object
+      required: [user, permissions, csrf_token]
+      properties:
+        user:
+          type: object
+          required: [id, email, full_name, kind]
+          properties:
+            id: { type: string, format: uuid }
+            email: { type: string }
+            full_name: { type: string }
+            kind: { type: string, enum: [staff, student, applicant] }
+        permissions: { type: array, items: { type: string } }
+        csrf_token: { type: string }
+        expires_at: { type: string, format: date-time }
+    Message:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+    Created:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }
+    AdminUser:
+      type: object
+      required: [id, email, full_name, status, role_keys, last_login_at, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        full_name: { type: string }
+        status: { type: string, enum: [active, disabled] }
+        role_keys: { type: array, items: { type: string } }
+        last_login_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    Role:
+      type: object
+      required: [id, key, name, description, is_system, permission_keys, user_count]
+      properties:
+        id: { type: string, format: uuid }
+        key: { type: string }
+        name: { type: string }
+        description: { type: string }
+        is_system: { type: boolean }
+        permission_keys: { type: array, items: { type: string } }
+        user_count: { type: integer }
+    Permission:
+      type: object
+      required: [key, module, description, grantable]
+      properties:
+        key: { type: string }
+        module: { type: string }
+        description: { type: string }
+        grantable: { type: boolean }
     Health:
       type: object
       required: [status]
