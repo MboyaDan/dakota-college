@@ -10,6 +10,8 @@ import (
 
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
+	"github.com/MboyaDan/dakota-college/backend/internal/content"
+	"github.com/MboyaDan/dakota-college/backend/internal/media"
 )
 
 // Pinger checks that a dependency is reachable. *pgxpool.Pool satisfies it.
@@ -27,7 +29,13 @@ type Deps struct {
 	CookieSecure   bool
 	Auth           *auth.Service
 	Access         *access.Service
+	Content        *content.Service
+	// Images may be nil when object storage is not configured; uploads then
+	// answer 503.
+	Images *media.Images
 }
+
+const defaultBodyLimit = 1 << 20 // 1 MB for JSON endpoints
 
 // Route describes one endpoint and how it is protected. The route table is
 // what AC-07 tests walk: every route is public or names a permission.
@@ -54,7 +62,7 @@ func NewRouter(d Deps) (*Router, error) {
 		return nil, err
 	}
 	e.HandleMethodNotAllowed = true
-	e.Use(requestID(), accessLog(d.Logger), recoverJSON(d.Logger), limitBody(1<<20), checkOrigin(d.AllowedOrigins))
+	e.Use(requestID(), accessLog(d.Logger), recoverJSON(d.Logger), checkOrigin(d.AllowedOrigins))
 
 	e.NoRoute(func(c *gin.Context) {
 		writeError(c, http.StatusNotFound, "not_found", "No such endpoint.")
@@ -67,11 +75,12 @@ func NewRouter(d Deps) (*Router, error) {
 	v1 := e.Group("/api/v1")
 	cookie := sessionCookie{secure: d.CookieSecure}
 
-	// add mounts a handler with its protection. Authenticated routes get the
-	// session check, CSRF check (for unsafe methods) and permission check.
-	add := func(method, path string, public bool, permission string, h gin.HandlerFunc) {
+	// addWithLimit mounts a handler with its protection and body size limit.
+	// Authenticated routes get the session check, CSRF check (for unsafe
+	// methods) and permission check.
+	addWithLimit := func(bodyLimit int64, method, path string, public bool, permission string, h gin.HandlerFunc) {
 		rt.Routes = append(rt.Routes, Route{Method: method, Path: "/api/v1" + path, Public: public, Permission: permission})
-		chain := []gin.HandlerFunc{}
+		chain := []gin.HandlerFunc{limitBody(bodyLimit)}
 		if !public {
 			chain = append(chain, requireSession(d.Auth, cookie), requireCSRF(cookie))
 			if permission != "" {
@@ -79,6 +88,9 @@ func NewRouter(d Deps) (*Router, error) {
 			}
 		}
 		v1.Handle(method, path, append(chain, h)...)
+	}
+	add := func(method, path string, public bool, permission string, h gin.HandlerFunc) {
+		addWithLimit(defaultBodyLimit, method, path, public, permission, h)
 	}
 
 	h := healthHandlers{db: d.DB, logger: d.Logger}
@@ -108,15 +120,36 @@ func NewRouter(d Deps) (*Router, error) {
 		add(http.MethodGet, "/admin/permissions", false, "roles.manage", ad.listPermissions)
 	}
 
+	if d.Content != nil && d.Auth != nil {
+		ch := contentHandlers{svc: d.Content}
+		add(http.MethodGet, "/staff/content/:kind", false, content.PermRead, ch.list)
+		add(http.MethodPost, "/staff/content/:kind", false, content.PermWrite, ch.create)
+		add(http.MethodGet, "/staff/content/:kind/:id", false, content.PermRead, ch.get)
+		add(http.MethodPut, "/staff/content/:kind/:id", false, content.PermWrite, ch.update)
+		add(http.MethodDelete, "/staff/content/:kind/:id", false, content.PermWrite, ch.remove)
+		add(http.MethodDelete, "/staff/content/:kind/:id/pending", false, content.PermWrite, ch.discardPending)
+		add(http.MethodPost, "/staff/content/:kind/:id/publish", false, content.PermPublish, ch.publish)
+		add(http.MethodPost, "/staff/content/:kind/:id/unpublish", false, content.PermPublish, ch.unpublish)
+		add(http.MethodPost, "/staff/content/:kind/:id/archive", false, content.PermPublish, ch.archive)
+		add(http.MethodGet, "/staff/settings", false, content.PermRead, ch.listSettings)
+		add(http.MethodPut, "/staff/settings", false, content.PermPublish, ch.updateSettings)
+
+		ih := imageHandlers{images: d.Images}
+		addWithLimit(media.MaxUploadBytes+(1<<20), http.MethodPost, "/staff/images", false, content.PermWrite, ih.upload)
+		add(http.MethodGet, "/staff/images/:id", false, content.PermRead, ih.get)
+	}
+
 	return rt, nil
 }
 
 // errorBody is the error shape for every endpoint (see openapi.yaml Error).
+// Fields lists per-field problems for validation errors.
 type errorBody struct {
 	Error struct {
-		Code      string `json:"code"`
-		Message   string `json:"message"`
-		RequestID string `json:"request_id,omitempty"`
+		Code      string                 `json:"code"`
+		Message   string                 `json:"message"`
+		RequestID string                 `json:"request_id,omitempty"`
+		Fields    []content.FieldProblem `json:"fields,omitempty"`
 	} `json:"error"`
 }
 
