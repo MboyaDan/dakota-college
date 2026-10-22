@@ -25,11 +25,11 @@ export function AuthLayout({
         <Image
           src="/brand/dakota-logo-reversed.svg"
           alt="Dakota Training College"
-          width={890}
-          height={330}
+          width={1339}
+          height={442}
           unoptimized
           priority
-          className="h-20 w-auto self-start lg:h-28"
+          className="-ml-2 h-20 w-auto self-start lg:-ml-3 lg:h-28"
         />
         <p className="font-serif text-2xl">Staff portal</p>
         <ul className="hidden list-disc flex-col gap-2 pl-5 text-white/90 lg:flex">

@@ -40,8 +40,8 @@ export function StaffShell({ children }: { children: ReactNode }) {
             <Image
               src="/brand/dakota-logo-reversed.svg"
               alt=""
-              width={890}
-              height={330}
+              width={1339}
+              height={442}
               unoptimized
               className="h-12 w-auto"
             />

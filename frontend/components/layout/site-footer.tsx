@@ -35,10 +35,10 @@ export function SiteFooter() {
           <Image
             src="/brand/dakota-logo-reversed.svg"
             alt={site.name}
-            width={890}
-            height={330}
+            width={1339}
+            height={442}
             unoptimized
-            className="-ml-3 h-20 w-auto self-start"
+            className="-ml-2 h-20 w-auto self-start"
           />
           <p className="text-white/90">{site.location}</p>
           <ContactList />

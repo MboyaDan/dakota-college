@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 5b, Staff portal screens. Done, awaiting review.
+- **Current stage:** 5c, Brand refresh (revised logo set). Done, awaiting review.
 - **Next stage:** 6, Public site part 1 (home, schools, course finder, programme pages, about, contact).
-- **Branch:** `stage-05b-staff-portal` (from `main`)
+- **Branch:** `stage-05c-brand-refresh` (from `stage-05b-staff-portal`, merged as #15)
 
 ## Stage status
 
@@ -18,7 +18,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 3 | Database and migrations | Merged (#11) |
 | 4 | Auth and RBAC | Merged (#12) |
 | 5a | Content API | Merged (#14) |
-| 5b | Staff content screens | Done, awaiting review |
+| 5b | Staff content screens | Merged (#15) |
+| 5c | Brand refresh | Done, awaiting review |
 | 6 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -39,6 +40,7 @@ DQ-02 (Pool Management content is editable by the college) and DQ-13 (English on
 - Typed API client from the OpenAPI types; money and Nairobi date helpers.
 - CI: new end-to-end job with the real API and database.
 - Verified: editor drafts a programme in the browser, cannot publish; registrar publishes from the approval queue; an edit of the live programme waits for approval; axe clean on each screen; credentials never appear in a URL.
+- Revised logo set from the owner: favicons, Apple touch icon, and Open Graph and Twitter image wired in the root metadata (D-68); `SITE_URL` added to `frontend/.env.example`. Header, footer, sign-in and portal shell checked at 360 px and 1280 px.
 
 ### Stage 5a: Content API (2026-10-22)
 

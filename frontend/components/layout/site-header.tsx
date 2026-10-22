@@ -14,8 +14,8 @@ export function SiteHeader() {
           <Image
             src="/brand/dakota-logo-reversed.svg"
             alt={`${site.name} home`}
-            width={890}
-            height={330}
+            width={1339}
+            height={442}
             unoptimized
             priority
             className="h-12 w-auto sm:h-14 lg:h-[4.5rem]"
