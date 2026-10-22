@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,7 +30,7 @@ func (h publicHandlers) site(c *gin.Context) {
 		internalError(c, err)
 		return
 	}
-	c.Header("Cache-Control", "public, max-age=60")
+	cachePublic(c)
 	c.JSON(http.StatusOK, site)
 }
 
@@ -72,4 +73,63 @@ func (h publicHandlers) createEnquiry(c *gin.Context) {
 	default:
 		internalError(c, err)
 	}
+}
+
+func publicNotFound(c *gin.Context, err error, what string) {
+	if errors.Is(err, content.ErrNotFound) {
+		writeError(c, http.StatusNotFound, "not_found", "That "+what+" is not published.")
+		return
+	}
+	internalError(c, err)
+}
+
+func cachePublic(c *gin.Context) { c.Header("Cache-Control", "public, max-age=60") }
+
+func (h publicHandlers) newsList(c *gin.Context) {
+	page := 1
+	if v := c.Query("page"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 10000 {
+			writeError(c, http.StatusBadRequest, "invalid_request", "The page number must be a whole number from 1.")
+			return
+		}
+		page = n
+	}
+	list, err := h.content.NewsPage(c.Request.Context(), h.images, page)
+	if err != nil {
+		internalError(c, err)
+		return
+	}
+	cachePublic(c)
+	c.JSON(http.StatusOK, list)
+}
+
+func (h publicHandlers) newsArticle(c *gin.Context) {
+	a, err := h.content.NewsArticle(c.Request.Context(), h.images, c.Param("slug"))
+	if err != nil {
+		publicNotFound(c, err, "article")
+		return
+	}
+	cachePublic(c)
+	c.JSON(http.StatusOK, a)
+}
+
+func (h publicHandlers) events(c *gin.Context) {
+	list, err := h.content.Events(c.Request.Context())
+	if err != nil {
+		internalError(c, err)
+		return
+	}
+	cachePublic(c)
+	c.JSON(http.StatusOK, list)
+}
+
+func (h publicHandlers) event(c *gin.Context) {
+	e, err := h.content.Event(c.Request.Context(), c.Param("slug"))
+	if err != nil {
+		publicNotFound(c, err, "event")
+		return
+	}
+	cachePublic(c)
+	c.JSON(http.StatusOK, e)
 }

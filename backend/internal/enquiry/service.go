@@ -55,6 +55,7 @@ var QueryTypes = map[string]string{
 	"programmes":   "Programmes",
 	"fees":         "Fees",
 	"student_life": "Student life",
+	"alumni":       "Alumni (transcripts and certificates)",
 	"other":        "Other",
 }
 
@@ -65,6 +66,7 @@ var recipientKey = map[string]string{
 	"programmes":   "contact.admissions_email",
 	"fees":         "contact.finance_email",
 	"student_life": "contact.email",
+	"alumni":       "contact.email",
 	"other":        "contact.email",
 }
 

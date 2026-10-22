@@ -33,6 +33,29 @@ type Site struct {
 	Accreditations []PublicAccreditation `json:"accreditations"`
 	Events         []PublicEvent         `json:"events"`
 	News           []PublicNews          `json:"news"`
+	Pages          []PublicPage          `json:"pages"`
+	Gallery        []PublicPhoto         `json:"gallery"`
+}
+
+type PublicPage struct {
+	Slug           string     `json:"slug"`
+	Title          string     `json:"title"`
+	Summary        string     `json:"summary"`
+	Body           string     `json:"body"`
+	SEOTitle       string     `json:"seo_title"`
+	SEODescription string     `json:"seo_description"`
+	PublishedAt    *time.Time `json:"published_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+	IsSample       bool       `json:"is_sample"`
+}
+
+// PublicPhoto is a gallery photo. Only photos with recorded consent are
+// published (NN-08).
+type PublicPhoto struct {
+	Image    *media.ImageFile `json:"image"`
+	Caption  string           `json:"caption"`
+	AltText  string           `json:"alt_text"`
+	IsSample bool             `json:"is_sample"`
 }
 
 type PublicBanner struct {
@@ -241,14 +264,157 @@ func (s *Service) Site(ctx context.Context, images *media.Images) (*Site, error)
 	site.News = make([]PublicNews, 0, len(news))
 	for _, r := range news {
 		n := PublicNews{Slug: r.Slug, Title: r.Title, Summary: r.Summary, PublishedAt: r.PublishedAt, IsSample: r.IsSample}
-		if r.CoverFileID != nil && images != nil {
-			if cover, err := images.Get(ctx, *r.CoverFileID); err == nil {
-				n.Cover, n.CoverAlt = cover, r.CoverAlt
-			}
+		if n.Cover = cover(ctx, images, r.CoverFileID); n.Cover != nil {
+			n.CoverAlt = r.CoverAlt
 		}
 		site.News = append(site.News, n)
 	}
+
+	pages, err := q.PublicListPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+	site.Pages = make([]PublicPage, 0, len(pages))
+	for _, r := range pages {
+		site.Pages = append(site.Pages, PublicPage{Slug: r.Slug, Title: r.Title, Summary: r.Summary, Body: r.Body,
+			SEOTitle: r.SeoTitle, SEODescription: r.SeoDescription, PublishedAt: r.PublishedAt, UpdatedAt: r.UpdatedAt, IsSample: r.IsSample})
+	}
+
+	photos, err := q.PublicListGallery(ctx)
+	if err != nil {
+		return nil, err
+	}
+	site.Gallery = make([]PublicPhoto, 0, len(photos))
+	for _, r := range photos {
+		if images == nil {
+			break
+		}
+		img, err := images.Get(ctx, r.FileID)
+		if err != nil {
+			continue // the file is gone or in another bucket; skip the photo
+		}
+		site.Gallery = append(site.Gallery, PublicPhoto{Image: img, Caption: r.Caption, AltText: r.AltText, IsSample: r.IsSample})
+	}
 	return site, nil
+}
+
+// cover looks up a news cover image; nil when there is none or storage is off.
+func cover(ctx context.Context, images *media.Images, id *uuid.UUID) *media.ImageFile {
+	if id == nil || images == nil {
+		return nil
+	}
+	img, err := images.Get(ctx, *id)
+	if err != nil {
+		return nil
+	}
+	return img
+}
+
+// NewsPageSize is the number of articles per page of the news list.
+const NewsPageSize = 12
+
+type NewsList struct {
+	Items      []PublicNews `json:"items"`
+	Page       int          `json:"page"`
+	TotalPages int          `json:"total_pages"`
+	Total      int64        `json:"total"`
+}
+
+// NewsPage lists published articles, newest first. page starts at 1.
+func (s *Service) NewsPage(ctx context.Context, images *media.Images, page int) (*NewsList, error) {
+	q := dbq.New(s.pool)
+	total, err := q.PublicCountNews(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if page < 1 {
+		page = 1
+	}
+	out := &NewsList{Items: []PublicNews{}, Page: page, Total: total, TotalPages: int((total + NewsPageSize - 1) / NewsPageSize)}
+	rows, err := q.PublicListNewsPage(ctx, dbq.PublicListNewsPageParams{MaxItems: NewsPageSize, Skip: int32((page - 1) * NewsPageSize)})
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		n := PublicNews{Slug: r.Slug, Title: r.Title, Summary: r.Summary, PublishedAt: r.PublishedAt, IsSample: r.IsSample}
+		if n.Cover = cover(ctx, images, r.CoverFileID); n.Cover != nil {
+			n.CoverAlt = r.CoverAlt
+		}
+		out.Items = append(out.Items, n)
+	}
+	return out, nil
+}
+
+type NewsArticle struct {
+	PublicNews
+	Body           string    `json:"body"`
+	SEOTitle       string    `json:"seo_title"`
+	SEODescription string    `json:"seo_description"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (s *Service) NewsArticle(ctx context.Context, images *media.Images, slug string) (*NewsArticle, error) {
+	r, err := dbq.New(s.pool).PublicGetNewsPost(ctx, slug)
+	if err != nil {
+		return nil, notFound(err)
+	}
+	a := &NewsArticle{
+		PublicNews: PublicNews{Slug: r.Slug, Title: r.Title, Summary: r.Summary, PublishedAt: r.PublishedAt, IsSample: r.IsSample},
+		Body:       r.Body, SEOTitle: r.SeoTitle, SEODescription: r.SeoDescription, UpdatedAt: r.UpdatedAt,
+	}
+	if a.Cover = cover(ctx, images, r.CoverFileID); a.Cover != nil {
+		a.CoverAlt = r.CoverAlt
+	}
+	return a, nil
+}
+
+// pastEventsLimit caps the "recent events" list.
+const pastEventsLimit = 12
+
+type EventList struct {
+	Upcoming []PublicEvent `json:"upcoming"`
+	Past     []PublicEvent `json:"past"`
+}
+
+func (s *Service) Events(ctx context.Context) (*EventList, error) {
+	q := dbq.New(s.pool)
+	up, err := q.PublicListAllUpcomingEvents(ctx)
+	if err != nil {
+		return nil, err
+	}
+	past, err := q.PublicListPastEvents(ctx, pastEventsLimit)
+	if err != nil {
+		return nil, err
+	}
+	out := &EventList{Upcoming: make([]PublicEvent, 0, len(up)), Past: make([]PublicEvent, 0, len(past))}
+	for _, r := range up {
+		out.Upcoming = append(out.Upcoming, PublicEvent{Slug: r.Slug, Title: r.Title, Summary: r.Summary, Location: r.Location,
+			StartsAt: r.StartsAt, EndsAt: r.EndsAt, IsSample: r.IsSample})
+	}
+	for _, r := range past {
+		out.Past = append(out.Past, PublicEvent{Slug: r.Slug, Title: r.Title, Summary: r.Summary, Location: r.Location,
+			StartsAt: r.StartsAt, EndsAt: r.EndsAt, IsSample: r.IsSample})
+	}
+	return out, nil
+}
+
+type EventDetail struct {
+	PublicEvent
+	Body        string     `json:"body"`
+	PublishedAt *time.Time `json:"published_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+func (s *Service) Event(ctx context.Context, slug string) (*EventDetail, error) {
+	r, err := dbq.New(s.pool).PublicGetEvent(ctx, slug)
+	if err != nil {
+		return nil, notFound(err)
+	}
+	return &EventDetail{
+		PublicEvent: PublicEvent{Slug: r.Slug, Title: r.Title, Summary: r.Summary, Location: r.Location, StartsAt: r.StartsAt,
+			EndsAt: r.EndsAt, IsSample: r.IsSample},
+		Body: r.Body, PublishedAt: r.PublishedAt, UpdatedAt: r.UpdatedAt,
+	}, nil
 }
 
 func publicProgrammes(ctx context.Context, q *dbq.Queries, now time.Time) ([]PublicProgramme, error) {
