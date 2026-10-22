@@ -18,18 +18,13 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Open questions for the client or owner
 
-Grouped questions asked in the Stage 0 report. Defaults are in `ASSUMPTIONS.md` and are in use until answered.
+Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`). Still open:
 
 | Topic | IDs | Needed by |
 |---|---|---|
-| Contact and registration details | DQ-01, DQ-04 | Stage 6 (hidden until supplied) |
-| School of Pool Management meaning | DQ-02 | Stage 3 seed, Stage 6 |
-| Programme list | DQ-03, DQ-05 | Stage 6 (samples until then) |
-| Kiswahili toggle approval | DQ-13, A-10 | Stage 7 |
-| Content approval workflow | DQ-14 | Stage 4 role templates, Stage 5 |
-| Super Admin and staff roles | DQ-16, A-11 | Stage 4 |
-| Logo tagline and ribbon wording | A-09 | Stage 2 |
-| Repo visibility | A-12, R-10 | Before Stage 5 |
+| School of Pool Management meaning | DQ-02 | Stage 6 (name only, no sample programmes until explained) |
+| Real contact, registration and programme content | DQ-01, DQ-03, DQ-04, DQ-05 | Stage 20 (dummy values in dev seed until then) |
+| Human translator for Kiswahili | DQ-13 | Stage 7 |
 
 ## Log
 
@@ -38,3 +33,4 @@ Grouped questions asked in the Stage 0 report. Defaults are in `ASSUMPTIONS.md` 
 - Read `CLAUDE.md`, the brief (via `textutil`, since `pandoc` is not installed), and the logo files.
 - Created `docs/PLAN.md`, `docs/PROGRESS.md`, `docs/ASSUMPTIONS.md`, `docs/DECISIONS.md`, `docs/traceability.md`.
 - No feature code.
+- Owner answered the Stage 0 questions the same day; answers recorded in `ASSUMPTIONS.md` and `DECISIONS.md`.
