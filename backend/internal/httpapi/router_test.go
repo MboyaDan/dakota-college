@@ -20,7 +20,7 @@ type fakePinger struct{ err error }
 
 func (f fakePinger) Ping(context.Context) error { return f.err }
 
-func newTestRouter(t *testing.T, db Pinger, logOut io.Writer) *gin.Engine {
+func newTestRouter(t *testing.T, db Pinger, logOut io.Writer) *Router {
 	t.Helper()
 	if logOut == nil {
 		logOut = io.Discard
@@ -134,7 +134,7 @@ func TestUnknownRouteAndMethodUseErrorShape(t *testing.T) {
 
 func TestPanicReturnsJSON500(t *testing.T) {
 	r := newTestRouter(t, fakePinger{}, nil)
-	r.GET("/boom", func(*gin.Context) { panic("kaboom") })
+	r.Engine.GET("/boom", func(*gin.Context) { panic("kaboom") })
 	w := do(r, http.MethodGet, "/boom", nil)
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500", w.Code)

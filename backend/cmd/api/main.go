@@ -21,9 +21,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/MboyaDan/dakota-college/backend/internal/access"
+	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/config"
 	"github.com/MboyaDan/dakota-college/backend/internal/db"
 	"github.com/MboyaDan/dakota-college/backend/internal/httpapi"
+	"github.com/MboyaDan/dakota-college/backend/internal/mail"
 )
 
 func main() {
@@ -59,7 +62,26 @@ func run() error {
 	}
 	defer pool.Close()
 
-	router, err := httpapi.NewRouter(httpapi.Deps{Logger: logger, DB: pool, TrustedProxies: cfg.TrustedProxies})
+	authSvc, err := auth.NewService(auth.Options{
+		Pool:       pool,
+		Mailer:     mail.SMTP{Host: cfg.SMTP.Host, Port: cfg.SMTP.Port, Username: cfg.SMTP.Username, Password: cfg.SMTP.Password, From: cfg.SMTP.From},
+		Logger:     logger,
+		Session:    cfg.Session,
+		AppBaseURL: cfg.AppBaseURL,
+	})
+	if err != nil {
+		return fmt.Errorf("auth: %w", err)
+	}
+
+	router, err := httpapi.NewRouter(httpapi.Deps{
+		Logger:         logger,
+		DB:             pool,
+		TrustedProxies: cfg.TrustedProxies,
+		AllowedOrigins: cfg.AllowedOrigins,
+		CookieSecure:   cfg.Session.CookieSecure,
+		Auth:           authSvc,
+		Access:         access.NewService(pool),
+	})
 	if err != nil {
 		return fmt.Errorf("router: %w", err)
 	}
