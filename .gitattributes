@@ -13,3 +13,4 @@
 frontend/lib/api/schema.d.ts linguist-generated=true
 frontend/package-lock.json linguist-generated=true
 backend/go.sum linguist-generated=true
+backend/internal/db/dbq/*.go linguist-generated=true

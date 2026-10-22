@@ -10,7 +10,7 @@ Build instructions for contributors (and Claude Code) are in `CLAUDE.md`. Curren
 
 ## Requirements
 
-Go 1.25, Node 24, Docker Desktop (or Docker Engine with Compose v2).
+Go 1.26, Node 24, Docker Desktop (or Docker Engine with Compose v2).
 
 ## Run it locally
 
