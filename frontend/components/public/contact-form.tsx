@@ -17,6 +17,7 @@ const queryTypes = [
   { value: "programmes", label: "A programme" },
   { value: "fees", label: "Fees and payment" },
   { value: "student_life", label: "Student life" },
+  { value: "alumni", label: "Alumni: transcripts and certificates" },
   { value: "other", label: "Something else" },
 ] as const;
 

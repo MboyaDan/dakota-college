@@ -321,6 +321,52 @@ export const kinds: Record<ContentKind, KindConfig> = {
       sortOrder,
     ],
   },
+  pages: {
+    kind: "pages",
+    title: "Pages",
+    singular: "page",
+    description: "Text pages such as student life, alumni, how to apply and the legal notices.",
+    empty: () => ({ slug: "", title: "", summary: "", body: "", seo_title: "", seo_description: "" }),
+    fields: [
+      { type: "text", name: "title", label: "Title", required: true },
+      {
+        type: "slug",
+        name: "slug",
+        label: "Web address",
+        required: true,
+        from: "title",
+        hint: "The site shows these addresses: admissions (how to apply), student-life, alumni, privacy, cookies, terms, accessibility.",
+      },
+      {
+        type: "textarea",
+        name: "summary",
+        label: "Summary",
+        rows: 2,
+        hint: "One or two sentences under the title.",
+      },
+      {
+        type: "textarea",
+        name: "body",
+        label: "Page text",
+        rows: 18,
+        required: true,
+        hint: 'Leave a blank line between paragraphs. Start a line with "## " for a heading and "- " for a list item.',
+      },
+      {
+        type: "text",
+        name: "seo_title",
+        label: "Search engine title",
+        hint: "Up to 70 characters. Leave empty to use the title.",
+      },
+      {
+        type: "textarea",
+        name: "seo_description",
+        label: "Search engine description",
+        rows: 2,
+        hint: "Up to 170 characters. Leave empty to use the summary.",
+      },
+    ],
+  },
   news: {
     kind: "news",
     title: "News",
@@ -537,6 +583,7 @@ export const kindOrder: ContentKind[] = [
   "gallery",
   "statistics",
   "accreditations",
+  "pages",
 ];
 
 export function isKind(v: string): v is ContentKind {
