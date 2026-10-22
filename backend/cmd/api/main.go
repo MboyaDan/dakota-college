@@ -24,9 +24,11 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/config"
+	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/db"
 	"github.com/MboyaDan/dakota-college/backend/internal/httpapi"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
+	"github.com/MboyaDan/dakota-college/backend/internal/media"
 )
 
 func main() {
@@ -73,6 +75,23 @@ func run() error {
 		return fmt.Errorf("auth: %w", err)
 	}
 
+	var images *media.Images
+	if cfg.S3.Enabled() {
+		store, err := media.NewS3(media.S3Config{Endpoint: cfg.S3.Endpoint, Region: cfg.S3.Region, AccessKey: cfg.S3.AccessKey, SecretKey: cfg.S3.SecretKey, UseSSL: cfg.S3.UseSSL})
+		if err != nil {
+			return err
+		}
+		// Local buckets are created automatically; hosted ones by hand.
+		if cfg.Env == config.EnvDevelopment || cfg.Env == config.EnvTest {
+			if err := store.EnsureBuckets(ctx, cfg.S3.PublicBucket, cfg.S3.PrivateBucket); err != nil {
+				logger.Warn("could not prepare storage buckets", slog.String("error", err.Error()))
+			}
+		}
+		images = &media.Images{Pool: pool, Storage: store, Bucket: cfg.S3.PublicBucket, PublicBaseURL: cfg.S3.PublicBaseURL}
+	} else {
+		logger.Warn("object storage not configured: image uploads are disabled")
+	}
+
 	router, err := httpapi.NewRouter(httpapi.Deps{
 		Logger:         logger,
 		DB:             pool,
@@ -81,6 +100,8 @@ func run() error {
 		CookieSecure:   cfg.Session.CookieSecure,
 		Auth:           authSvc,
 		Access:         access.NewService(pool),
+		Content:        content.NewService(pool),
+		Images:         images,
 	})
 	if err != nil {
 		return fmt.Errorf("router: %w", err)

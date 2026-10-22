@@ -21,6 +21,7 @@ services:
       # Inside the Compose network hosts are service names, not localhost.
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
+      S3_ENDPOINT: minio:9000
       DATABASE_URL: postgres://${POSTGRES_USER:-dakota}:${POSTGRES_PASSWORD:-dakota_dev_only}@db:5432/${POSTGRES_DB:-dakota}?sslmode=disable
     ports:
       - "127.0.0.1:${API_PORT:-8180}:8080"
