@@ -97,3 +97,15 @@ Architecture and process decisions. ADR-xx come from the brief (section 18). D-x
 | D-59 | Image uploads: JPG, PNG or WebP up to 10 MB and 10,000 px a side (40 MP), checked by content not file name; JPEG orientation applied; re-encoded (JPEG quality 82, PNG kept as PNG) at widths 480, 960 and 1600, never wider than the original; all metadata, including GPS, removed. Stored in the public bucket under `images/<uuid>/<width>.<ext>` with a one-year immutable cache header. WebP output is not produced (Go has no pure WebP encoder); revisit in Stage 18. | Privacy (no location leaks), safety (no decompression bombs), and light pages on mobile data. | 5a |
 | D-60 | Storage settings `S3_*`; with no `S3_ENDPOINT` the API runs and uploads answer 503. In development and test the API creates the buckets and makes the public one readable; hosted buckets are set up by hand (Stage 19). | Works locally with no manual steps; never changes hosted storage automatically. | 5a |
 
+## Made in Stage 5b
+
+| ID | Decision | Reason | Stage |
+|---|---|---|---|
+| D-61 | The staff portal (`/staff`, noindex) renders in the browser after a session check, inside one Suspense boundary. The browser calls the API through a typed client (`openapi-fetch` on the generated types) that adds the CSRF header on every state-changing call. Signed-out visitors go to `/staff/login?next=…`; only `/staff` paths are followed after sign-in. | Session-dependent screens gain nothing from prerendering; the API enforces permissions regardless (AC-07). Typed calls catch contract drift at build time. | 5b |
+| D-62 | One description per content type (`lib/staff/kinds.ts`) drives the list, the form and the preview for all ten types. The preview of a programme shows the five answers applicants look for and flags anything missing. | One set of screens to maintain; editors see gaps before asking for approval. | 5b |
+| D-63 | Navigation and buttons follow permissions: editors do not see Publish or the approval queue; publishers do; people without content.write see read-only forms. | Plain screens per role; the API is still the guard. | 5b |
+| D-64 | Money is typed in shillings ("45,000" or "1,250.50") and converted to cents with string arithmetic, never floating point; date-times are entered and shown in Nairobi time (UTC+3). | ADR-05, A-01. | 5b |
+| D-65 | Sign-in forms use `method="post"` and keep the submit button disabled until the page is interactive. | Found in testing: a fast click before hydration sent the form as GET, which would put the password in the URL. Covered by an end-to-end test. | 5b |
+| D-66 | In OpenAPI, the CSRF token is a security scheme (`csrf`, header `X-CSRF-Token`) required with the session on the 17 state-changing operations, not a request parameter. | Matches how it works and keeps generated client types simple. | 5b |
+| D-67 | CI runs Playwright in a separate job against the real stack: PostgreSQL, migrations, seed (APP_ENV=test), the API binary, and the production build of the site. MinIO is not started in CI, so the image upload is covered by Go tests and local runs. | The staff flows only mean something against the real API. | 5b |
+

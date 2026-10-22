@@ -118,7 +118,7 @@ paths:
       tags: [auth]
       operationId: logout
       summary: Sign out (revokes the session)
-      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
       responses:
         "204": { description: Signed out. }
         "401": { $ref: "#/components/responses/Unauthenticated" }
@@ -189,7 +189,7 @@ paths:
       operationId: createUser
       summary: Create a staff account (users.manage)
       description: The person receives an email to set their password. Giving a role that includes system.admin needs system.admin.
-      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
       requestBody:
         required: true
         content:
@@ -217,7 +217,8 @@ paths:
       operationId: setUserRoles
       summary: Replace a user's roles (users.manage)
       description: Refused if it would leave no active Super Admin, or changes a role with system.admin without holding it.
-      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
       requestBody:
         required: true
         content:
@@ -239,7 +240,8 @@ paths:
       tags: [admin]
       operationId: disableUser
       summary: Disable an account and sign it out everywhere (users.manage)
-      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
       responses:
         "204": { description: Disabled. }
         "401": { $ref: "#/components/responses/Unauthenticated" }
@@ -251,7 +253,8 @@ paths:
       tags: [admin]
       operationId: enableUser
       summary: Enable an account (users.manage)
-      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
       responses:
         "204": { description: Enabled. }
         "401": { $ref: "#/components/responses/Unauthenticated" }
@@ -279,7 +282,7 @@ paths:
       operationId: createRole
       summary: Create a role (roles.manage)
       description: system.admin can never be included.
-      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
       requestBody:
         required: true
         content:
@@ -308,7 +311,8 @@ paths:
       operationId: setRolePermissions
       summary: Replace a role's permissions (roles.manage)
       description: The Super Admin role cannot be edited; system.admin can never be added.
-      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
       requestBody:
         required: true
         content:
@@ -330,7 +334,8 @@ paths:
       tags: [admin]
       operationId: deleteRole
       summary: Delete a custom role that nobody holds (roles.manage)
-      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
       responses:
         "204": { description: Deleted. }
         "401": { $ref: "#/components/responses/Unauthenticated" }
@@ -377,7 +382,8 @@ paths:
       tags: [content]
       operationId: createContent
       summary: Create a draft (content.write; faq-categories need content.publish)
-      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/Kind" }]
       requestBody:
         required: true
         content:
@@ -418,7 +424,8 @@ paths:
       operationId: updateContent
       summary: Save an edit (content.write)
       description: Drafts change in place. A published item gets a pending version instead. base_version must match the item's current version, or 409.
-      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }]
       requestBody:
         required: true
         content:
@@ -444,7 +451,8 @@ paths:
       tags: [content]
       operationId: deleteContent
       summary: Delete a draft that was never published (content.write)
-      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }]
       responses:
         "204": { description: Deleted. }
         "401": { $ref: "#/components/responses/Unauthenticated" }
@@ -456,7 +464,8 @@ paths:
       tags: [content]
       operationId: discardPendingContent
       summary: Throw away a pending edit (content.write)
-      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }]
       responses:
         "204": { description: Discarded. }
         "401": { $ref: "#/components/responses/Unauthenticated" }
@@ -468,7 +477,8 @@ paths:
       operationId: publishContent
       summary: Publish the item, applying any pending edit (content.publish)
       description: Refused with 422 and a list of fields when the item is not complete (for example a programme without fees, or a statistic without a verification date).
-      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }]
       requestBody:
         required: true
         content:
@@ -494,7 +504,8 @@ paths:
       tags: [content]
       operationId: unpublishContent
       summary: Take the item off the site, back to draft (content.publish)
-      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }]
       responses:
         "200":
           description: Now a draft.
@@ -510,7 +521,8 @@ paths:
       tags: [content]
       operationId: archiveContent
       summary: Archive the item (content.publish)
-      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/Kind" }, { $ref: "#/components/parameters/ID" }]
       responses:
         "200":
           description: Archived.
@@ -542,7 +554,7 @@ paths:
       tags: [content]
       operationId: updateSettings
       summary: Change site settings (content.publish)
-      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
       requestBody:
         required: true
         content:
@@ -563,7 +575,7 @@ paths:
       operationId: uploadImage
       summary: Upload a public website image (content.write)
       description: JPG, PNG or WebP up to 10 MB. Checked by content, rotated upright, metadata removed, stored at widths 480, 960 and 1600 (no wider than the original).
-      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      security: [{ session: [], csrf: [] }]
       requestBody:
         required: true
         content:
@@ -601,6 +613,11 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
+    csrf:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: The csrf_token from the login or session response. Required on every state-changing request made with a session.
     session:
       type: apiKey
       in: cookie
@@ -614,12 +631,6 @@ components:
       schema:
         type: string
         enum: [schools, programmes, news, events, faq-categories, faqs, banners, gallery, statistics, accreditations]
-    CSRF:
-      name: X-CSRF-Token
-      in: header
-      required: true
-      description: The csrf_token from the login or session response. Required on every state-changing request with a session.
-      schema: { type: string }
     ID:
       name: id
       in: path

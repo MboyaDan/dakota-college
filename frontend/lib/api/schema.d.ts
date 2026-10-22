@@ -769,8 +769,6 @@ export interface components {
     };
     parameters: {
         Kind: "schools" | "programmes" | "news" | "events" | "faq-categories" | "faqs" | "banners" | "gallery" | "statistics" | "accreditations";
-        /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-        CSRF: string;
         ID: string;
     };
     requestBodies: never;
@@ -892,10 +890,7 @@ export interface operations {
     logout: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -994,10 +989,7 @@ export interface operations {
     createUser: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1030,10 +1022,7 @@ export interface operations {
     setUserRoles: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 id: components["parameters"]["ID"];
             };
@@ -1064,10 +1053,7 @@ export interface operations {
     disableUser: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 id: components["parameters"]["ID"];
             };
@@ -1091,10 +1077,7 @@ export interface operations {
     enableUser: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 id: components["parameters"]["ID"];
             };
@@ -1141,10 +1124,7 @@ export interface operations {
     createRole: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1177,10 +1157,7 @@ export interface operations {
     setRolePermissions: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 id: components["parameters"]["ID"];
             };
@@ -1211,10 +1188,7 @@ export interface operations {
     deleteRole: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 id: components["parameters"]["ID"];
             };
@@ -1289,10 +1263,7 @@ export interface operations {
     createContent: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 kind: components["parameters"]["Kind"];
             };
@@ -1351,10 +1322,7 @@ export interface operations {
     updateContent: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 kind: components["parameters"]["Kind"];
                 id: components["parameters"]["ID"];
@@ -1389,10 +1357,7 @@ export interface operations {
     deleteContent: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 kind: components["parameters"]["Kind"];
                 id: components["parameters"]["ID"];
@@ -1417,10 +1382,7 @@ export interface operations {
     discardPendingContent: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 kind: components["parameters"]["Kind"];
                 id: components["parameters"]["ID"];
@@ -1444,10 +1406,7 @@ export interface operations {
     publishContent: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 kind: components["parameters"]["Kind"];
                 id: components["parameters"]["ID"];
@@ -1481,10 +1440,7 @@ export interface operations {
     unpublishContent: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 kind: components["parameters"]["Kind"];
                 id: components["parameters"]["ID"];
@@ -1511,10 +1467,7 @@ export interface operations {
     archiveContent: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path: {
                 kind: components["parameters"]["Kind"];
                 id: components["parameters"]["ID"];
@@ -1565,10 +1518,7 @@ export interface operations {
     updateSettings: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1597,10 +1547,7 @@ export interface operations {
     uploadImage: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token from the login or session response. Required on every state-changing request with a session. */
-                "X-CSRF-Token": components["parameters"]["CSRF"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };

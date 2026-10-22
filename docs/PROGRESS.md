@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 5a, Content API. Done, awaiting review.
-- **Next stage:** 5b, Staff portal screens (login, navigation by permission, content screens with preview, image upload).
-- **Branch:** `stage-05a-content-api` (from `main`)
+- **Current stage:** 5b, Staff portal screens. Done, awaiting review.
+- **Next stage:** 6, Public site part 1 (home, schools, course finder, programme pages, about, contact).
+- **Branch:** `stage-05b-staff-portal` (from `main`)
 
 ## Stage status
 
@@ -17,8 +17,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 2 | Design system | Merged (#9, #10) |
 | 3 | Database and migrations | Merged (#11) |
 | 4 | Auth and RBAC | Merged (#12) |
-| 5a | Content API | Done, awaiting review |
-| 5b | Staff content screens | Not started |
+| 5a | Content API | Merged (#14) |
+| 5b | Staff content screens | Done, awaiting review |
 | 6 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -32,6 +32,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 5b: Staff portal screens (2026-10-22)
+
+- `/staff` portal: sign in (split layout), forgot and reset password, overview, approval queue, list and editor screens for all ten content types with preview, image upload, site settings. Navigation and actions follow permissions.
+- Typed API client from the OpenAPI types; money and Nairobi date helpers.
+- CI: new end-to-end job with the real API and database.
+- Verified: editor drafts a programme in the browser, cannot publish; registrar publishes from the approval queue; an edit of the live programme waits for approval; axe clean on each screen; credentials never appear in a URL.
 
 ### Stage 5a: Content API (2026-10-22)
 
