@@ -141,7 +141,13 @@ func (s *Service) Get(ctx context.Context, userID, id uuid.UUID) (*Detail, error
 	if err != nil {
 		return nil, err
 	}
-	q := dbq.New(s.pool)
+	return s.detail(ctx, dbq.New(s.pool), a)
+}
+
+// detail builds the application from a, reading with q only. Inside a
+// transaction, pass its queries: taking a second pool connection while
+// holding locks can exhaust a small pool and hang every request.
+func (s *Service) detail(ctx context.Context, q *dbq.Queries, a dbq.GetOwnApplicationRow) (*Detail, error) {
 	ap, err := q.GetApplicant(ctx, a.ApplicantID)
 	if err != nil {
 		return nil, err

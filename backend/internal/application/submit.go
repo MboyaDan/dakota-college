@@ -99,7 +99,11 @@ func (s *Service) Submit(ctx context.Context, p *auth.Principal, id uuid.UUID, k
 			return ErrAlreadySubmitted
 		}
 
-		d, err := s.Get(ctx, p.UserID, id)
+		row, err := q.GetOwnApplication(ctx, dbq.GetOwnApplicationParams{ID: id, UserID: &p.UserID})
+		if err != nil {
+			return err
+		}
+		d, err := s.detail(ctx, q, row)
 		if err != nil {
 			return err
 		}

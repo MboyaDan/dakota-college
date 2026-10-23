@@ -47,7 +47,7 @@ DQ-02 (Pool Management content is editable by the college) and DQ-13 (English on
 - Migration 00012: passport documents, submitted snapshot, short-lived file links.
 - Documents checked by content, photos re-encoded without metadata, optional ClamAV scanning (D-110, D-111); private files only through five-minute links bound to one account (D-112).
 - Submission once, with idempotency keys, all in one transaction (D-113, D-114); status view with history (D-115).
-- Fixed a deadlock in applicant sign-in found by the concurrency test (D-116).
+- Fixed a deadlock in applicant sign-in found by the concurrency test (D-116), and a hang in simultaneous submits found by CI (D-118); Go tests now use a pool of 4 connections.
 - Owner confirmed A-18 and A-20 and accepted A-19 (raise in DG-06). New default A-21 (required documents).
 - Verified: Go tests against PostgreSQL; 103 unit tests; 124 Playwright tests passed locally, including upload and submission. Not run: a real ClamAV (image pull failed).
 
