@@ -10,6 +10,12 @@ test.skip(
 );
 
 const programme = "Diploma in Example Information Technology (Sample)";
+const pdf = Buffer.from("%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
+// A 1 x 1 pixel PNG.
+const png = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 /** Checks the step on screen, then saves it and moves on. */
 async function saveAndContinue(page: Page, nextTitle: string) {
@@ -90,18 +96,76 @@ test("an under-18 applicant starts and fills in an application", async ({ page, 
   await page.getByLabel("My parent or guardian").check();
   await page.getByLabel("Their name").fill("Test Guardian E2E");
   await page.getByLabel("Their phone number").fill("+254 700 000 002");
-  await saveAndContinue(page, "Check your answers");
+  await saveAndContinue(page, "Documents");
 
+  // The account page lists the draft with its reference, to continue later.
+  await page.goto("/apply/account");
+  const card = page.getByRole("listitem").filter({ hasText: reference });
+  await expect(card.getByText("Not submitted")).toBeVisible();
+  await card.getByRole("link", { name: /Continue your application/ }).click();
+  await expect(page.getByRole("radio", { checked: true })).toHaveCount(1);
+  await page.getByRole("link", { name: /Documents/ }).click();
+  await expect(page.getByRole("heading", { level: 2, name: /Documents/ })).toBeVisible();
+
+  // A file that is not a document is refused with a reason.
+  await page
+    .getByLabel("Upload your birth certificate")
+    .setInputFiles({ name: "notes.pdf", mimeType: "application/pdf", buffer: Buffer.from("not a pdf") });
+  await expect(page.getByText("notes.pdf: Use a PDF, JPG or PNG file.")).toBeVisible();
+
+  await page
+    .getByLabel("Upload your birth certificate")
+    .setInputFiles({ name: "birth.pdf", mimeType: "application/pdf", buffer: pdf });
+  await expect(page.getByText("Birth certificate uploaded.")).toBeVisible();
+  await page
+    .getByLabel("Upload your passport-size photo")
+    .setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: png });
+  await expect(page.getByText("Passport-size photo uploaded.")).toBeVisible();
+  await page
+    .getByLabel("Upload your kcse certificate or result slip")
+    .setInputFiles({ name: "kcse.pdf", mimeType: "application/pdf", buffer: pdf });
+  await expect(page.getByText("KCSE certificate or result slip uploaded.")).toBeVisible();
+  await expect(page.getByText("Needed")).toHaveCount(0);
+
+  // The photo opens through a short-lived link on this site.
+  const [tab] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.getByRole("button", { name: "View photo.png" }).click(),
+  ]);
+  // The tab opens blank at the click, then goes to the link.
+  await tab.waitForURL(/\/api\/v1\/files\/[\w-]+$/);
+  await expect(tab.locator("img")).toHaveCount(1);
+  await tab.close();
+  expect(await hasHorizontalOverflow(page)).toBe(false);
+  await expectNoSeriousA11yIssues(page);
+
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: /Check and submit/ })).toBeVisible();
   await expect(page.getByText("All the answers we need are here")).toBeVisible();
   await expect(page.getByText("Test Secondary School, 20")).toBeVisible();
   expect(await hasHorizontalOverflow(page)).toBe(false);
   await expectNoSeriousA11yIssues(page);
 
-  // The account page lists it with its reference, to continue later.
-  await page.getByRole("link", { name: "Back to your applications" }).click();
-  const card = page.getByRole("listitem").filter({ hasText: reference });
-  await expect(card.getByText("Not submitted")).toBeVisible();
-  await card.getByRole("link", { name: /Continue your application/ }).click();
-  await expect(page.getByRole("heading", { level: 2, name: /Programme and intake/ })).toBeVisible();
-  await expect(page.getByRole("radio", { checked: true })).toHaveCount(1);
+  // Submitting needs the declaration.
+  await page.getByRole("button", { name: "Submit application" }).click();
+  await expect(page.getByText("Tick the declaration to confirm your answers are true.")).toBeVisible();
+  await page.getByLabel(/The information I have given is true and complete/).check();
+  await page.getByRole("button", { name: "Submit application" }).click();
+
+  // Status tracking.
+  await expect(page.getByRole("heading", { level: 2, name: "Where your application is" })).toBeVisible();
+  await expect(page.getByText("Received").first()).toBeVisible();
+  await expect(page.getByText("Submitted online")).toBeVisible();
+  expect(await hasHorizontalOverflow(page)).toBe(false);
+  await expectNoSeriousA11yIssues(page);
+
+  // The answers can be read but not changed.
+  await page.getByRole("link", { name: "See your answers" }).click();
+  await expect(page.getByText("Your answers, as you sent them")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Submit application" })).toHaveCount(0);
+
+  await page.goto("/apply/account");
+  const sent = page.getByRole("listitem").filter({ hasText: reference });
+  await expect(sent.getByText("Received")).toBeVisible();
+  await expect(sent.getByRole("link", { name: /View your application/ })).toBeVisible();
 });
