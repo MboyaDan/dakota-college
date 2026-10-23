@@ -42,6 +42,18 @@ type Applicant struct {
 	UpdatedAt        time.Time
 }
 
+type ApplicantSignInLink struct {
+	ID            uuid.UUID
+	Email         string
+	FullName      string
+	ApplicationID *uuid.UUID
+	TokenHash     []byte
+	ExpiresAt     time.Time
+	UsedAt        *time.Time
+	RequestedIp   *netip.Addr
+	CreatedAt     time.Time
+}
+
 type Application struct {
 	ID                    uuid.UUID
 	Reference             string
@@ -292,6 +304,31 @@ type NewsPost struct {
 	AuthorID       *uuid.UUID
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+}
+
+type Notification struct {
+	ID          uuid.UUID
+	TemplateKey string
+	Channel     string
+	Recipient   string
+	Status      string
+	Error       string
+	RelatedType string
+	RelatedID   string
+	CreatedAt   time.Time
+	SentAt      *time.Time
+}
+
+type NotificationTemplate struct {
+	Key         string
+	Channel     string
+	Name        string
+	Description string
+	Subject     string
+	Body        string
+	UpdatedBy   *uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type Offer struct {
