@@ -97,7 +97,7 @@ func canSignIn(u dbq.GetUserForLoginRow, err error) (bool, error) {
 
 // RequestLink emails a sign-in link. It returns nil whenever the request is
 // well formed, including when nothing was sent.
-func (s *Service) RequestLink(ctx context.Context, email, name string, req audit.Request) error {
+func (s *Service) RequestLink(ctx context.Context, email, name, next string, req audit.Request) error {
 	email = auth.NormaliseEmail(email)
 	name = strings.Join(strings.Fields(name), " ")
 	if !s.allow(email, req) {
@@ -113,7 +113,7 @@ func (s *Service) RequestLink(ctx context.Context, email, name string, req audit
 	if u.FullName != "" {
 		name = u.FullName
 	}
-	link, err := s.createLink(ctx, email, name, nil, req)
+	link, err := s.createLink(ctx, email, name, nil, CleanNext(next), req)
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func (s *Service) ResumeByReference(ctx context.Context, reference, email string
 	if auth.NormaliseEmail(app.Email) != email || app.Kind != "applicant" || app.Status != "active" {
 		return nil
 	}
-	link, err := s.createLink(ctx, email, "", &app.ID, req)
+	link, err := s.createLink(ctx, email, "", &app.ID, "/apply/applications/"+app.ID.String(), req)
 	if err != nil {
 		return err
 	}
@@ -155,12 +155,12 @@ func (s *Service) ResumeByReference(ctx context.Context, reference, email string
 	})
 }
 
-func (s *Service) createLink(ctx context.Context, email, name string, applicationID *uuid.UUID, req audit.Request) (string, error) {
+func (s *Service) createLink(ctx context.Context, email, name string, applicationID *uuid.UUID, next string, req audit.Request) (string, error) {
 	token, hash := auth.NewToken()
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		q := dbq.New(tx)
 		if err := q.CreateApplicantSignInLink(ctx, dbq.CreateApplicantSignInLinkParams{
-			Email: email, FullName: name, ApplicationID: applicationID, TokenHash: hash,
+			Email: email, FullName: name, ApplicationID: applicationID, NextPath: next, TokenHash: hash,
 			ExpiresAt: s.now().Add(LinkTTL), RequestedIp: req.IP,
 		}); err != nil {
 			return err
@@ -181,7 +181,9 @@ type SignInResult struct {
 	*auth.LoginResult
 	// ApplicationID is set when the link came from a reference number.
 	ApplicationID *uuid.UUID
-	Created       bool
+	// NextPath is where to go after signing in ("" for the account page).
+	NextPath string
+	Created  bool
 }
 
 // SignIn spends a link and starts a session, creating the applicant account
@@ -237,7 +239,7 @@ func (s *Service) SignIn(ctx context.Context, token string, req audit.Request) (
 			return err
 		}
 		res.Principal.Email, res.Principal.FullName, res.Principal.Kind = link.Email, fullName, "applicant"
-		out.LoginResult, out.ApplicationID = res, link.ApplicationID
+		out.LoginResult, out.ApplicationID, out.NextPath = res, link.ApplicationID, link.NextPath
 
 		r := req
 		r.ActorID = &userID
@@ -286,6 +288,21 @@ func (s *Service) Applications(ctx context.Context, userID uuid.UUID) ([]Applica
 		out = append(out, a)
 	}
 	return out, nil
+}
+
+// CleanNext keeps a return path only if it is a plain path under /apply/,
+// so a sign-in link can never send anyone to another site.
+func CleanNext(next string) string {
+	if len(next) > 300 || !strings.HasPrefix(next, "/apply/") || strings.ContainsAny(next, "\\\r\n\t#") ||
+		strings.Contains(next, "//") || strings.Contains(next, "..") {
+		return ""
+	}
+	for _, r := range next {
+		if r < 0x21 || r > 0x7e {
+			return ""
+		}
+	}
+	return next
 }
 
 func greeting(name string) string {

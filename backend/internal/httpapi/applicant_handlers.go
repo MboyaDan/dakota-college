@@ -26,6 +26,7 @@ func (h applicantHandlers) requestLink(c *gin.Context) {
 	var body struct {
 		Email    string `json:"email" binding:"max=500"`
 		FullName string `json:"full_name" binding:"max=500"`
+		Next     string `json:"next" binding:"max=1000"`
 	}
 	if !bindJSON(c, &body) {
 		return
@@ -38,7 +39,7 @@ func (h applicantHandlers) requestLink(c *gin.Context) {
 		writeValidation(c, p)
 		return
 	}
-	if err := h.svc.RequestLink(c.Request.Context(), body.Email, body.FullName, auditRequest(c)); err != nil {
+	if err := h.svc.RequestLink(c.Request.Context(), body.Email, body.FullName, body.Next, auditRequest(c)); err != nil {
 		internalError(c, err)
 		return
 	}
@@ -88,7 +89,8 @@ func (h applicantHandlers) signIn(c *gin.Context) {
 	out := struct {
 		sessionResponse
 		ApplicationID *string `json:"application_id"`
-	}{sessionResponse: toSessionResponse(res.Principal)}
+		Next          string  `json:"next"`
+	}{sessionResponse: toSessionResponse(res.Principal), Next: res.NextPath}
 	out.ExpiresAt = &res.ExpiresAt
 	if res.ApplicationID != nil {
 		id := res.ApplicationID.String()
