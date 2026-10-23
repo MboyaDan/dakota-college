@@ -1,45 +1,20 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import { expectNoSeriousA11yIssues, hasHorizontalOverflow } from "./axe";
+import { linkFromEmail, mailpit } from "./mailpit";
 
 // Stage 8b: applicants sign in by emailed link (D-96), against the real API.
 // The link tests read the email from Mailpit (E2E_MAILPIT_URL).
 const password = process.env.E2E_STAFF_PASSWORD ?? "";
-const mailpit = process.env.E2E_MAILPIT_URL ?? "";
 test.skip(process.env.E2E_API !== "1", "set E2E_API=1 with the backend running");
 
-/** Waits for the newest email to `to` sent after `since`, and returns its sign-in link path. */
-async function linkFromEmail(request: APIRequestContext, to: string, since: number): Promise<string> {
-  let path = "";
-  await expect
-    .poll(
-      async () => {
-        const search = await request.get(`${mailpit}/api/v1/search`, {
-          params: { query: `to:"${to}"`, limit: "1" },
-        });
-        const found = (await search.json()) as { messages: { ID: string; Created: string }[] };
-        const latest = found.messages[0];
-        if (!latest || Date.parse(latest.Created) < since) return "";
-        const message = (await (await request.get(`${mailpit}/api/v1/message/${latest.ID}`)).json()) as {
-          Text: string;
-        };
-        const m = message.Text.match(/https?:\/\/[^/\s]+(\/apply\/continue\?token=[\w-]+)/);
-        path = m?.[1] ?? "";
-        return path;
-      },
-      { timeout: 15_000, message: `sign-in email to ${to}` },
-    )
-    .not.toBe("");
-  return path;
-}
-
-async function followLink(page: Page, path: string) {
+async function followLink(page: Page, path: string, lands = "Your account") {
   await page.goto(path);
   await expect(page.getByRole("heading", { level: 1, name: "Continue your application" })).toBeVisible();
   // The token is taken out of the address bar before anything else happens.
   await expect(page).toHaveURL(/\/apply\/continue$/);
   await expectNoSeriousA11yIssues(page);
   await page.getByRole("button", { name: "Continue to my application" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Your account" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: lands })).toBeVisible();
 }
 
 test("the applicant pages work at phone width without a session", async ({ page }) => {
@@ -122,12 +97,15 @@ test("an applicant continues with their reference number", async ({ page, reques
   await page.getByRole("button", { name: "Email me a link" }).click();
   await expect(page.getByText("Check your email")).toBeVisible();
 
-  await followLink(page, await linkFromEmail(request, "applicant001@example.invalid", since));
-  const card = page.getByRole("listitem").filter({ hasText: "DTC-APP-SAMPLE-000001" });
-  await expect(
-    card.getByRole("heading", { name: "Diploma in Example Information Technology (Sample)" }),
-  ).toBeVisible();
-  await expect(card.getByText("Not submitted")).toBeVisible();
+  // The link opens that application's form.
+  await followLink(
+    page,
+    await linkFromEmail(request, "applicant001@example.invalid", since),
+    "Your application",
+  );
+  await expect(page.getByText("DTC-APP-SAMPLE-000001")).toBeVisible();
+  await expect(page.getByText("Diploma in Example Information Technology (Sample)").first()).toBeVisible();
+  await expect(page.getByText("Not submitted")).toBeVisible();
   expect(await hasHorizontalOverflow(page)).toBe(false);
   await expectNoSeriousA11yIssues(page);
 });
