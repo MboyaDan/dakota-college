@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 8a, Staff enquiry inbox. Done, awaiting review.
-- **Next stage:** 8b, Applicant sign-in, resume by reference number, notification templates.
-- **Branch:** `stage-08a-enquiry-inbox` (from `fix-ci-build-offline`, PR #22, not yet merged)
+- **Current stage:** 8b, Applicant sign-in, resume by reference, notification templates. Done, awaiting review.
+- **Next stage:** 9, Application wizard.
+- **Branch:** `stage-08b-applicant-sign-in` (from `main` after #23)
 
 ## Stage status
 
@@ -24,8 +24,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 6b | Public pages | Merged (#18) |
 | 7a | Pages type, news and events API, legal drafts | Merged (#19, tagline artwork #20) |
 | 7b | Public site part 2 pages | Merged (#21); CI fix in #22 |
-| 8a | Staff enquiry inbox | Done, awaiting review |
-| 8b | Applicant sign-in and notifications | Not started |
+| 8a | Staff enquiry inbox | Merged (#23) |
+| 8b | Applicant sign-in and notifications | Done, awaiting review |
 | 9 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -39,6 +39,15 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 8b: Applicant sign-in and message templates (2026-10-23)
+
+- Migration 00010: applicant sign-in links, notification templates (email and SMS), notification log, `notifications.manage` (D-101).
+- Applicants sign in by a one-time emailed link, or by reference number plus the email on the application; the account is created on first use (D-97 to D-99). Pages `/apply/start`, `/apply/resume`, `/apply/continue`, `/apply/account`.
+- Routes can require an account kind; applicant and staff routes are kept apart (D-100).
+- Staff screen "Messages to applicants" with placeholder checks, SMS length and preview. SMS is recorded as skipped until DG-03.
+- Dev seed: Test Applicant 001 with draft `DTC-APP-SAMPLE-000001`; CI end-to-end job runs Mailpit (D-102).
+- Verified: Go tests against PostgreSQL (sign-in, single use, expiry, staff address refused, rate limit, resume, separation of routes, concurrent first sign-in, templates); 122 Playwright tests passed locally, including the real emails through Mailpit.
 
 ### Stage 8a: Staff enquiry inbox (2026-10-23)
 
