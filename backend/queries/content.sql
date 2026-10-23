@@ -118,3 +118,10 @@ ON CONFLICT (slug) DO UPDATE
   SET title = EXCLUDED.title, summary = EXCLUDED.summary, body = EXCLUDED.body, location = EXCLUDED.location,
       starts_at = EXCLUDED.starts_at, ends_at = EXCLUDED.ends_at, status = EXCLUDED.status,
       published_at = EXCLUDED.published_at, is_sample = EXCLUDED.is_sample;
+
+-- name: DeleteStaleSampleIntakes :exec
+-- Dev seed only: sample intakes from earlier runs that no application uses.
+DELETE FROM programme_intakes i
+WHERE i.programme_id = @programme_id AND i.is_sample AND NOT (i.starts_on = ANY(@keep::date[]))
+  AND NOT EXISTS (SELECT 1 FROM applications a WHERE a.intake_id = i.id)
+  AND NOT EXISTS (SELECT 1 FROM fee_items f WHERE f.intake_id = i.id);

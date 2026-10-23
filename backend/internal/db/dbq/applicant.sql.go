@@ -15,14 +15,15 @@ import (
 
 const createApplicantSignInLink = `-- name: CreateApplicantSignInLink :exec
 
-INSERT INTO applicant_sign_in_links (email, full_name, application_id, token_hash, expires_at, requested_ip)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO applicant_sign_in_links (email, full_name, application_id, next_path, token_hash, expires_at, requested_ip)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type CreateApplicantSignInLinkParams struct {
 	Email         string
 	FullName      string
 	ApplicationID *uuid.UUID
+	NextPath      string
 	TokenHash     []byte
 	ExpiresAt     time.Time
 	RequestedIp   *netip.Addr
@@ -34,6 +35,7 @@ func (q *Queries) CreateApplicantSignInLink(ctx context.Context, arg CreateAppli
 		arg.Email,
 		arg.FullName,
 		arg.ApplicationID,
+		arg.NextPath,
 		arg.TokenHash,
 		arg.ExpiresAt,
 		arg.RequestedIp,
@@ -59,7 +61,7 @@ func (q *Queries) CreateApplicantUser(ctx context.Context, arg CreateApplicantUs
 }
 
 const getApplicantSignInLinkForUpdate = `-- name: GetApplicantSignInLinkForUpdate :one
-SELECT id, email, full_name, application_id, expires_at, used_at
+SELECT id, email, full_name, application_id, next_path, expires_at, used_at
 FROM applicant_sign_in_links
 WHERE token_hash = $1
 FOR UPDATE
@@ -70,6 +72,7 @@ type GetApplicantSignInLinkForUpdateRow struct {
 	Email         string
 	FullName      string
 	ApplicationID *uuid.UUID
+	NextPath      string
 	ExpiresAt     time.Time
 	UsedAt        *time.Time
 }
@@ -82,6 +85,7 @@ func (q *Queries) GetApplicantSignInLinkForUpdate(ctx context.Context, tokenHash
 		&i.Email,
 		&i.FullName,
 		&i.ApplicationID,
+		&i.NextPath,
 		&i.ExpiresAt,
 		&i.UsedAt,
 	)

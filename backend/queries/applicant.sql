@@ -1,11 +1,11 @@
 -- ---------- applicant sign-in (Stage 8b, D-96) ----------
 
 -- name: CreateApplicantSignInLink :exec
-INSERT INTO applicant_sign_in_links (email, full_name, application_id, token_hash, expires_at, requested_ip)
-VALUES (@email, @full_name, @application_id, @token_hash, @expires_at, @requested_ip);
+INSERT INTO applicant_sign_in_links (email, full_name, application_id, next_path, token_hash, expires_at, requested_ip)
+VALUES (@email, @full_name, @application_id, @next_path, @token_hash, @expires_at, @requested_ip);
 
 -- name: GetApplicantSignInLinkForUpdate :one
-SELECT id, email, full_name, application_id, expires_at, used_at
+SELECT id, email, full_name, application_id, next_path, expires_at, used_at
 FROM applicant_sign_in_links
 WHERE token_hash = @token_hash
 FOR UPDATE;

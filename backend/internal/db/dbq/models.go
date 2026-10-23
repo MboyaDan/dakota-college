@@ -27,19 +27,20 @@ type Accreditation struct {
 }
 
 type Applicant struct {
-	ID               uuid.UUID
-	UserID           *uuid.UUID
-	Email            string
-	Phone            *string
-	FirstName        string
-	MiddleName       string
-	LastName         string
-	DateOfBirth      *time.Time
-	IdentityDocument string
-	Nationality      string
-	County           string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID                   uuid.UUID
+	UserID               *uuid.UUID
+	Email                string
+	Phone                *string
+	FirstName            string
+	MiddleName           string
+	LastName             string
+	DateOfBirth          *time.Time
+	IdentityDocument     string
+	Nationality          string
+	County               string
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	IdentityDocumentType *string
 }
 
 type ApplicantSignInLink struct {
@@ -52,6 +53,7 @@ type ApplicantSignInLink struct {
 	UsedAt        *time.Time
 	RequestedIp   *netip.Addr
 	CreatedAt     time.Time
+	NextPath      string
 }
 
 type Application struct {
@@ -90,6 +92,7 @@ type ApplicationEducation struct {
 	Qualification string
 	MeanGrade     string
 	SortOrder     int32
+	SubjectGrades []byte
 }
 
 type ApplicationGuardian struct {

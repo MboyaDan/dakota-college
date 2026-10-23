@@ -74,6 +74,24 @@ func (q *Queries) DeleteSampleFaqs(ctx context.Context) error {
 	return err
 }
 
+const deleteStaleSampleIntakes = `-- name: DeleteStaleSampleIntakes :exec
+DELETE FROM programme_intakes i
+WHERE i.programme_id = $1 AND i.is_sample AND NOT (i.starts_on = ANY($2::date[]))
+  AND NOT EXISTS (SELECT 1 FROM applications a WHERE a.intake_id = i.id)
+  AND NOT EXISTS (SELECT 1 FROM fee_items f WHERE f.intake_id = i.id)
+`
+
+type DeleteStaleSampleIntakesParams struct {
+	ProgrammeID uuid.UUID
+	Keep        []time.Time
+}
+
+// Dev seed only: sample intakes from earlier runs that no application uses.
+func (q *Queries) DeleteStaleSampleIntakes(ctx context.Context, arg DeleteStaleSampleIntakesParams) error {
+	_, err := q.db.Exec(ctx, deleteStaleSampleIntakes, arg.ProgrammeID, arg.Keep)
+	return err
+}
+
 const insertAccreditation = `-- name: InsertAccreditation :exec
 INSERT INTO accreditations (body, reference, description, status, is_sample)
 VALUES ($1, $2, $3, $4, $5)
