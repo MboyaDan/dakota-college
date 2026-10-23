@@ -16,6 +16,7 @@ export {
   Clock,
   ExternalLink,
   Eye,
+  FileText,
   GraduationCap,
   Inbox,
   Info,

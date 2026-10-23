@@ -73,6 +73,21 @@ export default async function ApplyPage({ searchParams }: PageProps<"/apply">) {
             </LinkButton>
           </div>
         </Card>
+        <Card>
+          <h2 className="text-xl font-semibold text-navy-900">Your applicant account</h2>
+          <p>
+            Sign in with a link sent to your email, with no password, to see your applications and their
+            status.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-2">
+            <LinkButton href="/apply/start" variant="secondary">
+              Email me a sign-in link
+            </LinkButton>
+            <LinkButton href="/apply/resume" variant="outline">
+              I have a reference number
+            </LinkButton>
+          </div>
+        </Card>
       </div>
     </>
   );
