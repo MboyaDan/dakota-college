@@ -100,6 +100,12 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20
+      # Catches the API's email so tests can follow applicant sign-in links.
+      mailpit:
+        image: axllent/mailpit:v1.31.6
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       APP_ENV: test
       DATABASE_URL: postgres://dakota:dakota_ci_only@localhost:5432/dakota?sslmode=disable
@@ -145,6 +151,7 @@ jobs:
         env:
           E2E_API: "1"
           E2E_STAFF_PASSWORD: ci-e2e-only-password
+          E2E_MAILPIT_URL: http://localhost:8025
       # AC-15: public pages keep serving from cached and bundled content with
       # the API stopped.
       - name: Stop the API
