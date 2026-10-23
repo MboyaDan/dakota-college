@@ -22,6 +22,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
+	"github.com/MboyaDan/dakota-college/backend/internal/applicant"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/config"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
@@ -30,6 +31,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/httpapi"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
+	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 )
 
 func main() {
@@ -94,6 +96,7 @@ func run() error {
 		logger.Warn("object storage not configured: image uploads are disabled")
 	}
 
+	notifier := notify.NewService(pool, mailer, logger)
 	router, err := httpapi.NewRouter(httpapi.Deps{
 		Logger:         logger,
 		DB:             pool,
@@ -105,6 +108,10 @@ func run() error {
 		Content:        content.NewService(pool),
 		Images:         images,
 		Enquiries:      enquiry.NewService(pool, mailer, logger, cfg.AppBaseURL),
+		Notify:         notifier,
+		Applicants: applicant.NewService(applicant.Options{
+			Pool: pool, Auth: authSvc, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
+		}),
 	})
 	if err != nil {
 		return fmt.Errorf("router: %w", err)

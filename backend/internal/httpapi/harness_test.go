@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
+	"github.com/MboyaDan/dakota-college/backend/internal/applicant"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/config"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
@@ -22,6 +23,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
+	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/testdb"
 )
 
@@ -39,12 +41,14 @@ type harness struct {
 	access  *access.Service
 	mailer  *mail.Recorder
 	storage *media.Memory
+	// now is the clock for applicant links; tests move it forward.
+	now func() time.Time
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	pool, _ := testdb.Migrated(t)
-	h := &harness{t: t, pool: pool, mailer: &mail.Recorder{}, storage: &media.Memory{}}
+	h := &harness{t: t, pool: pool, mailer: &mail.Recorder{}, storage: &media.Memory{}, now: time.Now}
 	h.rebuild()
 	return h
 }
@@ -63,11 +67,16 @@ func (h *harness) rebuild() {
 		h.t.Fatal(err)
 	}
 	h.access = access.NewService(h.pool)
+	notifier := notify.NewService(h.pool, h.mailer, logger)
 	h.router, err = NewRouter(Deps{
 		Logger: logger, DB: h.pool, AllowedOrigins: []string{testOrigin}, CookieSecure: true,
 		Auth: h.auth, Access: h.access, Content: content.NewService(h.pool),
 		Images:    &media.Images{Pool: h.pool, Storage: h.storage, Bucket: "dakota-public", PublicBaseURL: "https://cdn.example/dakota-public"},
 		Enquiries: enquiry.NewService(h.pool, h.mailer, logger, testOrigin),
+		Notify:    notifier,
+		Applicants: applicant.NewService(applicant.Options{
+			Pool: h.pool, Auth: h.auth, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
+		}),
 	})
 	if err != nil {
 		h.t.Fatal(err)

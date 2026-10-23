@@ -194,21 +194,13 @@ func (s *Service) Login(ctx context.Context, email, password string, req audit.R
 		return fail("wrong_password", &u.ID, ErrInvalidCredentials)
 	}
 
-	token, tokenHash := NewToken()
-	expires := s.now().Add(s.session.TTL)
-	var sessionID uuid.UUID
+	var res *LoginResult
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		tq := dbq.New(tx)
 		if err := tq.RecordLoginSuccess(ctx, u.ID); err != nil {
 			return err
 		}
-		var ua *string
-		if req.UserAgent != "" {
-			ua = &req.UserAgent
-		}
-		if sessionID, err = tq.CreateSession(ctx, dbq.CreateSessionParams{
-			TokenHash: tokenHash, UserID: u.ID, ExpiresAt: expires, Ip: req.IP, UserAgent: ua,
-		}); err != nil {
+		if res, err = s.StartSession(ctx, tq, u.ID, req); err != nil {
 			return err
 		}
 		r := req
@@ -224,13 +216,31 @@ func (s *Service) Login(ctx context.Context, email, password string, req audit.R
 	if err != nil {
 		return nil, err
 	}
+	res.Principal.Email, res.Principal.FullName, res.Principal.Kind = u.Email, u.FullName, u.Kind
+	res.Principal.Permissions = perms
+	return res, nil
+}
+
+// StartSession creates a session for userID inside the caller's transaction.
+// The Principal carries only the session and user ids and the CSRF token;
+// the caller fills in the rest. Applicant sign-in links use it too.
+func (s *Service) StartSession(ctx context.Context, q *dbq.Queries, userID uuid.UUID, req audit.Request) (*LoginResult, error) {
+	token, tokenHash := NewToken()
+	expires := s.now().Add(s.session.TTL)
+	var ua *string
+	if req.UserAgent != "" {
+		ua = &req.UserAgent
+	}
+	sessionID, err := q.CreateSession(ctx, dbq.CreateSessionParams{
+		TokenHash: tokenHash, UserID: userID, ExpiresAt: expires, Ip: req.IP, UserAgent: ua,
+	})
+	if err != nil {
+		return nil, err
+	}
 	return &LoginResult{
 		Token:     token,
 		ExpiresAt: expires,
-		Principal: &Principal{
-			SessionID: sessionID, UserID: u.ID, Email: u.Email, FullName: u.FullName, Kind: u.Kind,
-			Permissions: perms, CSRFToken: CSRFTokenFor(token),
-		},
+		Principal: &Principal{SessionID: sessionID, UserID: userID, Permissions: []string{}, CSRFToken: CSRFTokenFor(token)},
 	}, nil
 }
 

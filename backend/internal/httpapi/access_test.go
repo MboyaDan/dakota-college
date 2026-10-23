@@ -33,12 +33,20 @@ func TestEveryRouteIsProtected(t *testing.T) {
 		"GET /api/v1/public/site": true, "POST /api/v1/public/enquiries": true,
 		"GET /api/v1/public/news": true, "GET /api/v1/public/news/:slug": true,
 		"GET /api/v1/public/events": true, "GET /api/v1/public/events/:slug": true,
+		"POST /api/v1/applicant/sign-in-link": true, "POST /api/v1/applicant/resume": true,
+		"POST /api/v1/applicant/sign-in": true,
 	}
+	// Routes any signed-in account may use. Every other protected route
+	// names a permission or a kind of account.
+	anySession := map[string]bool{"GET /api/v1/auth/session": true, "POST /api/v1/auth/logout": true}
 	permissions := map[string]bool{}
 	for _, r := range h.router.Routes {
 		key := r.Method + " " + r.Path
 		if r.Public != public[key] {
 			t.Errorf("%s: public=%v, but the reviewed public list says %v", key, r.Public, public[key])
+		}
+		if !r.Public && r.Permission == "" && r.Kind == "" && !anySession[key] {
+			t.Errorf("%s needs a session but no permission or account kind", key)
 		}
 		if strings.HasPrefix(r.Path, "/api/v1/admin/") && r.Permission == "" {
 			t.Errorf("%s has no permission", key)

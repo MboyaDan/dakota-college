@@ -9,10 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
+	"github.com/MboyaDan/dakota-college/backend/internal/applicant"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
+	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 )
 
 // Pinger checks that a dependency is reachable. *pgxpool.Pool satisfies it.
@@ -33,8 +35,10 @@ type Deps struct {
 	Content        *content.Service
 	// Images may be nil when object storage is not configured; uploads then
 	// answer 503.
-	Images    *media.Images
-	Enquiries *enquiry.Service
+	Images     *media.Images
+	Enquiries  *enquiry.Service
+	Applicants *applicant.Service
+	Notify     *notify.Service
 }
 
 const defaultBodyLimit = 1 << 20 // 1 MB for JSON endpoints
@@ -45,9 +49,11 @@ type Route struct {
 	Method string
 	Path   string
 	// Public routes need no session. Otherwise a session is required, and
-	// Permission (if set) must be held.
+	// Permission (if set) must be held, and Kind (if set) is the only kind
+	// of account allowed (applicant routes).
 	Public     bool
 	Permission string
+	Kind       string
 }
 
 type Router struct {
@@ -80,16 +86,24 @@ func NewRouter(d Deps) (*Router, error) {
 	// addWithLimit mounts a handler with its protection and body size limit.
 	// Authenticated routes get the session check, CSRF check (for unsafe
 	// methods) and permission check.
-	addWithLimit := func(bodyLimit int64, method, path string, public bool, permission string, h gin.HandlerFunc) {
-		rt.Routes = append(rt.Routes, Route{Method: method, Path: "/api/v1" + path, Public: public, Permission: permission})
+	mount := func(r Route, bodyLimit int64, h gin.HandlerFunc) {
+		path := r.Path
+		r.Path = "/api/v1" + path
+		rt.Routes = append(rt.Routes, r)
 		chain := []gin.HandlerFunc{limitBody(bodyLimit)}
-		if !public {
+		if !r.Public {
 			chain = append(chain, requireSession(d.Auth, cookie), requireCSRF(cookie))
-			if permission != "" {
-				chain = append(chain, requirePermission(permission, d.Logger))
+			if r.Permission != "" {
+				chain = append(chain, requirePermission(r.Permission, d.Logger))
+			}
+			if r.Kind != "" {
+				chain = append(chain, requireKind(r.Kind))
 			}
 		}
-		v1.Handle(method, path, append(chain, h)...)
+		v1.Handle(r.Method, path, append(chain, h)...)
+	}
+	addWithLimit := func(bodyLimit int64, method, path string, public bool, permission string, h gin.HandlerFunc) {
+		mount(Route{Method: method, Path: path, Public: public, Permission: permission}, bodyLimit, h)
 	}
 	add := func(method, path string, public bool, permission string, h gin.HandlerFunc) {
 		addWithLimit(defaultBodyLimit, method, path, public, permission, h)
@@ -150,6 +164,20 @@ func NewRouter(d Deps) (*Router, error) {
 		add(http.MethodPost, "/staff/enquiries/:id/assign", false, enquiry.PermManage, eh.assign)
 		add(http.MethodPost, "/staff/enquiries/:id/status", false, enquiry.PermManage, eh.setStatus)
 		add(http.MethodPost, "/staff/enquiries/:id/notes", false, enquiry.PermManage, eh.addNote)
+	}
+
+	if d.Notify != nil && d.Auth != nil {
+		nh := notificationHandlers{svc: d.Notify}
+		add(http.MethodGet, "/staff/notification-templates", false, notify.PermManage, nh.list)
+		add(http.MethodPut, "/staff/notification-templates/:key/:channel", false, notify.PermManage, nh.update)
+	}
+
+	if d.Applicants != nil && d.Auth != nil {
+		ah := applicantHandlers{svc: d.Applicants, cookie: cookie}
+		add(http.MethodPost, "/applicant/sign-in-link", true, "", ah.requestLink)
+		add(http.MethodPost, "/applicant/resume", true, "", ah.resume)
+		add(http.MethodPost, "/applicant/sign-in", true, "", ah.signIn)
+		mount(Route{Method: http.MethodGet, Path: "/applicant/applications", Kind: "applicant"}, defaultBodyLimit, ah.applications)
 	}
 
 	if d.Content != nil && d.Enquiries != nil {
