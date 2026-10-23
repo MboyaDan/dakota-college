@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 9a, Application form with autosave. Done, awaiting review.
-- **Next stage:** 9b, Documents, declaration, submission and status tracking.
-- **Branch:** `stage-09a-application-wizard` (from `main` after #24)
+- **Current stage:** 9b, Documents, submission and status tracking. Done, awaiting review.
+- **Next stage:** 10, Staff admissions workflow.
+- **Branch:** `stage-09b-documents-submission` (from `main` after #25)
 
 ## Stage status
 
@@ -26,8 +26,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 7b | Public site part 2 pages | Merged (#21); CI fix in #22 |
 | 8a | Staff enquiry inbox | Merged (#23) |
 | 8b | Applicant sign-in and notifications | Merged (#24) |
-| 9a | Application form with autosave | Done, awaiting review |
-| 9b | Documents and submission | Not started |
+| 9a | Application form with autosave | Merged (#25) |
+| 9b | Documents and submission | Done, awaiting review |
 | 10 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -41,6 +41,15 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 9b: Documents, submission and status tracking (2026-10-24)
+
+- Migration 00012: passport documents, submitted snapshot, short-lived file links.
+- Documents checked by content, photos re-encoded without metadata, optional ClamAV scanning (D-110, D-111); private files only through five-minute links bound to one account (D-112).
+- Submission once, with idempotency keys, all in one transaction (D-113, D-114); status view with history (D-115).
+- Fixed a deadlock in applicant sign-in found by the concurrency test (D-116).
+- Owner confirmed A-18 and A-20 and accepted A-19 (raise in DG-06). New default A-21 (required documents).
+- Verified: Go tests against PostgreSQL; 103 unit tests; 124 Playwright tests passed locally, including upload and submission. Not run: a real ClamAV (image pull failed).
 
 ### Stage 9a: Application form with autosave (2026-10-23)
 
