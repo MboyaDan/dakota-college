@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 8b, Applicant sign-in, resume by reference, notification templates. Done, awaiting review.
-- **Next stage:** 9, Application wizard.
-- **Branch:** `stage-08b-applicant-sign-in` (from `main` after #23)
+- **Current stage:** 9a, Application form with autosave. Done, awaiting review.
+- **Next stage:** 9b, Documents, declaration, submission and status tracking.
+- **Branch:** `stage-09a-application-wizard` (from `main` after #24)
 
 ## Stage status
 
@@ -25,8 +25,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 7a | Pages type, news and events API, legal drafts | Merged (#19, tagline artwork #20) |
 | 7b | Public site part 2 pages | Merged (#21); CI fix in #22 |
 | 8a | Staff enquiry inbox | Merged (#23) |
-| 8b | Applicant sign-in and notifications | Done, awaiting review |
-| 9 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 8b | Applicant sign-in and notifications | Merged (#24) |
+| 9a | Application form with autosave | Done, awaiting review |
+| 9b | Documents and submission | Not started |
+| 10 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -39,6 +41,14 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 9a: Application form with autosave (2026-10-23)
+
+- Migration 00011: identity document type, KCSE subject grades, one guardian per application, return path on sign-in links.
+- API: start an application (reference emailed, no duplicates), save each step, missing list, guardian consent, draft expiry (D-103 to D-107).
+- Site: `/apply` starts the form; `/apply/new`; `/apply/application` with six steps, autosave and check your answers (D-108). Seed intakes dated from today (D-109).
+- Owner confirmed A-16 and A-17. New defaults A-18 to A-20; risk R-26 (how parental consent is captured).
+- Verified: Go tests against PostgreSQL; 102 unit tests; 124 Playwright tests passed locally, including the whole form from the programme page with axe on every step.
 
 ### Stage 8b: Applicant sign-in and message templates (2026-10-23)
 
