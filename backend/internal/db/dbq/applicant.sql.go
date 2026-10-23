@@ -60,6 +60,18 @@ func (q *Queries) CreateApplicantUser(ctx context.Context, arg CreateApplicantUs
 	return id, err
 }
 
+const getApplicantSignInLinkEmail = `-- name: GetApplicantSignInLinkEmail :one
+SELECT email FROM applicant_sign_in_links WHERE token_hash = $1
+`
+
+// Read without a lock, so the per-address lock can be taken first.
+func (q *Queries) GetApplicantSignInLinkEmail(ctx context.Context, tokenHash []byte) (string, error) {
+	row := q.db.QueryRow(ctx, getApplicantSignInLinkEmail, tokenHash)
+	var email string
+	err := row.Scan(&email)
+	return email, err
+}
+
 const getApplicantSignInLinkForUpdate = `-- name: GetApplicantSignInLinkForUpdate :one
 SELECT id, email, full_name, application_id, next_path, expires_at, used_at
 FROM applicant_sign_in_links

@@ -133,7 +133,7 @@ func TestOneActiveApplicationPerProgrammeAndIntake(t *testing.T) {
 	first := insertApplication(t, pool, applicant, prog)
 	expectCode(t, pool, uniqueViolation, `INSERT INTO applications (reference, applicant_id, programme_id) VALUES ('DTC-APP-T-2', $1, $2)`, applicant, prog)
 
-	mustExec(t, pool, `UPDATE applications SET status = 'withdrawn', declaration_accepted_at = now(), submitted_at = now() WHERE id = $1`, first)
+	mustExec(t, pool, `UPDATE applications SET status = 'withdrawn', declaration_accepted_at = now(), submitted_at = now(), submitted_snapshot = '{}' WHERE id = $1`, first)
 	mustExec(t, pool, `INSERT INTO applications (reference, applicant_id, programme_id) VALUES ('DTC-APP-T-3', $1, $2)`, applicant, prog)
 
 	expectCode(t, pool, checkViolation, `INSERT INTO applications (reference, applicant_id, programme_id, status) VALUES ('DTC-APP-T-4', $1, $2, 'submitted')`, insertApplicant(t, pool), prog)
