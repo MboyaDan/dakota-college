@@ -703,6 +703,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applicant/sign-in-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email a one-time link to start or continue an application
+         * @description Sent only to a new email address or an active applicant account; staff and student
+         *     accounts get nothing. The link works once, for 30 minutes. Rate limited per address and
+         *     per IP; a limited request gets the same answer.
+         */
+        post: operations["requestApplicantSignInLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email a sign-in link to the owner of an application
+         * @description Sent only when the reference exists and the email is the one on the application.
+         */
+        post: operations["resumeApplicationByReference"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Spend a sign-in link and start a session
+         * @description Creates the applicant account on first use. Spends every outstanding link for the
+         *     address. 400 invalid_sign_in_link if the link is unknown, used or expired.
+         */
+        post: operations["applicantSignIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signed-in applicant's own applications
+         * @description Applicant sessions only; any other session gets 403.
+         */
+        get: operations["listMyApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/notification-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every message template (notifications.manage) */
+        get: operations["listNotificationTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/notification-templates/{key}/{channel}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a template's text (notifications.manage)
+         * @description Only the template's own placeholders are allowed; sign-in messages must keep {link}.
+         *     Text messages have no subject and at most 320 characters. Audited.
+         */
+        put: operations["updateNotificationTemplate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -930,6 +1051,47 @@ export interface components {
             csrf_token: string;
             /** Format: date-time */
             expires_at?: string;
+        };
+        ApplicantSession: components["schemas"]["Session"] & {
+            /**
+             * Format: uuid
+             * @description Set when the link came from a reference number.
+             */
+            application_id: string | null;
+        };
+        MyApplication: {
+            /** Format: uuid */
+            id: string;
+            reference: string;
+            /** @enum {string} */
+            status: "draft" | "submitted" | "under_review" | "info_requested" | "offered" | "offer_accepted" | "enrolled" | "rejected" | "withdrawn" | "expired";
+            programme_title: string;
+            programme_slug: string;
+            intake_name: string | null;
+            /** Format: date */
+            intake_starts_on: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            submitted_at: string | null;
+        };
+        NotificationTemplate: {
+            key: string;
+            /** @enum {string} */
+            channel: "email" | "sms";
+            name: string;
+            description: string;
+            subject: string;
+            body: string;
+            placeholders: string[];
+            max_length: number;
+            /** @description False for text messages until DG-03 clears. */
+            sending: boolean;
+            /** Format: date-time */
+            updated_at: string;
+            updated_by_name: string | null;
         };
         Message: {
             message: string;
@@ -2456,6 +2618,177 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["EnquiryDetail"];
                 };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    requestApplicantSignInLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email: string;
+                    /** @description Used only when the link creates the account. */
+                    full_name?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            422: components["responses"]["Error"];
+        };
+    };
+    resumeApplicationByReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example DTC-APP-2026-000123 */
+                    reference: string;
+                    /** Format: email */
+                    email: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            422: components["responses"]["Error"];
+        };
+    };
+    applicantSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Signed in. */
+            200: {
+                headers: {
+                    /** @description Session cookie, as for staff sign-in. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicantSession"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    listMyApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["MyApplication"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    listNotificationTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Templates by key and channel. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["NotificationTemplate"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    updateNotificationTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+                channel: "email" | "sms";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    subject?: string;
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Error"];

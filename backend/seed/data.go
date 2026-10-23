@@ -113,6 +113,16 @@ var userSeeds = []userSeed{
 	{"student001@example.invalid", "Test Student 001", "student", "student"},
 }
 
+// A sample applicant with one draft application, so the applicant pages and
+// resume by reference have something to show. The account has no password:
+// applicants sign in by emailed link (D-96).
+const (
+	sampleApplicantEmail     = "applicant001@example.invalid"
+	sampleApplicantName      = "Test Applicant 001"
+	sampleApplicationRef     = "DTC-APP-SAMPLE-000001"
+	sampleApplicationProgram = "example-information-technology-diploma"
+)
+
 type pageSeed struct {
 	slug, title, summary, body string
 }

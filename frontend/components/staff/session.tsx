@@ -31,10 +31,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     let active = true;
     api.GET("/api/v1/auth/session").then(({ data, response }) => {
       if (!active) return;
-      if (data) {
+      // An applicant session is not a staff session: sign in as staff.
+      if (data && data.user.kind === "staff") {
         setCsrfToken(data.csrf_token);
         setSession(data);
-      } else if (response.status === 401) {
+      } else if (data || response.status === 401) {
         router.replace(`/staff/login?next=${encodeURIComponent(pathname)}`);
       }
     });

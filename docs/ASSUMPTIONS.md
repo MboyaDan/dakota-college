@@ -52,3 +52,5 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-13 | Toolchain: Go 1.26 (D-33; the local 1.25 install downloads 1.26.10 automatically via `toolchain`), Node 24, npm, Docker 29, PostgreSQL client. | Open |
 | A-14 | Staging gets no seed data: the seed refuses anything but development and test (CLAUDE.md). A staging demo will need a separate, clearly fake demo-data decision in Stage 19. | Open |
 | A-15 | Optional TOTP for finance, registrar and admin accounts is built in Stage 17 (brief 13), not Stage 4. | Open |
+| A-16 | Applicant sign-in links work for 30 minutes, and an address can ask for 5 an hour (D-97). | Default, Stage 8b; owner may change |
+| A-17 | Registrar and ICT Admin (and Super Admin) may reword messages to applicants (`notifications.manage`); Admissions Officers may not. | Default, Stage 8b; owner may change |

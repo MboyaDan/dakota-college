@@ -3,11 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { api, errorMessage } from "@/lib/api/client";
+import { useHydrated } from "@/lib/use-hydrated";
 
 /** Split layout for sign-in pages: brand panel and form (brief 5.1). */
 export function AuthLayout({
@@ -47,18 +48,6 @@ export function AuthLayout({
       </main>
     </div>
   );
-}
-
-/**
- * True once React has hydrated. Submit buttons stay disabled until then, so a
- * fast click cannot send the form natively (which would put the password in
- * the URL with method GET). Forms also use method="post" as a backstop.
- */
-function useHydrated() {
-  const [hydrated, setHydrated] = useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- runs once to detect hydration
-  useEffect(() => setHydrated(true), []);
-  return hydrated;
 }
 
 /** Only same-site paths are followed after sign-in, never another website. */

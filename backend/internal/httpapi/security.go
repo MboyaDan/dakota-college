@@ -128,6 +128,18 @@ func requirePermission(permission string, logger *slog.Logger) gin.HandlerFunc {
 	}
 }
 
+// requireKind admits only one kind of account, so applicant routes are
+// closed to staff sessions (and the other way round by permissions).
+func requireKind(kind string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if p := principal(c); p == nil || p.Kind != kind {
+			writeError(c, http.StatusForbidden, "forbidden", "You do not have permission to do this.")
+			return
+		}
+		c.Next()
+	}
+}
+
 func principal(c *gin.Context) *auth.Principal {
 	if v, ok := c.Get(principalKey); ok {
 		return v.(*auth.Principal)

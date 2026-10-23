@@ -47,8 +47,8 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("seeded sample data: %d schools, %d programmes, %d intakes, %d fee items, %d FAQs, %d settings, %d pages, %d news, %d events, %d test users\n",
-		sum.Schools, sum.Programmes, sum.Intakes, sum.FeeItems, sum.FAQs, sum.Settings, sum.Pages, sum.News, sum.Events, sum.Users)
+	fmt.Printf("seeded sample data: %d schools, %d programmes, %d intakes, %d fee items, %d FAQs, %d settings, %d pages, %d news, %d events, %d test users, %d applications\n",
+		sum.Schools, sum.Programmes, sum.Intakes, sum.FeeItems, sum.FAQs, sum.Settings, sum.Pages, sum.News, sum.Events, sum.Users, sum.Applications)
 	fmt.Println("test accounts use SEED_PASSWORD; Super Admin is admin@example.invalid")
 	return nil
 }

@@ -26,6 +26,15 @@ tags:
     description: |
       Staff enquiry inbox. enquiries.view to read; enquiries.manage to assign, change status and
       add notes. Every change is audited, and the audit log is the enquiry's history.
+  - name: applicant
+    description: |
+      Applicants sign in without a password: a one-time link is emailed to them, or to the owner
+      of an application when its reference number and email match (D-96). Requests for a link
+      always answer the same, whether or not anything was sent.
+  - name: notifications
+    description: |
+      Editable text of emails and text messages sent to applicants (notifications.manage). Text
+      messages are kept ready but are not sent until an SMS provider is chosen (DG-03).
   - name: public
     description: |
       Public website. No session. Only published content is returned, and only content whose
@@ -908,6 +917,151 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/sign-in-link:
+    post:
+      security: []
+      tags: [applicant]
+      operationId: requestApplicantSignInLink
+      summary: Email a one-time link to start or continue an application
+      description: |
+        Sent only to a new email address or an active applicant account; staff and student
+        accounts get nothing. The link works once, for 30 minutes. Rate limited per address and
+        per IP; a limited request gets the same answer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                full_name: { type: string, maxLength: 120, description: Used only when the link creates the account. }
+      responses:
+        "202":
+          description: Accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/resume:
+    post:
+      security: []
+      tags: [applicant]
+      operationId: resumeApplicationByReference
+      summary: Email a sign-in link to the owner of an application
+      description: Sent only when the reference exists and the email is the one on the application.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reference, email]
+              properties:
+                reference: { type: string, maxLength: 40, examples: [DTC-APP-2026-000123] }
+                email: { type: string, format: email, maxLength: 254 }
+      responses:
+        "202":
+          description: Accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/sign-in:
+    post:
+      security: []
+      tags: [applicant]
+      operationId: applicantSignIn
+      summary: Spend a sign-in link and start a session
+      description: |
+        Creates the applicant account on first use. Spends every outstanding link for the
+        address. 400 invalid_sign_in_link if the link is unknown, used or expired.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, maxLength: 128 }
+      responses:
+        "200":
+          description: Signed in.
+          headers:
+            Set-Cookie:
+              description: Session cookie, as for staff sign-in.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicantSession" }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications:
+    get:
+      tags: [applicant]
+      operationId: listMyApplications
+      summary: The signed-in applicant's own applications
+      description: Applicant sessions only; any other session gets 403.
+      responses:
+        "200":
+          description: Newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/MyApplication" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/notification-templates:
+    get:
+      tags: [notifications]
+      operationId: listNotificationTemplates
+      summary: Every message template (notifications.manage)
+      responses:
+        "200":
+          description: Templates by key and channel.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/NotificationTemplate" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/notification-templates/{key}/{channel}:
+    put:
+      tags: [notifications]
+      operationId: updateNotificationTemplate
+      summary: Change a template's text (notifications.manage)
+      description: |
+        Only the template's own placeholders are allowed; sign-in messages must keep {link}.
+        Text messages have no subject and at most 320 characters. Audited.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string } }
+        - { name: channel, in: path, required: true, schema: { type: string, enum: [email, sms] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                subject: { type: string, maxLength: 150 }
+                body: { type: string, maxLength: 5000 }
+      responses:
+        "204": { description: Saved. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     csrf:
@@ -1201,6 +1355,47 @@ components:
         permissions: { type: array, items: { type: string } }
         csrf_token: { type: string }
         expires_at: { type: string, format: date-time }
+    ApplicantSession:
+      allOf:
+        - { $ref: "#/components/schemas/Session" }
+        - type: object
+          required: [application_id]
+          properties:
+            application_id:
+              type: [string, "null"]
+              format: uuid
+              description: Set when the link came from a reference number.
+    MyApplication:
+      type: object
+      required: [id, reference, status, programme_title, programme_slug, intake_name, intake_starts_on, created_at, updated_at, submitted_at]
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        status:
+          type: string
+          enum: [draft, submitted, under_review, info_requested, offered, offer_accepted, enrolled, rejected, withdrawn, expired]
+        programme_title: { type: string }
+        programme_slug: { type: string }
+        intake_name: { type: [string, "null"] }
+        intake_starts_on: { type: [string, "null"], format: date }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        submitted_at: { type: [string, "null"], format: date-time }
+    NotificationTemplate:
+      type: object
+      required: [key, channel, name, description, subject, body, placeholders, max_length, sending, updated_at, updated_by_name]
+      properties:
+        key: { type: string }
+        channel: { type: string, enum: [email, sms] }
+        name: { type: string }
+        description: { type: string }
+        subject: { type: string }
+        body: { type: string }
+        placeholders: { type: array, items: { type: string } }
+        max_length: { type: integer }
+        sending: { type: boolean, description: False for text messages until DG-03 clears. }
+        updated_at: { type: string, format: date-time }
+        updated_by_name: { type: [string, "null"] }
     Message:
       type: object
       required: [message]

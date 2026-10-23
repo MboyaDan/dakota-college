@@ -24,6 +24,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
       show: can("content.read"),
     })),
     { href: "/staff/settings", label: "Site settings", show: can("content.read") },
+    { href: "/staff/messages", label: "Messages to applicants", show: can("notifications.manage") },
   ];
   const isCurrent = (href: string) => (href === "/staff" ? pathname === "/staff" : pathname.startsWith(href));
 
