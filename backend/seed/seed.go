@@ -15,7 +15,7 @@ import (
 
 // Summary counts what one run wrote.
 type Summary struct {
-	Schools, Programmes, Intakes, FeeItems, FAQs, Settings, Pages, News, Events, Users int
+	Schools, Programmes, Intakes, FeeItems, FAQs, Settings, Pages, News, Events, Users, Applications int
 }
 
 // Run writes the sample data in one transaction. It is idempotent: running it
@@ -164,6 +164,28 @@ func Run(ctx context.Context, pool *pgxpool.Pool, password string) (Summary, err
 			}
 			sum.Users++
 		}
+
+		applicantUser, err := q.SeedApplicantUser(ctx, dbq.SeedApplicantUserParams{Email: sampleApplicantEmail, FullName: sampleApplicantName})
+		if err != nil {
+			return fmt.Errorf("sample applicant: %w", err)
+		}
+		applicantID, err := q.SeedApplicant(ctx, dbq.SeedApplicantParams{
+			UserID: &applicantUser, Email: sampleApplicantEmail, FirstName: "Test", LastName: "Applicant 001",
+		})
+		if err != nil {
+			return fmt.Errorf("sample applicant: %w", err)
+		}
+		programme, err := q.GetPublishedProgrammeBySlug(ctx, sampleApplicationProgram)
+		if err != nil {
+			return fmt.Errorf("sample application programme: %w", err)
+		}
+		if err := q.SeedDraftApplication(ctx, dbq.SeedDraftApplicationParams{
+			Reference: sampleApplicationRef, ApplicantID: applicantID, ProgrammeID: programme.ID,
+		}); err != nil {
+			return fmt.Errorf("sample application: %w", err)
+		}
+		sum.Users++
+		sum.Applications++
 		return nil
 	})
 	if err != nil {

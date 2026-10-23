@@ -57,7 +57,7 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 	}
 
 	counts := map[string]int{}
-	for _, table := range []string{"schools", "programmes", "programme_intakes", "fee_items", "faqs", "users", "user_roles", "accreditations", "pages", "news_posts", "events"} {
+	for _, table := range []string{"schools", "programmes", "programme_intakes", "fee_items", "faqs", "users", "user_roles", "accreditations", "pages", "news_posts", "events", "applicants", "applications"} {
 		var n int
 		if err := pool.QueryRow(ctx, "SELECT count(*) FROM "+table).Scan(&n); err != nil {
 			t.Fatal(err)
@@ -66,7 +66,8 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 	}
 	want := map[string]int{
 		"schools": 5, "programmes": 8, "programme_intakes": 16, "fee_items": 24,
-		"faqs": 5, "users": 10, "user_roles": 10, "accreditations": 1, "pages": 7, "news_posts": 2, "events": 2,
+		"faqs": 5, "users": 11, "user_roles": 10, "accreditations": 1, "pages": 7, "news_posts": 2, "events": 2,
+		"applicants": 1, "applications": 1,
 	}
 	for table, n := range want {
 		if counts[table] != n {
@@ -104,6 +105,19 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 	published, err := q.ListPublishedProgrammes(ctx)
 	if err != nil || len(published) != 7 {
 		t.Fatalf("published programmes = %d (%v), want 7 (one is a draft)", len(published), err)
+	}
+
+	// The sample applicant signs in by link only and owns one draft.
+	var kind, status string
+	var hasPassword bool
+	if err := pool.QueryRow(ctx, `
+		SELECT u.kind, u.password_hash IS NOT NULL, a.status FROM users u
+		JOIN applicants ap ON ap.user_id = u.id JOIN applications a ON a.applicant_id = ap.id
+		WHERE a.reference = 'DTC-APP-SAMPLE-000001'`).Scan(&kind, &hasPassword, &status); err != nil {
+		t.Fatal(err)
+	}
+	if kind != "applicant" || hasPassword || status != "draft" {
+		t.Fatalf("sample applicant: kind %s, password %v, status %s", kind, hasPassword, status)
 	}
 
 	// Test emails can never reach a real inbox.

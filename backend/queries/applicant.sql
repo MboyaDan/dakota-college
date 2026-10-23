@@ -41,3 +41,19 @@ ORDER BY a.created_at DESC;
 -- Serialises sign-ins for one address, so two links used at once cannot
 -- both create the account.
 SELECT pg_advisory_xact_lock(hashtextextended(lower(@email::text), 0));
+
+-- ---------- dev seed only ----------
+
+-- name: SeedApplicantUser :one
+INSERT INTO users (email, full_name, kind) VALUES (@email, @full_name, 'applicant')
+ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name, kind = 'applicant'
+RETURNING id;
+
+-- name: SeedApplicant :one
+INSERT INTO applicants (user_id, email, first_name, last_name) VALUES (@user_id, @email, @first_name, @last_name)
+ON CONFLICT (user_id) DO UPDATE SET email = EXCLUDED.email
+RETURNING id;
+
+-- name: SeedDraftApplication :exec
+INSERT INTO applications (reference, applicant_id, programme_id) VALUES (@reference, @applicant_id, @programme_id)
+ON CONFLICT (reference) DO NOTHING;

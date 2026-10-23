@@ -187,6 +187,67 @@ func (q *Queries) LockApplicantEmail(ctx context.Context, email string) error {
 	return err
 }
 
+const seedApplicant = `-- name: SeedApplicant :one
+INSERT INTO applicants (user_id, email, first_name, last_name) VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_id) DO UPDATE SET email = EXCLUDED.email
+RETURNING id
+`
+
+type SeedApplicantParams struct {
+	UserID    *uuid.UUID
+	Email     string
+	FirstName string
+	LastName  string
+}
+
+func (q *Queries) SeedApplicant(ctx context.Context, arg SeedApplicantParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, seedApplicant,
+		arg.UserID,
+		arg.Email,
+		arg.FirstName,
+		arg.LastName,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const seedApplicantUser = `-- name: SeedApplicantUser :one
+
+INSERT INTO users (email, full_name, kind) VALUES ($1, $2, 'applicant')
+ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name, kind = 'applicant'
+RETURNING id
+`
+
+type SeedApplicantUserParams struct {
+	Email    string
+	FullName string
+}
+
+// ---------- dev seed only ----------
+func (q *Queries) SeedApplicantUser(ctx context.Context, arg SeedApplicantUserParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, seedApplicantUser, arg.Email, arg.FullName)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const seedDraftApplication = `-- name: SeedDraftApplication :exec
+INSERT INTO applications (reference, applicant_id, programme_id) VALUES ($1, $2, $3)
+ON CONFLICT (reference) DO NOTHING
+`
+
+type SeedDraftApplicationParams struct {
+	Reference   string
+	ApplicantID uuid.UUID
+	ProgrammeID uuid.UUID
+}
+
+func (q *Queries) SeedDraftApplication(ctx context.Context, arg SeedDraftApplicationParams) error {
+	_, err := q.db.Exec(ctx, seedDraftApplication, arg.Reference, arg.ApplicantID, arg.ProgrammeID)
+	return err
+}
+
 const useApplicantSignInLinks = `-- name: UseApplicantSignInLinks :exec
 UPDATE applicant_sign_in_links SET used_at = now() WHERE email = $1 AND used_at IS NULL
 `
