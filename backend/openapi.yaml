@@ -937,6 +937,10 @@ paths:
               properties:
                 email: { type: string, format: email, maxLength: 254 }
                 full_name: { type: string, maxLength: 120, description: Used only when the link creates the account. }
+                next:
+                  type: string
+                  maxLength: 300
+                  description: Where to go after signing in. Kept only if it is a plain path under /apply/.
       responses:
         "202":
           description: Accepted.
@@ -1017,6 +1021,191 @@ paths:
                   items: { type: array, items: { $ref: "#/components/schemas/MyApplication" } }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [applicant]
+      operationId: startApplication
+      summary: Start an application for a programme and intake
+      description: |
+        The programme must be published and the intake open (with one open intake it may be left
+        out). Gives the draft a reference number (DTC-APP-YYYY-NNNNNN) and emails it. Starting
+        the same programme and intake again answers 200 with the existing application.
+        409 applications_closed when no intake is open.
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [programme]
+              properties:
+                programme: { type: string, description: Programme slug. }
+                intake_id: { type: [string, "null"], format: uuid }
+      responses:
+        "200":
+          description: An application for this programme and intake already existed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StartedApplication" }
+        "201":
+          description: Started.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StartedApplication" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}:
+    get:
+      tags: [applicant]
+      operationId: getMyApplication
+      summary: One of the applicant's own applications, with what is still missing
+      description: A draft past its expiry date becomes expired when opened. Someone else's application answers 404.
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The application.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/intake:
+    put:
+      tags: [applicant]
+      operationId: saveApplicationIntake
+      summary: Move to another open intake of the same programme
+      description: Saves while the application is a draft; empty fields are allowed, badly formed ones are not (422). Answers with the whole application. 409 not_editable once submitted or expired.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+              schema:
+                type: object
+                required: [intake_id]
+                properties:
+                  intake_id: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The application after saving.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/personal:
+    put:
+      tags: [applicant]
+      operationId: saveApplicationPersonal
+      summary: Save the About you step
+      description: Saves while the application is a draft; empty fields are allowed, badly formed ones are not (422). Answers with the whole application. 409 not_editable once submitted or expired.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+              schema: { $ref: "#/components/schemas/ApplicationPersonal" }
+      responses:
+        "200":
+          description: The application after saving.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/guardian:
+    put:
+      tags: [applicant]
+      operationId: saveApplicationGuardian
+      summary: Save the parent or guardian step
+      description: Saves while the application is a draft; empty fields are allowed, badly formed ones are not (422). Answers with the whole application. 409 not_editable once submitted or expired.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+              schema: { $ref: "#/components/schemas/ApplicationGuardian" }
+      responses:
+        "200":
+          description: The application after saving.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/education:
+    put:
+      tags: [applicant]
+      operationId: saveApplicationEducation
+      summary: Replace the education history
+      description: Saves while the application is a draft; empty fields are allowed, badly formed ones are not (422). Answers with the whole application. 409 not_editable once submitted or expired.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, maxItems: 6, items: { $ref: "#/components/schemas/ApplicationEducation" } }
+      responses:
+        "200":
+          description: The application after saving.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/sponsor:
+    put:
+      tags: [applicant]
+      operationId: saveApplicationSponsor
+      summary: Save who will pay the fees
+      description: Saves while the application is a draft; empty fields are allowed, badly formed ones are not (422). Answers with the whole application. 409 not_editable once submitted or expired.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+              schema: { $ref: "#/components/schemas/ApplicationSponsor" }
+      responses:
+        "200":
+          description: The application after saving.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
   /api/v1/staff/notification-templates:
     get:
       tags: [notifications]
@@ -1359,12 +1548,13 @@ components:
       allOf:
         - { $ref: "#/components/schemas/Session" }
         - type: object
-          required: [application_id]
+          required: [application_id, next]
           properties:
             application_id:
               type: [string, "null"]
               format: uuid
               description: Set when the link came from a reference number.
+            next: { type: string, description: Path to open after signing in; empty for the account page. }
     MyApplication:
       type: object
       required: [id, reference, status, programme_title, programme_slug, intake_name, intake_starts_on, created_at, updated_at, submitted_at]
@@ -1378,6 +1568,106 @@ components:
         programme_slug: { type: string }
         intake_name: { type: [string, "null"] }
         intake_starts_on: { type: [string, "null"], format: date }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        submitted_at: { type: [string, "null"], format: date-time }
+    StartedApplication:
+      type: object
+      required: [id, existing]
+      properties:
+        id: { type: string, format: uuid }
+        existing: { type: boolean }
+    ApplicationPersonal:
+      type: object
+      required: [first_name, middle_name, last_name, date_of_birth, identity_document_type, identity_document, nationality, county, phone]
+      properties:
+        first_name: { type: string, maxLength: 80 }
+        middle_name: { type: string, maxLength: 80 }
+        last_name: { type: string, maxLength: 80 }
+        date_of_birth: { type: string, description: YYYY-MM-DD, or empty. }
+        identity_document_type: { type: string, enum: ["", national_id, passport, birth_certificate] }
+        identity_document: { type: string, maxLength: 30 }
+        nationality: { type: string, maxLength: 60 }
+        county: { type: string, description: One of Kenya's 47 counties, "Outside Kenya", or empty. }
+        phone: { type: string }
+    ApplicationGuardian:
+      type: object
+      required: [full_name, relationship, phone, email, consent_given]
+      properties:
+        full_name: { type: string, maxLength: 120 }
+        relationship: { type: string, enum: ["", mother, father, guardian, other_relative, other] }
+        phone: { type: string }
+        email: { type: string }
+        consent_given:
+          type: boolean
+          description: The parent or guardian named here has read the privacy notice and agrees. Recorded as a consent in their name; changing the name needs it again.
+    ApplicationEducation:
+      type: object
+      required: [level, institution, year_completed, qualification, mean_grade, subjects]
+      properties:
+        level: { type: string, enum: [kcse, kcpe, certificate, diploma, degree, other] }
+        institution: { type: string, maxLength: 120 }
+        year_completed: { type: [integer, "null"], minimum: 1950 }
+        qualification: { type: string, maxLength: 120 }
+        mean_grade: { type: string, description: A KCSE grade (A to E) for KCSE; free text otherwise. }
+        subjects:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [subject, grade]
+            properties:
+              subject: { type: string, maxLength: 60 }
+              grade: { type: string }
+    ApplicationSponsor:
+      type: object
+      required: [type, name, phone]
+      properties:
+        type: { type: string, enum: ["", self, parent_guardian, sponsor, other] }
+        name: { type: string, maxLength: 120 }
+        phone: { type: string }
+    ApplicationDetail:
+      type: object
+      required: [id, reference, status, editable, programme_title, programme_slug, intake_id, intake_name, intake_starts_on,
+        open_intakes, email, personal, needs_guardian, guardian, education, sponsor, missing, draft_expires_at,
+        created_at, updated_at, submitted_at]
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        status: { $ref: "#/components/schemas/MyApplication/properties/status" }
+        editable: { type: boolean }
+        programme_title: { type: string }
+        programme_slug: { type: string }
+        intake_id: { type: [string, "null"], format: uuid }
+        intake_name: { type: [string, "null"] }
+        intake_starts_on: { type: [string, "null"], format: date }
+        open_intakes:
+          type: array
+          items:
+            type: object
+            required: [id, name, starts_on, application_deadline]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              starts_on: { type: string, format: date }
+              application_deadline: { type: [string, "null"], format: date }
+        email: { type: string }
+        personal: { $ref: "#/components/schemas/ApplicationPersonal" }
+        needs_guardian: { type: boolean, description: True when the date of birth makes the applicant under 18 today. }
+        guardian: { $ref: "#/components/schemas/ApplicationGuardian" }
+        education: { type: array, items: { $ref: "#/components/schemas/ApplicationEducation" } }
+        sponsor: { $ref: "#/components/schemas/ApplicationSponsor" }
+        missing:
+          type: array
+          description: What is still needed before submission, by step.
+          items:
+            type: object
+            required: [step, field, message]
+            properties:
+              step: { type: string, enum: [choice, personal, guardian, education, sponsor] }
+              field: { type: string }
+              message: { type: string }
+        draft_expires_at: { type: [string, "null"], format: date-time }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
         submitted_at: { type: [string, "null"], format: date-time }

@@ -16,6 +16,7 @@ import (
 
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
 	"github.com/MboyaDan/dakota-college/backend/internal/applicant"
+	"github.com/MboyaDan/dakota-college/backend/internal/application"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/config"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
@@ -76,6 +77,9 @@ func (h *harness) rebuild() {
 		Notify:    notifier,
 		Applicants: applicant.NewService(applicant.Options{
 			Pool: h.pool, Auth: h.auth, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
+		}),
+		Applications: application.NewService(application.Options{
+			Pool: h.pool, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
 		}),
 	})
 	if err != nil {

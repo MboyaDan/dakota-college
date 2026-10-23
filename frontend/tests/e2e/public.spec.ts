@@ -81,6 +81,15 @@ test("home to the start of an application in four clicks or fewer", async ({ pag
   await expect(
     page.locator("strong", { hasText: "Diploma in Example Health Studies (Sample)" }),
   ).toBeVisible();
+
+  // The fourth click starts the online form; a visitor who is not signed in
+  // is asked for their email first (D-96), keeping the programme.
+  await page.getByRole("link", { name: "Start your application" }).click();
+  clicks++;
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Start or continue your application" }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/programme=example-health-studies-diploma/);
   expect(clicks).toBeLessThanOrEqual(4);
 });
 

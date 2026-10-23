@@ -23,6 +23,7 @@ import (
 
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
 	"github.com/MboyaDan/dakota-college/backend/internal/applicant"
+	"github.com/MboyaDan/dakota-college/backend/internal/application"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/config"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
@@ -111,6 +112,9 @@ func run() error {
 		Notify:         notifier,
 		Applicants: applicant.NewService(applicant.Options{
 			Pool: pool, Auth: authSvc, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
+		}),
+		Applications: application.NewService(application.Options{
+			Pool: pool, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
 		}),
 	})
 	if err != nil {

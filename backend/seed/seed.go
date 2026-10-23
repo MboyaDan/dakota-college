@@ -215,9 +215,23 @@ func seedProgrammeDetails(ctx context.Context, q *dbq.Queries, programmeID uuid.
 		starts, deadline time.Time
 		status           string
 	}
+	// Dated from the day the seed runs, so there is always an open intake
+	// whose deadline has not passed: one about three months ahead, taking
+	// applications, and a planned one about seven months ahead.
+	now := time.Now()
+	monthStart := func(ahead int) time.Time {
+		return time.Date(now.Year(), now.Month()+time.Month(ahead), 1, 0, 0, 0, 0, time.UTC)
+	}
+	named := func(t time.Time) string { return t.Format("January 2006") + " (Sample)" }
+	open, planned := monthStart(3).AddDate(0, 0, 10), monthStart(7).AddDate(0, 0, 9)
 	intakes := []intake{
-		{"January 2027 (Sample)", date(2027, 1, 11), date(2026, 12, 15), "open"},
-		{"May 2027 (Sample)", date(2027, 5, 10), date(2027, 4, 15), "planned"},
+		{named(open), open, monthStart(2).AddDate(0, 0, 14), "open"},
+		{named(planned), planned, monthStart(6).AddDate(0, 0, 14), "planned"},
+	}
+	if err := q.DeleteStaleSampleIntakes(ctx, dbq.DeleteStaleSampleIntakesParams{
+		ProgrammeID: programmeID, Keep: []time.Time{open, planned},
+	}); err != nil {
+		return err
 	}
 	for _, in := range intakes {
 		deadline := in.deadline
@@ -252,5 +266,3 @@ func seedProgrammeDetails(ctx context.Context, q *dbq.Queries, programmeID uuid.
 	}
 	return nil
 }
-
-func date(y int, m time.Month, d int) time.Time { return time.Date(y, m, d, 0, 0, 0, 0, time.UTC) }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
 	"github.com/MboyaDan/dakota-college/backend/internal/applicant"
+	"github.com/MboyaDan/dakota-college/backend/internal/application"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
@@ -38,7 +39,9 @@ type Deps struct {
 	Images     *media.Images
 	Enquiries  *enquiry.Service
 	Applicants *applicant.Service
-	Notify     *notify.Service
+	// Applications is the applicant's own application form.
+	Applications *application.Service
+	Notify       *notify.Service
 }
 
 const defaultBodyLimit = 1 << 20 // 1 MB for JSON endpoints
@@ -178,6 +181,20 @@ func NewRouter(d Deps) (*Router, error) {
 		add(http.MethodPost, "/applicant/resume", true, "", ah.resume)
 		add(http.MethodPost, "/applicant/sign-in", true, "", ah.signIn)
 		mount(Route{Method: http.MethodGet, Path: "/applicant/applications", Kind: "applicant"}, defaultBodyLimit, ah.applications)
+	}
+
+	if d.Applications != nil && d.Auth != nil {
+		fh := applicationHandlers{svc: d.Applications}
+		own := func(method, path string, h gin.HandlerFunc) {
+			mount(Route{Method: method, Path: path, Kind: "applicant"}, defaultBodyLimit, h)
+		}
+		own(http.MethodPost, "/applicant/applications", fh.start)
+		own(http.MethodGet, "/applicant/applications/:id", fh.get)
+		own(http.MethodPut, "/applicant/applications/:id/intake", fh.saveIntake)
+		own(http.MethodPut, "/applicant/applications/:id/personal", fh.savePersonal)
+		own(http.MethodPut, "/applicant/applications/:id/guardian", fh.saveGuardian)
+		own(http.MethodPut, "/applicant/applications/:id/education", fh.saveEducation)
+		own(http.MethodPut, "/applicant/applications/:id/sponsor", fh.saveSponsor)
 	}
 
 	if d.Content != nil && d.Enquiries != nil {
