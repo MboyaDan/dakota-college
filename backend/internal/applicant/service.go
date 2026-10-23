@@ -144,7 +144,7 @@ func (s *Service) ResumeByReference(ctx context.Context, reference, email string
 	if auth.NormaliseEmail(app.Email) != email || app.Kind != "applicant" || app.Status != "active" {
 		return nil
 	}
-	link, err := s.createLink(ctx, email, "", &app.ID, "/apply/applications/"+app.ID.String(), req)
+	link, err := s.createLink(ctx, email, "", &app.ID, "/apply/application?id="+app.ID.String(), req)
 	if err != nil {
 		return err
 	}
