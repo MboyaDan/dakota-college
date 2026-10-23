@@ -44,6 +44,9 @@ type Config struct {
 	Session SessionConfig
 	SMTP    SMTPConfig
 	S3      S3Config
+	// ClamAVAddr is a clamd host:port for scanning uploads. Empty means no
+	// scanner: files are stored as "not_scanned" (D-19).
+	ClamAVAddr string
 }
 
 // S3Config is S3-compatible object storage: MinIO locally, Supabase Storage
@@ -183,6 +186,8 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 	if cfg.S3.Enabled() && cfg.S3.PublicBaseURL == "" {
 		errs = append(errs, errors.New("S3_PUBLIC_BASE_URL is required when S3_ENDPOINT is set"))
 	}
+
+	cfg.ClamAVAddr = get("CLAMAV_ADDR", "")
 
 	// Production must not run with development-only settings.
 	if cfg.Env == EnvProduction || cfg.Env == EnvStaging {

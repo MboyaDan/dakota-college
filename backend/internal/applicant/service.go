@@ -195,6 +195,19 @@ func (s *Service) SignIn(ctx context.Context, token string, req audit.Request) (
 	var out SignInResult
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		q := dbq.New(tx)
+		// Lock the address before the link row. Using a link spends every
+		// link for the address, so taking the row locks first would let two
+		// links used at once wait for each other.
+		email, err := q.GetApplicantSignInLinkEmail(ctx, auth.HashToken(token))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrInvalidLink
+		}
+		if err != nil {
+			return err
+		}
+		if err := q.LockApplicantEmail(ctx, email); err != nil {
+			return err
+		}
 		link, err := q.GetApplicantSignInLinkForUpdate(ctx, auth.HashToken(token))
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrInvalidLink
@@ -206,9 +219,6 @@ func (s *Service) SignIn(ctx context.Context, token string, req audit.Request) (
 			return ErrInvalidLink
 		}
 
-		if err := q.LockApplicantEmail(ctx, link.Email); err != nil {
-			return err
-		}
 		u, err := q.GetUserForLogin(ctx, link.Email)
 		ok, err := canSignIn(u, err)
 		if err != nil {

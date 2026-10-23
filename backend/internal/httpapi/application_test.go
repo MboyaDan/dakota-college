@@ -140,7 +140,7 @@ func TestStartApplication(t *testing.T) {
 	if d.IntakeID != intakes[0] || d.Personal["first_name"] != "Test" || d.Personal["last_name"] != "Applicant 010" {
 		t.Fatalf("detail = %+v", d)
 	}
-	if got := d.missingSteps(); !slices.Equal(got, []string{"personal", "education", "sponsor"}) {
+	if got := d.missingSteps(); !slices.Equal(got, []string{"personal", "education", "sponsor", "documents"}) {
 		t.Fatalf("missing steps = %v", got)
 	}
 
@@ -310,7 +310,7 @@ func TestApplicationSteps(t *testing.T) {
 		t.Fatal("sponsor without a name is not reported missing")
 	}
 	d = h.put(a.session, id, "sponsor", map[string]any{"type": "self", "name": "ignored", "phone": ""}, http.StatusOK)
-	if len(d.Missing) != 0 {
+	if got := d.missingSteps(); !slices.Equal(got, []string{"documents"}) {
 		t.Fatalf("still missing: %+v", d.Missing)
 	}
 

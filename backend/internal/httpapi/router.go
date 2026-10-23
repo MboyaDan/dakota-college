@@ -195,6 +195,14 @@ func NewRouter(d Deps) (*Router, error) {
 		own(http.MethodPut, "/applicant/applications/:id/guardian", fh.saveGuardian)
 		own(http.MethodPut, "/applicant/applications/:id/education", fh.saveEducation)
 		own(http.MethodPut, "/applicant/applications/:id/sponsor", fh.saveSponsor)
+		mount(Route{Method: http.MethodPost, Path: "/applicant/applications/:id/documents", Kind: "applicant"},
+			application.DocumentUploadsLimit, fh.uploadDocument)
+		own(http.MethodDelete, "/applicant/applications/:id/documents/:doc", fh.removeDocument)
+		own(http.MethodPost, "/applicant/applications/:id/documents/:doc/link", fh.documentLink)
+		own(http.MethodPost, "/applicant/applications/:id/submit", fh.submit)
+		add(http.MethodPost, "/staff/applications/:id/documents/:doc/link", false, application.PermView, fh.staffDocumentLink)
+		// Any signed-in account; the link itself says whose it is.
+		add(http.MethodGet, "/files/:token", false, "", fh.openFile)
 	}
 
 	if d.Content != nil && d.Enquiries != nil {

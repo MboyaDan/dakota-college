@@ -1206,6 +1206,162 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/documents:
+    post:
+      tags: [applicant]
+      operationId: uploadApplicationDocument
+      summary: Upload a document to a draft
+      description: |
+        PDF, JPG or PNG up to 10 MB, checked by content. Photos are stored re-encoded (upright, no
+        metadata, at most 2400 px wide). Scanned for viruses when a scanner is configured
+        (422 file_rejected if infected, 503 scan_unavailable if the scanner fails); otherwise
+        stored as not_scanned. At most 12 documents. Stored privately (AC-05).
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [kind, file]
+              properties:
+                kind: { $ref: "#/components/schemas/ApplicationDocument/properties/kind" }
+                file: { type: string, format: binary }
+      responses:
+        "201":
+          description: Stored.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDocument" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/documents/{doc}:
+    delete:
+      tags: [applicant]
+      operationId: removeApplicationDocument
+      summary: Remove a document from a draft
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: doc, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The application after removing it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/documents/{doc}/link:
+    post:
+      tags: [applicant]
+      operationId: linkMyApplicationDocument
+      summary: A five-minute link to one of the applicant's own documents
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: doc, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The link.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileLink" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/submit:
+    post:
+      tags: [applicant]
+      operationId: submitApplication
+      summary: Submit the application (once)
+      description: |
+        Needs the declaration and nothing missing (422 lists what is, as step.field). Send a new
+        Idempotency-Key for each submit attempt and the same key when retrying it: a retry gets
+        the first answer back with Idempotent-Replayed true. Any other submit of a submitted
+        application answers 409 already_submitted; the same key with a different body answers
+        422 idempotency_key_reused (AC-04).
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 128 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [declaration]
+              properties:
+                declaration: { type: boolean, description: The answers are true and the applicant agrees to the privacy notice. }
+      responses:
+        "200":
+          description: Submitted (or the stored answer to the same request).
+          headers:
+            Idempotent-Replayed:
+              description: "true when this is the stored answer to an earlier request with the same key."
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, reference, status]
+                properties:
+                  id: { type: string, format: uuid }
+                  reference: { type: string }
+                  status: { type: string, enum: [submitted] }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/{id}/documents/{doc}/link:
+    post:
+      tags: [applicant]
+      operationId: linkApplicationDocumentForStaff
+      summary: A five-minute link to a document of a submitted application (admissions.view)
+      description: Drafts answer 404. Every link issued is audited.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: doc, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The link.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileLink" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/files/{token}:
+    get:
+      tags: [applicant]
+      operationId: openFileLink
+      summary: The file behind a short-lived link
+      description: |
+        Works only for the signed-in account the link was issued to, for five minutes. Images are
+        shown, PDFs downloaded; responses are never cached and run in a sandbox. Every failure
+        answers 404 link_expired.
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The file.
+          content:
+            application/pdf: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+            image/png: { schema: { type: string, format: binary } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/Error" }
   /api/v1/staff/notification-templates:
     get:
       tags: [notifications]
@@ -1626,11 +1782,28 @@ components:
         type: { type: string, enum: ["", self, parent_guardian, sponsor, other] }
         name: { type: string, maxLength: 120 }
         phone: { type: string }
+    FileLink:
+      type: object
+      required: [url, expires_at]
+      properties:
+        url: { type: string, description: A path on this site, under /api/v1/files/. }
+        expires_at: { type: string, format: date-time }
+    ApplicationDocument:
+      type: object
+      required: [id, kind, name, content_type, size_bytes, scan_status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [national_id, birth_certificate, passport, kcse_certificate, other_certificate, passport_photo, other] }
+        name: { type: string }
+        content_type: { type: string, enum: [application/pdf, image/jpeg, image/png] }
+        size_bytes: { type: integer }
+        scan_status: { type: string, enum: [not_scanned, clean], description: not_scanned when no virus scanner is configured. }
+        created_at: { type: string, format: date-time }
     ApplicationDetail:
       type: object
       required: [id, reference, status, editable, programme_title, programme_slug, intake_id, intake_name, intake_starts_on,
-        open_intakes, email, personal, needs_guardian, guardian, education, sponsor, missing, draft_expires_at,
-        created_at, updated_at, submitted_at]
+        open_intakes, email, personal, needs_guardian, guardian, education, sponsor, documents, required_documents,
+        missing, history, draft_expires_at, created_at, updated_at, submitted_at]
       properties:
         id: { type: string, format: uuid }
         reference: { type: string }
@@ -1664,9 +1837,24 @@ components:
             type: object
             required: [step, field, message]
             properties:
-              step: { type: string, enum: [choice, personal, guardian, education, sponsor] }
+              step: { type: string, enum: [choice, personal, guardian, education, sponsor, documents] }
               field: { type: string }
               message: { type: string }
+        documents: { type: array, items: { $ref: "#/components/schemas/ApplicationDocument" } }
+        required_documents:
+          type: array
+          description: Document kinds this application needs before it can be submitted.
+          items: { $ref: "#/components/schemas/ApplicationDocument/properties/kind" }
+        history:
+          type: array
+          description: Status changes, oldest first.
+          items:
+            type: object
+            required: [status, reason, at]
+            properties:
+              status: { $ref: "#/components/schemas/MyApplication/properties/status" }
+              reason: { type: string }
+              at: { type: string, format: date-time }
         draft_expires_at: { type: [string, "null"], format: date-time }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }

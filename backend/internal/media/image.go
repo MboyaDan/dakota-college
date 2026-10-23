@@ -47,7 +47,23 @@ type Processed struct {
 // Process checks an upload is really an image (by content, not file name),
 // fixes phone-camera rotation, and re-encodes it into Widths. Re-encoding
 // drops all metadata, including GPS location.
-func Process(data []byte) (*Processed, error) {
+func Process(data []byte) (*Processed, error) { return process(data, Widths) }
+
+// DocumentImageWidth is the widest a photo of a document is kept: enough to
+// read small print, without the full camera resolution.
+const DocumentImageWidth = 2400
+
+// ProcessDocumentImage re-encodes a photo or scan of a document once, at up
+// to DocumentImageWidth, upright and without metadata (no GPS location).
+func ProcessDocumentImage(data []byte) (contentType, ext string, out []byte, err error) {
+	p, err := process(data, []int{DocumentImageWidth})
+	if err != nil {
+		return "", "", nil, err
+	}
+	return p.ContentType, p.Ext, p.Variants[len(p.Variants)-1].Data, nil
+}
+
+func process(data []byte, targetWidths []int) (*Processed, error) {
 	if len(data) == 0 {
 		return nil, ErrCorrupt
 	}
@@ -79,9 +95,9 @@ func Process(data []byte) (*Processed, error) {
 	}
 
 	b := img.Bounds()
-	largest := min(b.Dx(), Widths[len(Widths)-1])
+	largest := min(b.Dx(), targetWidths[len(targetWidths)-1])
 	var widths []int
-	for _, w := range Widths {
+	for _, w := range targetWidths {
 		if w < largest {
 			widths = append(widths, w)
 		}
