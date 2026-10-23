@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { Mail, MessageCircle, Phone } from "@/components/icons";
 import { PageHeader } from "@/components/public/page-header";
 import { Alert } from "@/components/ui/alert";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { intakesTakingApplications } from "@/lib/public/programmes";
 import { settingsOf, telHref, whatsappHref } from "@/lib/public/settings";
 import { getSite, getSiteOrFallback } from "@/lib/public/site";
 import { pageMetadata } from "@/lib/seo";
 import { formatDate } from "@/lib/staff/datetime";
 
-// Interim start of the application path (AC-03). The online application form
-// replaces the body of this page in Stage 9; until then it says so plainly
-// and shows how to apply through the admissions office.
+// Start of the application path (AC-03). Programme pages link here with
+// ?programme= and ?intake=; the primary action starts the online form.
 
 export const metadata: Metadata = pageMetadata({
   title: "Apply",
@@ -36,10 +37,10 @@ export default async function ApplyPage({ searchParams }: PageProps<"/apply">) {
         <Suspense fallback={null}>
           <Choice searchParams={searchParams} />
         </Suspense>
-        <Alert title="Online applications are not open yet">
+        <Alert title="You can start your application now">
           <p>
-            The online application form is being prepared. Until it opens, apply through the admissions
-            office: tell them the programme and intake you want, and they will guide you.
+            Fill in the form online; it saves as you go. Uploading documents and submitting are the last part
+            of the form and open soon. The admissions office can also help you apply.
           </p>
         </Alert>
         <Card>
@@ -67,7 +68,9 @@ export default async function ApplyPage({ searchParams }: PageProps<"/apply">) {
             ) : null}
           </ul>
           <div className="flex flex-wrap gap-3 pt-2">
-            <LinkButton href="/contact">Send a message</LinkButton>
+            <LinkButton href="/contact" variant="outline">
+              Send a message
+            </LinkButton>
             <LinkButton href="/programmes" variant="outline">
               Browse programmes
             </LinkButton>
@@ -93,12 +96,34 @@ export default async function ApplyPage({ searchParams }: PageProps<"/apply">) {
   );
 }
 
-/** Repeats the programme and intake chosen on the programme page. */
+/**
+ * The programme and intake chosen on the programme page, with the one
+ * primary action: start the application. Without a choice, how to begin.
+ */
 async function Choice({ searchParams }: Pick<PageProps<"/apply">, "searchParams">) {
   const [site, params] = await Promise.all([getSiteOrFallback(), searchParams]);
+  // Which intakes are open depends on today's date, so this part renders per request.
+  await connection();
   const programme = site.programmes.find((p) => p.slug === params.programme);
-  if (!programme) return null;
+  if (!programme) {
+    return (
+      <Card>
+        <h2 className="text-xl font-semibold text-navy-900">How to apply online</h2>
+        <ol className="list-decimal space-y-1 pl-5">
+          <li>Find the programme you want and choose Apply on its page.</li>
+          <li>Enter your email address; we send you a sign-in link, with no password to remember.</li>
+          <li>Fill in the form. It saves as you go, so you can stop and come back.</li>
+        </ol>
+        <div className="pt-2">
+          <LinkButton href="/programmes">Find a course</LinkButton>
+        </div>
+      </Card>
+    );
+  }
   const intake = programme.intakes.find((i) => i.id === params.intake);
+  const open = intakesTakingApplications(programme);
+  const q = new URLSearchParams({ programme: programme.slug });
+  if (intake && open.some((i) => i.id === intake.id)) q.set("intake", intake.id);
   return (
     <Card>
       <h2 className="text-xl font-semibold text-navy-900">Your choice</h2>
@@ -106,6 +131,16 @@ async function Choice({ searchParams }: Pick<PageProps<"/apply">, "searchParams"
         <strong>{programme.title}</strong>
         {intake ? `, ${intake.name} intake starting ${formatDate(intake.starts_on)}` : null}
       </p>
+      {open.length > 0 ? (
+        <div className="pt-2">
+          <LinkButton href={`/apply/new?${q}`}>Start your application</LinkButton>
+        </div>
+      ) : (
+        <p>
+          This programme is not taking applications now. Contact the admissions office to ask about the next
+          intake.
+        </p>
+      )}
     </Card>
   );
 }

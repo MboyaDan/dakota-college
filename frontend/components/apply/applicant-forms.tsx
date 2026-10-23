@@ -97,7 +97,20 @@ function Form({
 }
 
 /** Start or continue: the applicant's email, and their name for a new account. */
+/** Where to go after signing in: an explicit return path, or starting the chosen programme. */
+function nextFrom(params: URLSearchParams): string | undefined {
+  const next = params.get("next");
+  if (next?.startsWith("/apply/") && !next.startsWith("//")) return next;
+  const programme = params.get("programme");
+  if (!programme) return undefined;
+  const q = new URLSearchParams({ programme });
+  const intake = params.get("intake");
+  if (intake) q.set("intake", intake);
+  return `/apply/new?${q}`;
+}
+
 export function StartForm() {
+  const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const s = useSubmit();
@@ -109,7 +122,9 @@ export function StartForm() {
       error={s.error}
       onSubmit={() =>
         void s.run(() =>
-          api.POST("/api/v1/applicant/sign-in-link", { body: { email, full_name: name || undefined } }),
+          api.POST("/api/v1/applicant/sign-in-link", {
+            body: { email, full_name: name || undefined, next: nextFrom(params) },
+          }),
         )
       }
     >
@@ -213,7 +228,7 @@ export function ContinueForm() {
     const { data, error: err } = await api.POST("/api/v1/applicant/sign-in", { body: { token } });
     if (data) {
       setCsrfToken(data.csrf_token);
-      router.replace("/apply/account");
+      router.replace(data.next || "/apply/account");
       return;
     }
     setBusy(false);
@@ -351,15 +366,11 @@ export function ApplicantAccount() {
           title="No applications yet"
           description={
             <p>
-              The online application form is being prepared. When it opens, your application will appear here
-              with its reference number and status. Until then, the admissions office can help you apply.
+              Find the programme you want and choose Apply on its page. Your application will appear here with
+              its reference number and status.
             </p>
           }
-          action={
-            <LinkButton href="/apply" variant="outline">
-              How to apply now
-            </LinkButton>
-          }
+          action={<LinkButton href="/programmes">Find a course</LinkButton>}
         />
       ) : (
         <ul className="flex flex-col gap-4">
@@ -386,6 +397,13 @@ export function ApplicantAccount() {
                       : `Started ${formatNairobi(a.created_at)}`}
                   </p>
                   <p>{st.next}</p>
+                  <Link
+                    href={`/apply/application?id=${a.id}`}
+                    className="inline-flex min-h-touch items-center self-start font-semibold text-royal underline underline-offset-4"
+                  >
+                    {a.status === "draft" ? "Continue your application" : "View your application"}
+                    <span className="sr-only"> {a.reference}</span>
+                  </Link>
                 </Card>
               </li>
             );

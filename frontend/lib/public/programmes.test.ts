@@ -3,6 +3,8 @@ import {
   durationText,
   feeText,
   filterProgrammes,
+  intakesTakingApplications,
+  nairobiToday,
   nextIntake,
   parseFilters,
   tuitionFee,
@@ -158,5 +160,33 @@ describe("display helpers", () => {
     expect(tuitionFee(p)?.amount_cents).toBe(2);
     expect(nextIntake(p)?.id).toBe("b");
     expect(upcomingIntakes({ programmes: [p] }).map((u) => u.intake.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("intakesTakingApplications", () => {
+  const intake = (id: string, over: object) => ({
+    id,
+    name: id,
+    starts_on: "2027-01-11",
+    applications_open_on: null,
+    application_deadline: null,
+    status: "open" as const,
+    ...over,
+  });
+  it("keeps open intakes whose window includes today, deadline day included", () => {
+    const p = programme({
+      intakes: [
+        intake("a", {}),
+        intake("planned", { status: "planned" }),
+        intake("not-yet", { applications_open_on: "2026-11-01" }),
+        intake("closed", { application_deadline: "2026-10-22" }),
+        intake("last-day", { application_deadline: "2026-10-23" }),
+      ],
+    });
+    expect(intakesTakingApplications(p, "2026-10-23").map((i) => i.id)).toEqual(["a", "last-day"]);
+  });
+  it("uses the Nairobi date", () => {
+    // 22:30 UTC on 23 October is already 24 October in Nairobi (UTC+3).
+    expect(nairobiToday(new Date("2026-10-23T22:30:00Z"))).toBe("2026-10-24");
   });
 });

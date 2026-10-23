@@ -779,6 +779,133 @@ export interface paths {
          */
         get: operations["listMyApplications"];
         put?: never;
+        /**
+         * Start an application for a programme and intake
+         * @description The programme must be published and the intake open (with one open intake it may be left
+         *     out). Gives the draft a reference number (DTC-APP-YYYY-NNNNNN) and emails it. Starting
+         *     the same programme and intake again answers 200 with the existing application.
+         *     409 applications_closed when no intake is open.
+         */
+        post: operations["startApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One of the applicant's own applications, with what is still missing
+         * @description A draft past its expiry date becomes expired when opened. Someone else's application answers 404.
+         */
+        get: operations["getMyApplication"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/intake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Move to another open intake of the same programme
+         * @description Saves while the application is a draft; empty fields are allowed, badly formed ones are not (422). Answers with the whole application. 409 not_editable once submitted or expired.
+         */
+        put: operations["saveApplicationIntake"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/personal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the About you step
+         * @description Saves while the application is a draft; empty fields are allowed, badly formed ones are not (422). Answers with the whole application. 409 not_editable once submitted or expired.
+         */
+        put: operations["saveApplicationPersonal"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/guardian": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the parent or guardian step
+         * @description Saves while the application is a draft; empty fields are allowed, badly formed ones are not (422). Answers with the whole application. 409 not_editable once submitted or expired.
+         */
+        put: operations["saveApplicationGuardian"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/education": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the education history
+         * @description Saves while the application is a draft; empty fields are allowed, badly formed ones are not (422). Answers with the whole application. 409 not_editable once submitted or expired.
+         */
+        put: operations["saveApplicationEducation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save who will pay the fees
+         * @description Saves while the application is a draft; empty fields are allowed, badly formed ones are not (422). Answers with the whole application. 409 not_editable once submitted or expired.
+         */
+        put: operations["saveApplicationSponsor"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1058,6 +1185,8 @@ export interface components {
              * @description Set when the link came from a reference number.
              */
             application_id: string | null;
+            /** @description Path to open after signing in; empty for the account page. */
+            next: string;
         };
         MyApplication: {
             /** Format: uuid */
@@ -1070,6 +1199,98 @@ export interface components {
             intake_name: string | null;
             /** Format: date */
             intake_starts_on: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            submitted_at: string | null;
+        };
+        StartedApplication: {
+            /** Format: uuid */
+            id: string;
+            existing: boolean;
+        };
+        ApplicationPersonal: {
+            first_name: string;
+            middle_name: string;
+            last_name: string;
+            /** @description YYYY-MM-DD */
+            date_of_birth: string;
+            /** @enum {string} */
+            identity_document_type: "" | "national_id" | "passport" | "birth_certificate";
+            identity_document: string;
+            nationality: string;
+            /** @description One of Kenya's 47 counties */
+            county: string;
+            phone: string;
+        };
+        ApplicationGuardian: {
+            full_name: string;
+            /** @enum {string} */
+            relationship: "" | "mother" | "father" | "guardian" | "other_relative" | "other";
+            phone: string;
+            email: string;
+            /** @description The parent or guardian named here has read the privacy notice and agrees. Recorded as a consent in their name; changing the name needs it again. */
+            consent_given: boolean;
+        };
+        ApplicationEducation: {
+            /** @enum {string} */
+            level: "kcse" | "kcpe" | "certificate" | "diploma" | "degree" | "other";
+            institution: string;
+            year_completed: number | null;
+            qualification: string;
+            /** @description A KCSE grade (A to E) for KCSE; free text otherwise. */
+            mean_grade: string;
+            subjects: {
+                subject: string;
+                grade: string;
+            }[];
+        };
+        ApplicationSponsor: {
+            /** @enum {string} */
+            type: "" | "self" | "parent_guardian" | "sponsor" | "other";
+            name: string;
+            phone: string;
+        };
+        ApplicationDetail: {
+            /** Format: uuid */
+            id: string;
+            reference: string;
+            status: components["schemas"]["MyApplication"]["status"];
+            editable: boolean;
+            programme_title: string;
+            programme_slug: string;
+            /** Format: uuid */
+            intake_id: string | null;
+            intake_name: string | null;
+            /** Format: date */
+            intake_starts_on: string | null;
+            open_intakes: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                /** Format: date */
+                starts_on: string;
+                /** Format: date */
+                application_deadline: string | null;
+            }[];
+            email: string;
+            personal: components["schemas"]["ApplicationPersonal"];
+            /** @description True when the date of birth makes the applicant under 18 today. */
+            needs_guardian: boolean;
+            guardian: components["schemas"]["ApplicationGuardian"];
+            education: components["schemas"]["ApplicationEducation"][];
+            sponsor: components["schemas"]["ApplicationSponsor"];
+            /** @description What is still needed before submission, by step. */
+            missing: {
+                /** @enum {string} */
+                step: "choice" | "personal" | "guardian" | "education" | "sponsor";
+                field: string;
+                message: string;
+            }[];
+            /** Format: date-time */
+            draft_expires_at: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -2639,6 +2860,8 @@ export interface operations {
                     email: string;
                     /** @description Used only when the link creates the account. */
                     full_name?: string;
+                    /** @description Where to go after signing in. Kept only if it is a plain path under /apply/. */
+                    next?: string;
                 };
             };
         };
@@ -2738,6 +2961,233 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Error"];
+        };
+    };
+    startApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Programme slug. */
+                    programme: string;
+                    /** Format: uuid */
+                    intake_id?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description An application for this programme and intake already existed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartedApplication"];
+                };
+            };
+            /** @description Started. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartedApplication"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getMyApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The application. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    saveApplicationIntake: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    intake_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The application after saving. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    saveApplicationPersonal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationPersonal"];
+            };
+        };
+        responses: {
+            /** @description The application after saving. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    saveApplicationGuardian: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationGuardian"];
+            };
+        };
+        responses: {
+            /** @description The application after saving. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    saveApplicationEducation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    items: components["schemas"]["ApplicationEducation"][];
+                };
+            };
+        };
+        responses: {
+            /** @description The application after saving. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    saveApplicationSponsor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationSponsor"];
+            };
+        };
+        responses: {
+            /** @description The application after saving. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
         };
     };
     listNotificationTemplates: {

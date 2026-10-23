@@ -59,6 +59,21 @@ export function nextIntake(p: PublicProgramme): PublicIntake | undefined {
   return p.intakes.find((i) => i.status === "open") ?? p.intakes[0];
 }
 
+/** Today's date in Nairobi as YYYY-MM-DD, the calendar intakes follow. */
+export function nairobiToday(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi" }).format(now);
+}
+
+/** Intakes taking applications today, by the same rule as the API. */
+export function intakesTakingApplications(p: PublicProgramme, today = nairobiToday()): PublicIntake[] {
+  return p.intakes.filter(
+    (i) =>
+      i.status === "open" &&
+      (!i.applications_open_on || i.applications_open_on <= today) &&
+      (!i.application_deadline || i.application_deadline >= today),
+  );
+}
+
 export type UpcomingIntake = { programme: PublicProgramme; intake: PublicIntake };
 
 /** Intakes across all programmes, soonest first. */
