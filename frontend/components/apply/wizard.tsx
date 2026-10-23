@@ -15,6 +15,8 @@ import { applicationStatus } from "@/lib/apply/status";
 import { cn } from "@/lib/cn";
 import { formatDate, formatNairobi } from "@/lib/staff/datetime";
 import { stepTitles, type Detail, type SavePath, type StepKey, type StepProps } from "./step-kit";
+import { DocumentsStep } from "./documents";
+import { StatusView } from "./status-view";
 import { ChoiceStep, EducationStep, GuardianStep, PersonalStep, ReviewStep, SponsorStep } from "./steps";
 
 /**
@@ -58,6 +60,7 @@ export function ApplicationWizard() {
       ...(detail?.needs_guardian ? (["guardian"] as const) : []),
       "education",
       "sponsor",
+      "documents",
       "review",
     ],
     [detail?.needs_guardian],
@@ -151,7 +154,10 @@ export function ApplicationWizard() {
   }
 
   const props: StepProps = {
+    id,
     detail,
+    setDetail,
+    reload: load,
     editable: detail.editable,
     save,
     next: () => goTo(steps[Math.min(index + 1, steps.length - 1)]),
@@ -183,37 +189,47 @@ export function ApplicationWizard() {
         ) : null}
       </Card>
 
-      {!detail.editable ? (
-        <Alert tone="warning" title="This application can no longer be changed">
-          {st.next}
-        </Alert>
-      ) : null}
+      {!detail.editable && !requested ? (
+        <StatusView detail={detail} id={id} />
+      ) : (
+        <>
+          {!detail.editable ? (
+            <Alert tone="info" title="Your answers, as you sent them">
+              The application can no longer be changed.{" "}
+              <Link href={`${pathname}?id=${id}`} className="text-royal underline">
+                Back to its status
+              </Link>
+            </Alert>
+          ) : null}
 
-      <StepNav steps={steps} current={current} detail={detail} id={id} />
+          <StepNav steps={steps} current={current} detail={detail} id={id} />
 
-      <section aria-labelledby="step-title" className="flex flex-col gap-5">
-        <h2
-          id="step-title"
-          ref={heading}
-          tabIndex={-1}
-          className="text-2xl font-semibold text-navy-900 focus:outline-none"
-        >
-          <span className="block text-base font-normal text-ink-muted">
-            Step {index + 1} of {steps.length}
-          </span>
-          {stepTitles[current]}
-        </h2>
-        {
-          {
-            choice: <ChoiceStep key="choice" {...props} />,
-            personal: <PersonalStep key="personal" {...props} />,
-            guardian: <GuardianStep key="guardian" {...props} />,
-            education: <EducationStep key="education" {...props} />,
-            sponsor: <SponsorStep key="sponsor" {...props} />,
-            review: <ReviewStep key="review" {...props} />,
-          }[current]
-        }
-      </section>
+          <section aria-labelledby="step-title" className="flex flex-col gap-5">
+            <h2
+              id="step-title"
+              ref={heading}
+              tabIndex={-1}
+              className="text-2xl font-semibold text-navy-900 focus:outline-none"
+            >
+              <span className="block text-base font-normal text-ink-muted">
+                Step {index + 1} of {steps.length}
+              </span>
+              {stepTitles[current]}
+            </h2>
+            {
+              {
+                choice: <ChoiceStep key="choice" {...props} />,
+                personal: <PersonalStep key="personal" {...props} />,
+                guardian: <GuardianStep key="guardian" {...props} />,
+                education: <EducationStep key="education" {...props} />,
+                sponsor: <SponsorStep key="sponsor" {...props} />,
+                documents: <DocumentsStep key="documents" {...props} />,
+                review: <ReviewStep key="review" {...props} />,
+              }[current]
+            }
+          </section>
+        </>
+      )}
     </div>
   );
 }

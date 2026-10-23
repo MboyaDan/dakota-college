@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 // Shared by the application form shell (wizard.tsx) and its steps (steps.tsx).
 
 export type Detail = components["schemas"]["ApplicationDetail"];
-export type StepKey = "choice" | "personal" | "guardian" | "education" | "sponsor" | "review";
+export type StepKey = "choice" | "personal" | "guardian" | "education" | "sponsor" | "documents" | "review";
 export type SavePath =
   | "/api/v1/applicant/applications/{id}/intake"
   | "/api/v1/applicant/applications/{id}/personal"
@@ -23,12 +23,18 @@ export const stepTitles: Record<StepKey, string> = {
   guardian: "Parent or guardian",
   education: "Education",
   sponsor: "Fees and sponsor",
-  review: "Check your answers",
+  documents: "Documents",
+  review: "Check and submit",
 };
 
 /** What every step gets from the wizard. */
 export type StepProps = {
+  id: string;
   detail: Detail;
+  /** Replaces the application after a change made outside `save` (uploads, submission). */
+  setDetail: (d: Detail) => void;
+  /** Loads the application again from the server. */
+  reload: () => Promise<void>;
   editable: boolean;
   /** Saves this step's values; the wizard updates the application from the answer. */
   save: (path: SavePath, body: unknown) => Promise<SaveOutcome>;

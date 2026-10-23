@@ -913,6 +913,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applicant/applications/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a document to a draft
+         * @description PDF, JPG or PNG up to 10 MB, checked by content. Photos are stored re-encoded (upright, no
+         *     metadata, at most 2400 px wide). Scanned for viruses when a scanner is configured
+         *     (422 file_rejected if infected, 503 scan_unavailable if the scanner fails); otherwise
+         *     stored as not_scanned. At most 12 documents. Stored privately (AC-05).
+         */
+        post: operations["uploadApplicationDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/documents/{doc}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a document from a draft */
+        delete: operations["removeApplicationDocument"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/documents/{doc}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A five-minute link to one of the applicant's own documents */
+        post: operations["linkMyApplicationDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit the application (once)
+         * @description Needs the declaration and nothing missing (422 lists what is, as step.field). Send a new
+         *     Idempotency-Key for each submit attempt and the same key when retrying it: a retry gets
+         *     the first answer back with Idempotent-Replayed true. Any other submit of a submitted
+         *     application answers 409 already_submitted; the same key with a different body answers
+         *     422 idempotency_key_reused (AC-04).
+         */
+        post: operations["submitApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/{id}/documents/{doc}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A five-minute link to a document of a submitted application (admissions.view)
+         * @description Drafts answer 404. Every link issued is audited.
+         */
+        post: operations["linkApplicationDocumentForStaff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/files/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The file behind a short-lived link
+         * @description Works only for the signed-in account the link was issued to, for five minutes. Images are
+         *     shown, PDFs downloaded; responses are never cached and run in a sandbox. Every failure
+         *     answers 404 link_expired.
+         */
+        get: operations["openFileLink"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/notification-templates": {
         parameters: {
             query?: never;
@@ -1253,6 +1376,29 @@ export interface components {
             name: string;
             phone: string;
         };
+        FileLink: {
+            /** @description A path on this site */
+            url: string;
+            /** Format: date-time */
+            expires_at: string;
+        };
+        ApplicationDocument: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "national_id" | "birth_certificate" | "passport" | "kcse_certificate" | "other_certificate" | "passport_photo" | "other";
+            name: string;
+            /** @enum {string} */
+            content_type: "application/pdf" | "image/jpeg" | "image/png";
+            size_bytes: number;
+            /**
+             * @description not_scanned when no virus scanner is configured.
+             * @enum {string}
+             */
+            scan_status: "not_scanned" | "clean";
+            /** Format: date-time */
+            created_at: string;
+        };
         ApplicationDetail: {
             /** Format: uuid */
             id: string;
@@ -1285,9 +1431,19 @@ export interface components {
             /** @description What is still needed before submission, by step. */
             missing: {
                 /** @enum {string} */
-                step: "choice" | "personal" | "guardian" | "education" | "sponsor";
+                step: "choice" | "personal" | "guardian" | "education" | "sponsor" | "documents";
                 field: string;
                 message: string;
+            }[];
+            documents: components["schemas"]["ApplicationDocument"][];
+            /** @description Document kinds this application needs before it can be submitted. */
+            required_documents: components["schemas"]["ApplicationDocument"]["kind"][];
+            /** @description Status changes, oldest first. */
+            history: {
+                status: components["schemas"]["MyApplication"]["status"];
+                reason: string;
+                /** Format: date-time */
+                at: string;
             }[];
             /** Format: date-time */
             draft_expires_at: string | null;
@@ -3188,6 +3344,191 @@ export interface operations {
             404: components["responses"]["Error"];
             409: components["responses"]["Error"];
             422: components["responses"]["Error"];
+        };
+    };
+    uploadApplicationDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    kind: components["schemas"]["ApplicationDocument"]["kind"];
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Stored. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDocument"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+        };
+    };
+    removeApplicationDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+                doc: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The application after removing it. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    linkMyApplicationDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+                doc: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileLink"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    submitApplication: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The answers are true and the applicant agrees to the privacy notice. */
+                    declaration: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Submitted (or the stored answer to the same request). */
+            200: {
+                headers: {
+                    /** @description true when this is the stored answer to an earlier request with the same key. */
+                    "Idempotent-Replayed"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        reference: string;
+                        /** @enum {string} */
+                        status: "submitted";
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    linkApplicationDocumentForStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+                doc: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileLink"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    openFileLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                    "image/jpeg": string;
+                    "image/png": string;
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            404: components["responses"]["Error"];
         };
     };
     listNotificationTemplates: {
