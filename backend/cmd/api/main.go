@@ -81,20 +81,29 @@ func run() error {
 	}
 
 	var images *media.Images
+	var store media.Storage
 	if cfg.S3.Enabled() {
-		store, err := media.NewS3(media.S3Config{Endpoint: cfg.S3.Endpoint, Region: cfg.S3.Region, AccessKey: cfg.S3.AccessKey, SecretKey: cfg.S3.SecretKey, UseSSL: cfg.S3.UseSSL})
+		s3, err := media.NewS3(media.S3Config{Endpoint: cfg.S3.Endpoint, Region: cfg.S3.Region, AccessKey: cfg.S3.AccessKey, SecretKey: cfg.S3.SecretKey, UseSSL: cfg.S3.UseSSL})
 		if err != nil {
 			return err
 		}
 		// Local buckets are created automatically; hosted ones by hand.
 		if cfg.Env == config.EnvDevelopment || cfg.Env == config.EnvTest {
-			if err := store.EnsureBuckets(ctx, cfg.S3.PublicBucket, cfg.S3.PrivateBucket); err != nil {
+			if err := s3.EnsureBuckets(ctx, cfg.S3.PublicBucket, cfg.S3.PrivateBucket); err != nil {
 				logger.Warn("could not prepare storage buckets", slog.String("error", err.Error()))
 			}
 		}
-		images = &media.Images{Pool: pool, Storage: store, Bucket: cfg.S3.PublicBucket, PublicBaseURL: cfg.S3.PublicBaseURL}
+		store = s3
+		images = &media.Images{Pool: pool, Storage: s3, Bucket: cfg.S3.PublicBucket, PublicBaseURL: cfg.S3.PublicBaseURL}
 	} else {
 		logger.Warn("object storage not configured: image uploads are disabled")
+	}
+
+	var scanner media.Scanner = media.NoScanner{}
+	if cfg.ClamAVAddr != "" {
+		scanner = media.ClamAV{Addr: cfg.ClamAVAddr}
+	} else {
+		logger.Warn("no virus scanner configured: applicant documents are stored as not scanned")
 	}
 
 	notifier := notify.NewService(pool, mailer, logger)
@@ -115,6 +124,7 @@ func run() error {
 		}),
 		Applications: application.NewService(application.Options{
 			Pool: pool, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
+			Storage: store, PrivateBucket: cfg.S3.PrivateBucket, Scanner: scanner,
 		}),
 	})
 	if err != nil {

@@ -3,7 +3,9 @@ package media
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 
@@ -11,11 +13,19 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-// Storage writes objects. Production uses Supabase Storage through its S3
-// endpoint; local development uses MinIO (brief 12.1).
+// Storage writes and reads objects. Production uses Supabase Storage through
+// its S3 endpoint; local development uses MinIO (brief 12.1).
 type Storage interface {
+	// Put stores a public, never-changing object (website images).
 	Put(ctx context.Context, bucket, key string, data []byte, contentType string) error
+	// PutPrivate stores a private object that no cache may keep.
+	PutPrivate(ctx context.Context, bucket, key string, data []byte, contentType string) error
+	Get(ctx context.Context, bucket, key string) (io.ReadCloser, error)
+	Delete(ctx context.Context, bucket, key string) error
 }
+
+// ErrObjectNotFound means the object is not in storage.
+var ErrObjectNotFound = errors.New("object not found")
 
 type S3Config struct {
 	Endpoint, Region, AccessKey, SecretKey string
@@ -43,6 +53,33 @@ func (s *S3) Put(ctx context.Context, bucket, key string, data []byte, contentTy
 		CacheControl: "public, max-age=31536000, immutable",
 	})
 	return err
+}
+
+func (s *S3) PutPrivate(ctx context.Context, bucket, key string, data []byte, contentType string) error {
+	_, err := s.client.PutObject(ctx, bucket, key, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
+		ContentType: contentType, CacheControl: "private, no-store",
+	})
+	return err
+}
+
+func (s *S3) Get(ctx context.Context, bucket, key string) (io.ReadCloser, error) {
+	obj, err := s.client.GetObject(ctx, bucket, key, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, err
+	}
+	// GetObject is lazy: Stat surfaces a missing object now, not mid-response.
+	if _, err := obj.Stat(); err != nil {
+		obj.Close()
+		if minio.ToErrorResponse(err).Code == "NoSuchKey" {
+			return nil, ErrObjectNotFound
+		}
+		return nil, err
+	}
+	return obj, nil
+}
+
+func (s *S3) Delete(ctx context.Context, bucket, key string) error {
+	return s.client.RemoveObject(ctx, bucket, key, minio.RemoveObjectOptions{})
 }
 
 // EnsureBuckets creates the buckets if missing and lets anyone read the
@@ -80,7 +117,38 @@ func (m *Memory) Put(_ context.Context, bucket, key string, data []byte, _ strin
 	return nil
 }
 
-func (m *Memory) Get(bucket, key string) ([]byte, bool) {
+func (m *Memory) PutPrivate(ctx context.Context, bucket, key string, data []byte, contentType string) error {
+	return m.Put(ctx, bucket, key, data, contentType)
+}
+
+func (m *Memory) Get(_ context.Context, bucket, key string) (io.ReadCloser, error) {
+	b, ok := m.Object(bucket, key)
+	if !ok {
+		return nil, ErrObjectNotFound
+	}
+	return io.NopCloser(bytes.NewReader(b)), nil
+}
+
+func (m *Memory) Delete(_ context.Context, bucket, key string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.Objects, bucket+"/"+key)
+	return nil
+}
+
+// Keys lists the stored objects as bucket/key, for tests.
+func (m *Memory) Keys() []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]string, 0, len(m.Objects))
+	for k := range m.Objects {
+		out = append(out, k)
+	}
+	return out
+}
+
+// Object returns a stored object, for tests.
+func (m *Memory) Object(bucket, key string) ([]byte, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	b, ok := m.Objects[bucket+"/"+key]

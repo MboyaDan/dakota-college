@@ -30,6 +30,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
+	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 )
 
@@ -64,6 +65,9 @@ type Service struct {
 	logger     *slog.Logger
 	appBaseURL string
 	now        func() time.Time
+	storage    media.Storage
+	bucket     string
+	scanner    media.Scanner
 }
 
 type Options struct {
@@ -71,6 +75,11 @@ type Options struct {
 	Notify     *notify.Service
 	Logger     *slog.Logger
 	AppBaseURL string
+	// Storage and PrivateBucket hold documents; nil Storage turns uploads off.
+	Storage       media.Storage
+	PrivateBucket string
+	// Scanner checks uploads; defaults to none (files are "not_scanned").
+	Scanner media.Scanner
 	// Now is for tests; defaults to time.Now.
 	Now func() time.Time
 }
@@ -80,7 +89,14 @@ func NewService(o Options) *Service {
 	if now == nil {
 		now = time.Now
 	}
-	return &Service{pool: o.Pool, notify: o.Notify, logger: o.Logger, appBaseURL: strings.TrimRight(o.AppBaseURL, "/"), now: now}
+	scanner := o.Scanner
+	if scanner == nil {
+		scanner = media.NoScanner{}
+	}
+	return &Service{
+		pool: o.Pool, notify: o.Notify, logger: o.Logger, appBaseURL: strings.TrimRight(o.AppBaseURL, "/"), now: now,
+		storage: o.Storage, bucket: o.PrivateBucket, scanner: scanner,
+	}
 }
 
 func (s *Service) today() time.Time {

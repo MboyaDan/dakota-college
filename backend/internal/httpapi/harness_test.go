@@ -42,6 +42,8 @@ type harness struct {
 	access  *access.Service
 	mailer  *mail.Recorder
 	storage *media.Memory
+	// scanner is the virus scanner documents go through (nil: none).
+	scanner media.Scanner
 	// now is the clock for applicant links; tests move it forward.
 	now func() time.Time
 }
@@ -80,6 +82,7 @@ func (h *harness) rebuild() {
 		}),
 		Applications: application.NewService(application.Options{
 			Pool: h.pool, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
+			Storage: h.storage, PrivateBucket: "dakota-private", Scanner: h.scanner,
 		}),
 	})
 	if err != nil {

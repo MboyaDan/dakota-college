@@ -115,6 +115,12 @@ jobs:
       APP_BASE_URL: http://127.0.0.1:3100
       # Test-only accounts from the seed; never used anywhere real.
       SEED_PASSWORD: ci-e2e-only-password
+      # Uploads (images, applicant documents) go to the MinIO started below.
+      S3_ENDPOINT: localhost:9000
+      S3_USE_SSL: "false"
+      S3_ACCESS_KEY: ci_minio
+      S3_SECRET_KEY: ci_minio_only_password
+      S3_PUBLIC_BASE_URL: http://localhost:9000/dakota-public
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -126,6 +132,15 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      # A service container cannot pass MinIO its "server /data" command, so
+      # it runs here, from the same pinned image as Compose (D-20).
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER="$S3_ACCESS_KEY" -e MINIO_ROOT_PASSWORD="$S3_SECRET_KEY" \
+            cgr.dev/chainguard/minio@sha256:d88920d6a50bd0b088223b688be3b76c63e6205dbe494437f67ba1240ea12880 server /data
+          for i in $(seq 1 30); do curl -sf http://localhost:9000/minio/health/live && exit 0; sleep 1; done
+          docker logs minio; exit 1
       - name: Migrate, seed and start the API
         working-directory: backend
         run: |

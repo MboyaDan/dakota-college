@@ -57,3 +57,7 @@ RETURNING id;
 -- name: SeedDraftApplication :exec
 INSERT INTO applications (reference, applicant_id, programme_id) VALUES (@reference, @applicant_id, @programme_id)
 ON CONFLICT (reference) DO NOTHING;
+
+-- name: GetApplicantSignInLinkEmail :one
+-- Read without a lock, so the per-address lock can be taken first.
+SELECT email FROM applicant_sign_in_links WHERE token_hash = @token_hash;

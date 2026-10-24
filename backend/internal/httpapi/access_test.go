@@ -18,7 +18,7 @@ import (
 )
 
 func concretePath(path string) string {
-	return strings.NewReplacer(":id", uuid.NewString(), ":kind", "schools").Replace(path)
+	return strings.NewReplacer(":id", uuid.NewString(), ":doc", uuid.NewString(), ":kind", "schools", ":token", "not-a-token").Replace(path)
 }
 
 // AC-07: the backend denies unauthorised calls even if the frontend is
@@ -38,7 +38,7 @@ func TestEveryRouteIsProtected(t *testing.T) {
 	}
 	// Routes any signed-in account may use. Every other protected route
 	// names a permission or a kind of account.
-	anySession := map[string]bool{"GET /api/v1/auth/session": true, "POST /api/v1/auth/logout": true}
+	anySession := map[string]bool{"GET /api/v1/auth/session": true, "POST /api/v1/auth/logout": true, "GET /api/v1/files/:token": true}
 	permissions := map[string]bool{}
 	for _, r := range h.router.Routes {
 		key := r.Method + " " + r.Path

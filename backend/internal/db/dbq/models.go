@@ -73,6 +73,7 @@ type Application struct {
 	DraftExpiresAt        *time.Time
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
+	SubmittedSnapshot     []byte
 }
 
 type ApplicationDocument struct {
@@ -264,6 +265,15 @@ type File struct {
 	Width            *int32
 	Height           *int32
 	ImageWidths      []int32
+}
+
+type FileLink struct {
+	ID        uuid.UUID
+	TokenHash []byte
+	FileID    uuid.UUID
+	IssuedTo  uuid.UUID
+	ExpiresAt time.Time
+	CreatedAt time.Time
 }
 
 type GalleryItem struct {

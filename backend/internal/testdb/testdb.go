@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -90,7 +91,13 @@ func Migrated(t testing.TB) (*pgxpool.Pool, string) {
 		t.Fatalf("migrate up: %v", err)
 	}
 
-	pool, err := db.Open(ctx, u)
+	// A small pool, like CI's two-CPU runner and a free-tier database, so a
+	// transaction that also needs a second connection deadlocks here too.
+	sep := "?"
+	if strings.Contains(u, "?") {
+		sep = "&"
+	}
+	pool, err := db.Open(ctx, u+sep+"pool_max_conns=4")
 	if err != nil {
 		t.Fatalf("open pool: %v", err)
 	}

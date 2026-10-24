@@ -25,6 +25,7 @@ const (
 	StepGuardian  = "guardian"
 	StepEducation = "education"
 	StepSponsor   = "sponsor"
+	StepDocuments = "documents"
 )
 
 var (
@@ -108,11 +109,15 @@ type Detail struct {
 	Guardian       Guardian    `json:"guardian"`
 	Education      []Education `json:"education"`
 	Sponsor        Sponsor     `json:"sponsor"`
-	Missing        []Missing   `json:"missing"`
-	DraftExpiresAt *time.Time  `json:"draft_expires_at"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
-	SubmittedAt    *time.Time  `json:"submitted_at"`
+	Documents      []Document  `json:"documents"`
+	// RequiredDocuments are the document kinds this application needs.
+	RequiredDocuments []string     `json:"required_documents"`
+	Missing           []Missing    `json:"missing"`
+	History           []HistoryRow `json:"history"`
+	DraftExpiresAt    *time.Time   `json:"draft_expires_at"`
+	CreatedAt         time.Time    `json:"created_at"`
+	UpdatedAt         time.Time    `json:"updated_at"`
+	SubmittedAt       *time.Time   `json:"submitted_at"`
 }
 
 func dateString(t *time.Time) *string {
@@ -136,7 +141,13 @@ func (s *Service) Get(ctx context.Context, userID, id uuid.UUID) (*Detail, error
 	if err != nil {
 		return nil, err
 	}
-	q := dbq.New(s.pool)
+	return s.detail(ctx, dbq.New(s.pool), a)
+}
+
+// detail builds the application from a, reading with q only. Inside a
+// transaction, pass its queries: taking a second pool connection while
+// holding locks can exhaust a small pool and hang every request.
+func (s *Service) detail(ctx context.Context, q *dbq.Queries, a dbq.GetOwnApplicationRow) (*Detail, error) {
 	ap, err := q.GetApplicant(ctx, a.ApplicantID)
 	if err != nil {
 		return nil, err
@@ -197,8 +208,35 @@ func (s *Service) Get(ctx context.Context, userID, id uuid.UUID) (*Detail, error
 		d.Education = append(d.Education, e)
 	}
 
+	docs, err := q.ListApplicationDocuments(ctx, a.ID)
+	if err != nil {
+		return nil, err
+	}
+	d.Documents = make([]Document, 0, len(docs))
+	for _, r := range docs {
+		d.Documents = append(d.Documents, Document{ID: r.ID, Kind: r.Kind, Name: r.OriginalName, ContentType: r.ContentType,
+			SizeBytes: r.SizeBytes, ScanStatus: r.ScanStatus, CreatedAt: r.CreatedAt})
+	}
+	d.RequiredDocuments = d.requiredDocuments()
+
+	hist, err := q.ListStatusHistory(ctx, a.ID)
+	if err != nil {
+		return nil, err
+	}
+	d.History = make([]HistoryRow, 0, len(hist))
+	for _, h := range hist {
+		d.History = append(d.History, HistoryRow{Status: h.ToStatus, Reason: h.Reason, At: h.CreatedAt})
+	}
+
 	d.Missing = d.missing()
 	return d, nil
+}
+
+// HistoryRow is one status change, as the applicant sees it.
+type HistoryRow struct {
+	Status string    `json:"status"`
+	Reason string    `json:"reason"`
+	At     time.Time `json:"at"`
 }
 
 // consentHolds is true when the latest guardian consent is given and was
@@ -297,6 +335,8 @@ func (d *Detail) missing() []Missing {
 	case d.Sponsor.Type != "self" && d.Sponsor.Phone == "":
 		add(StepSponsor, "phone", "Enter their phone number.")
 	}
+
+	d.missingDocuments(add)
 	return out
 }
 

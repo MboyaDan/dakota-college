@@ -11,7 +11,9 @@ import type { components } from "@/lib/api/schema";
 import { useAutosave } from "@/lib/apply/autosave";
 import { counties, kcseGrades } from "@/lib/apply/kenya";
 import { formatDate } from "@/lib/staff/datetime";
+import { kindLabels } from "./documents";
 import { SaveStatus, StepButtons, stepTitles, type StepKey, type StepProps } from "./step-kit";
+import { SubmitPanel } from "./submit-panel";
 
 type Personal = components["schemas"]["ApplicationPersonal"];
 type Guardian = components["schemas"]["ApplicationGuardian"];
@@ -708,7 +710,7 @@ function Row({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-export function ReviewStep({ detail, editable, back, goTo }: StepProps) {
+export function ReviewStep({ id, detail, editable, back, goTo, reload }: StepProps) {
   const p = detail.personal;
   const steps = [...new Set(detail.missing.map((m) => m.step))] as StepKey[];
   return (
@@ -738,7 +740,7 @@ export function ReviewStep({ detail, editable, back, goTo }: StepProps) {
         </Alert>
       ) : (
         <Alert tone="success" title="All the answers we need are here">
-          Check them below. You can change any of them until you submit.
+          Check them below. You can change any of them until you submit, at the bottom of this page.
         </Alert>
       )}
 
@@ -797,27 +799,32 @@ export function ReviewStep({ detail, editable, back, goTo }: StepProps) {
         ) : null}
       </Summary>
 
+      <Summary title={stepTitles.documents} step="documents" goTo={goTo} editable={editable}>
+        {detail.documents.length === 0 ? <Row label="Documents" value="" /> : null}
+        {detail.documents.map((doc) => (
+          <Row key={doc.id} label={kindLabels[doc.kind]} value={doc.name} />
+        ))}
+      </Summary>
+
       {editable ? (
-        <Alert tone="info" title="Next: documents and submission">
-          Uploading your documents and submitting the application is the last part of the form, and it is not
-          open yet. Your answers are saved. Come back to this page to finish when it opens.
-        </Alert>
-      ) : null}
-      <div className="flex flex-col-reverse gap-3 border-t border-stone pt-5 sm:flex-row sm:justify-between">
-        {back ? (
-          <Button type="button" variant="outline" onClick={back}>
-            Back
-          </Button>
-        ) : (
-          <span />
-        )}
-        <Link
-          href="/apply/account"
-          className="inline-flex min-h-touch items-center font-semibold text-royal underline"
-        >
-          Back to your applications
-        </Link>
-      </div>
+        <SubmitPanel id={id} ready={detail.missing.length === 0} back={back} reload={reload} />
+      ) : (
+        <div className="flex flex-col-reverse gap-3 border-t border-stone pt-5 sm:flex-row sm:justify-between">
+          {back ? (
+            <Button type="button" variant="outline" onClick={back}>
+              Back
+            </Button>
+          ) : (
+            <span />
+          )}
+          <Link
+            href="/apply/account"
+            className="inline-flex min-h-touch items-center font-semibold text-royal underline"
+          >
+            Back to your applications
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
