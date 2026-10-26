@@ -358,7 +358,8 @@ func TestNotificationTemplates(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil {
 		t.Fatal(err)
 	}
-	if len(list.Items) != 6 {
+	// 6 from Stage 8b; 8 messages and the offer letter from Stage 10a.
+	if len(list.Items) != 15 {
 		t.Fatalf("templates = %+v", list.Items)
 	}
 	for _, it := range list.Items {
@@ -382,6 +383,13 @@ func TestNotificationTemplates(t *testing.T) {
 	put("no.such_template", "email", map[string]string{"subject": "x", "body": "y"}).
 		expect(t, http.StatusNotFound, "not_found")
 	put("applicant.sign_in_link", "fax", map[string]string{"subject": "x", "body": "{link}"}).
+		expect(t, http.StatusNotFound, "not_found")
+	// The offer letter is a letter, with its own placeholders and a heading.
+	put("offer.letter", "letter", map[string]string{"subject": "", "body": "Dear {name}"}).
+		expect(t, http.StatusUnprocessableEntity, "validation_failed")
+	put("offer.letter", "letter", map[string]string{"subject": "Offer", "body": "Dear {name}, see {link}"}).
+		expect(t, http.StatusUnprocessableEntity, "validation_failed")
+	put("offer.letter", "email", map[string]string{"subject": "Offer", "body": "Dear {name}"}).
 		expect(t, http.StatusNotFound, "not_found")
 
 	put("applicant.sign_in_link", "email", map[string]string{"subject": "Sign in, {name}", "body": "Hello {name}, open {link} within {minutes} minutes."}).
