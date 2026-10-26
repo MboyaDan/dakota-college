@@ -67,3 +67,7 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-28 | Terms are created by the registrar with their own dates; there is no fixed number per year. | Confirmed (owner, 2026-10-26) |
 | A-29 | Heads of School see and manage only the schools they are assigned to; Registrar, Principal and Finance Officer see every school. | Confirmed (owner, 2026-10-26) |
 | A-30 | Trainers see only the units they are assigned to teach, with class lists that show student number, name and cohort, not contact details. | Confirmed (owner, 2026-10-26) for the scope; the class list fields are a default |
+| A-31 | A newly enrolled student chooses a password from a one-time link in the enrolment email, valid 7 days; afterwards "forgot password" by student number. | Confirmed (owner, 2026-10-26) |
+| A-32 | Students change phone and contacts themselves; name, date of birth and ID number only through a request the registrar approves. | Confirmed (owner, 2026-10-26) |
+| A-33 | Notices are posted by the registrar's office and Heads of School (within their schools) and by trainers to their own classes. | Confirmed (owner, 2026-10-26) |
+| A-34 | A student may have at most five service requests open at once; the request types are letter, transcript, deferment, change of course and other. | Default, Stage 12a; owner may change |

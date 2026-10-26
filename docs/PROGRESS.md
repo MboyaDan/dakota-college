@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 11b, Student records and academics screens. Done, awaiting review.
-- **Next stage:** 12, Student portal.
-- **Branch:** `stage-11b-academics-screens` (from `main` after #29)
+- **Current stage:** 12a, Student portal API. Done, awaiting review.
+- **Next stage:** 12b, Student portal screens.
+- **Branch:** `stage-12a-student-portal-api` (from `main` after #30)
 
 ## Stage status
 
@@ -31,8 +31,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 10a | Admissions workflow API | Merged (#27) |
 | 10b | Admissions screens | Merged (#28) |
 | 11a | Student records and academics API | Merged (#29) |
-| 11b | Student records and academics screens | Done, awaiting review |
-| 12 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 11b | Student records and academics screens | Merged (#30) |
+| 12a | Student portal API | Done, awaiting review |
+| 12b | Student portal screens | Not started |
+| 13 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -45,6 +47,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 12a: Student portal API (2026-10-26)
+
+- Stage 12 split into 12a (API) and 12b (screens); owner chose an emailed set-up link, contacts changed directly with identity changes approved by the registrar, and notices by managers and trainers (D-140 to D-144, A-31 to A-33).
+- Migration 00015: notices, service requests, profile change requests; the enrolment email carries the set-up link; two new email templates.
+- API: sign-in and password reset by student number; the student's dashboard, profile, phone, contacts, change request, self-registration within the window, timetable, notices and service requests; staff notices (managers and trainers), service requests and change requests (D-141 to D-145).
+- Verified: Go tests against PostgreSQL with `-race` (set-up link to sign-in by number, unknown numbers look like wrong passwords, AC-08 with two students, registration rules, change approval, notices by audience, service request rules and email); 136 Playwright tests still pass; live sign-in by student number against the migrated dev API.
 
 ### Stage 11b: Student records and academics screens (2026-10-26)
 
