@@ -18,6 +18,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
+	"github.com/MboyaDan/dakota-college/backend/internal/portal"
 )
 
 // Pinger checks that a dependency is reachable. *pgxpool.Pool satisfies it.
@@ -47,7 +48,9 @@ type Deps struct {
 	Admissions *admissions.Service
 	// Academics is student records, units, offerings and teaching.
 	Academics *academics.Service
-	Notify    *notify.Service
+	// Portal is the student portal and the staff side of what students ask for.
+	Portal *portal.Service
+	Notify *notify.Service
 }
 
 const defaultBodyLimit = 1 << 20 // 1 MB for JSON endpoints
@@ -273,6 +276,41 @@ func NewRouter(d Deps) (*Router, error) {
 
 		add(http.MethodGet, "/admin/users/:id/schools", false, "users.manage", ac.userSchools)
 		add(http.MethodPut, "/admin/users/:id/schools", false, "users.manage", ac.setUserSchools)
+	}
+
+	if d.Portal != nil && d.Academics != nil && d.Auth != nil {
+		ph := portalHandlers{svc: d.Portal, academics: d.Academics, auth: d.Auth, cookie: cookie}
+		add(http.MethodPost, "/student/sign-in", true, "", ph.signIn)
+		add(http.MethodPost, "/student/password-reset", true, "", ph.passwordReset)
+		student := func(method, path string, h gin.HandlerFunc) {
+			mount(Route{Method: method, Path: path, Kind: "student"}, defaultBodyLimit, h)
+		}
+		student(http.MethodGet, "/student/dashboard", ph.dashboard)
+		student(http.MethodGet, "/student/profile", ph.profile)
+		student(http.MethodPut, "/student/profile/phone", ph.setPhone)
+		student(http.MethodPost, "/student/profile/change-request", ph.requestChange)
+		student(http.MethodPost, "/student/guardians", ph.addGuardian)
+		student(http.MethodPut, "/student/guardians/:item", ph.updateGuardian)
+		student(http.MethodDelete, "/student/guardians/:item", ph.removeGuardian)
+		student(http.MethodGet, "/student/registration", ph.registration)
+		student(http.MethodPost, "/student/registration/:id", ph.register)
+		student(http.MethodPost, "/student/registration/:id/drop", ph.drop)
+		student(http.MethodGet, "/student/timetable", ph.timetable)
+		student(http.MethodGet, "/student/notices", ph.notices)
+		student(http.MethodGet, "/student/requests", ph.requests)
+		student(http.MethodPost, "/student/requests", ph.createRequest)
+
+		add(http.MethodGet, "/staff/notices", false, academics.PermManage, ph.listNotices)
+		add(http.MethodPost, "/staff/notices", false, academics.PermManage, ph.postNotice)
+		add(http.MethodPost, "/staff/notices/:id/withdraw", false, academics.PermManage, ph.withdrawNotice)
+		add(http.MethodGet, "/staff/teaching/:id/notices", false, academics.PermTeach, ph.classNotices)
+		add(http.MethodPost, "/staff/teaching/:id/notices", false, academics.PermTeach, ph.postClassNotice)
+		add(http.MethodPost, "/staff/teaching/:id/notices/:item/withdraw", false, academics.PermTeach, ph.withdrawClassNotice)
+		add(http.MethodGet, "/staff/service-requests", false, academics.PermStudentsView, ph.listServiceRequests)
+		add(http.MethodPost, "/staff/service-requests/:id", false, academics.PermStudentsUpdate, ph.updateServiceRequest)
+		add(http.MethodGet, "/staff/profile-requests", false, academics.PermStudentsView, ph.listChangeRequests)
+		add(http.MethodPost, "/staff/profile-requests/:id/approve", false, academics.PermStudentsUpdate, ph.decideChange(true))
+		add(http.MethodPost, "/staff/profile-requests/:id/decline", false, academics.PermStudentsUpdate, ph.decideChange(false))
 	}
 
 	if d.Content != nil && d.Enquiries != nil {

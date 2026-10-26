@@ -84,7 +84,8 @@ type Offering struct {
 	ClassList []ClassMember    `json:"class_list"`
 }
 
-func clock(t pgtype.Time) string {
+// Clock formats a time of day as HH:MM.
+func Clock(t pgtype.Time) string {
 	m := t.Microseconds / 60_000_000
 	return time.Date(0, 1, 1, int(m/60), int(m%60), 0, 0, time.UTC).Format("15:04")
 }
@@ -107,7 +108,7 @@ func offering(ctx context.Context, q *dbq.Queries, o dbq.GetOfferingRow) (*Offer
 	}
 	for _, e := range entries {
 		out.Timetable = append(out.Timetable, TimetableEntry{ID: e.ID, Kind: e.Kind, Weekday: e.Weekday, OnDate: dateString(e.OnDate),
-			StartsAt: clock(e.StartsAt), EndsAt: clock(e.EndsAt), Room: e.Room})
+			StartsAt: Clock(e.StartsAt), EndsAt: Clock(e.EndsAt), Room: e.Room})
 	}
 	class, err := q.ListClassList(ctx, o.ID)
 	if err != nil {
@@ -457,7 +458,7 @@ func (s *Service) MyTeaching(ctx context.Context, user uuid.UUID) (*Teaching, er
 	for _, e := range tt {
 		out.Timetable = append(out.Timetable, MyTimetableEntry{
 			TimetableEntry: TimetableEntry{ID: e.ID, Kind: e.Kind, Weekday: e.Weekday, OnDate: dateString(e.OnDate),
-				StartsAt: clock(e.StartsAt), EndsAt: clock(e.EndsAt), Room: e.Room},
+				StartsAt: Clock(e.StartsAt), EndsAt: Clock(e.EndsAt), Room: e.Room},
 			OfferingID: e.OfferingID, UnitCode: e.UnitCode, UnitTitle: e.UnitTitle, TermName: e.TermName})
 	}
 	return out, nil
