@@ -42,6 +42,10 @@ test("a fee enquiry reaches the finance inbox and is handled there", async ({ pa
     "page",
   );
   await expect(page.getByRole("link", { name })).toBeVisible();
+  // Filters with "Any status" still search (a required empty select once blocked this).
+  await page.getByLabel("Search").fill(name);
+  await page.getByRole("button", { name: "Show" }).click();
+  await expect(page.getByRole("status")).toHaveText("1 enquiry");
   expect(await hasHorizontalOverflow(page)).toBe(false);
   await expectNoSeriousA11yIssues(page);
 

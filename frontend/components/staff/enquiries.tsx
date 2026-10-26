@@ -155,7 +155,9 @@ export function EnquiryInbox() {
         </ul>
       </nav>
 
+      {/* noValidate: "Any" is an empty choice, which a required select would refuse. */}
       <form
+        noValidate
         onSubmit={search}
         className="grid items-end gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_2fr_auto]"
         key={`${status}|${assigned}|${q}`}
