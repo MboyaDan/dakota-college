@@ -7,6 +7,12 @@ export const sampleValues: Record<string, string> = {
   minutes: "30",
   reference: "DTC-APP-2026-000123",
   programme: "Diploma in Sample Studies (Sample)",
+  intake: "January 2027 (Sample)",
+  starts_on: "11 January 2027",
+  respond_by: "9 November 2026",
+  message: "Please upload a clearer copy of your KCSE result slip.",
+  reason: "The KCSE mean grade is below the entry requirement for this programme.",
+  student_number: "DTC/2027/0001",
 };
 
 export function renderTemplate(text: string, values: Record<string, string> = sampleValues): string {

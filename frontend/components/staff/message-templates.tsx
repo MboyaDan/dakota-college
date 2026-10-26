@@ -16,7 +16,7 @@ import { useSession } from "./session";
 
 type Template = components["schemas"]["NotificationTemplate"];
 
-/** Editable emails and text messages sent to applicants (notifications.manage). */
+/** Editable emails, text messages and the offer letter for applicants (notifications.manage). */
 export function MessageTemplates() {
   const [items, setItems] = useState<Template[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +33,9 @@ export function MessageTemplates() {
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold">Messages to applicants</h1>
         <p>
-          The wording of emails and text messages the website sends. Words in braces, like{" "}
-          <code className="font-mono">{"{name}"}</code>, are filled in for each applicant. Changes apply to
-          the next message sent.
+          The wording of emails and text messages the website sends, and of the offer letter. Words in braces,
+          like <code className="font-mono">{"{name}"}</code>, are filled in for each applicant. Changes apply
+          to the next message sent.
         </p>
       </div>
       {error ? (
@@ -72,6 +72,10 @@ function TemplateCard({ template: t, onSaved }: { template: Template; onSaved: (
   const [busy, setBusy] = useState(false);
   const id = `${t.key}-${t.channel}`.replace(/[^a-z0-9-]/g, "-");
   const email = t.channel === "email";
+  const letter = t.channel === "letter";
+  // Emails and letters have a subject line (a letter's heading); texts do not.
+  const titled = email || letter;
+  const kind = email ? "email" : letter ? "letter" : "text message";
   const changed = subject !== t.subject || body !== t.body;
   const unknown = unknownPlaceholders(`${subject} ${body}`, t.placeholders);
 
@@ -86,7 +90,7 @@ function TemplateCard({ template: t, onSaved }: { template: Template; onSaved: (
     if (response.ok) {
       onSaved({
         ...t,
-        subject: email ? subject.trim() : "",
+        subject: titled ? subject.trim() : "",
         body: body.trim(),
         updated_at: new Date().toISOString(),
         updated_by_name: user.full_name,
@@ -111,8 +115,8 @@ function TemplateCard({ template: t, onSaved }: { template: Template; onSaved: (
           <h2 id={`${id}-title`} className="text-xl font-semibold text-navy-900">
             {t.name}
           </h2>
-          <Tag tone="navy">{email ? "Email" : "Text message"}</Tag>
-          {t.sending ? null : <StatusTag status="warning">Not sent yet: no SMS provider</StatusTag>}
+          <Tag tone="navy">{email ? "Email" : letter ? "Printed letter (PDF)" : "Text message"}</Tag>
+          {t.sending || letter ? null : <StatusTag status="warning">Not sent yet: no SMS provider</StatusTag>}
         </div>
         <p className="text-ink-muted">{t.description}</p>
         <form
@@ -128,11 +132,11 @@ function TemplateCard({ template: t, onSaved }: { template: Template; onSaved: (
               {errors.form}
             </Alert>
           ) : null}
-          {email ? (
+          {titled ? (
             <Input
               id={`${id}-subject`}
               name="subject"
-              label="Subject"
+              label={letter ? "Heading" : "Subject"}
               required
               maxLength={150}
               value={subject}
@@ -143,9 +147,9 @@ function TemplateCard({ template: t, onSaved }: { template: Template; onSaved: (
           <Textarea
             id={`${id}-body`}
             name="body"
-            label={email ? "Message" : "Text message"}
+            label={email ? "Message" : letter ? "Letter text" : "Text message"}
             required
-            rows={email ? 9 : 3}
+            rows={titled ? 9 : 3}
             maxLength={t.max_length}
             hint={
               <>
@@ -156,7 +160,7 @@ function TemplateCard({ template: t, onSaved }: { template: Template; onSaved: (
                     <code className="font-mono">{`{${p}}`}</code>
                   </span>
                 ))}
-                .{email ? null : ` ${body.length} of ${t.max_length} characters.`}
+                .{titled ? null : ` ${body.length} of ${t.max_length} characters.`}
               </>
             }
             value={body}
@@ -173,9 +177,9 @@ function TemplateCard({ template: t, onSaved }: { template: Template; onSaved: (
               Preview with sample details
             </summary>
             <div className="mt-2 flex flex-col gap-2 text-sm">
-              {email ? (
+              {titled ? (
                 <p>
-                  <strong>Subject:</strong> {renderTemplate(subject)}
+                  <strong>{letter ? "Heading:" : "Subject:"}</strong> {renderTemplate(subject)}
                 </p>
               ) : null}
               <p className="whitespace-pre-wrap break-words">{renderTemplate(body)}</p>
@@ -188,7 +192,7 @@ function TemplateCard({ template: t, onSaved }: { template: Template; onSaved: (
                 : "Starter wording, not changed yet"}
             </p>
             <Button type="submit" variant="secondary" loading={busy} disabled={!changed}>
-              Save {email ? "email" : "text message"}
+              Save {kind}
             </Button>
           </div>
         </form>
