@@ -16,6 +16,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
 
   const nav: NavItem[] = [
     { href: "/staff", label: "Overview", show: true },
+    { href: "/staff/applications", label: "Applications", show: can("admissions.view") },
     { href: "/staff/enquiries", label: "Enquiries", show: can("enquiries.view") },
     { href: "/staff/approvals", label: "Waiting for approval", show: can("content.publish") },
     ...kindOrder.map((k) => ({
@@ -87,7 +88,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
               ))}
           </ul>
         </nav>
-        <main id="staff-main" tabIndex={-1} className="flex-1 p-4 focus:outline-none lg:p-8">
+        <main id="staff-main" tabIndex={-1} className="min-w-0 flex-1 p-4 focus:outline-none lg:p-8">
           {children}
         </main>
       </div>

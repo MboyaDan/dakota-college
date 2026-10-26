@@ -190,7 +190,7 @@ export function ApplicationWizard() {
       </Card>
 
       {!detail.editable && !requested ? (
-        <StatusView detail={detail} id={id} />
+        <StatusView detail={detail} id={id} onChange={setDetail} reload={load} />
       ) : (
         <>
           {!detail.editable ? (

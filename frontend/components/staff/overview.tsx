@@ -13,9 +13,20 @@ export function Overview() {
   const { user, can } = useSession();
   const [waiting, setWaiting] = useState<number | null>(null);
   const [enquiries, setEnquiries] = useState<{ new: number; mine: number } | null>(null);
+  const [applications, setApplications] = useState<{
+    new: number;
+    mine: number;
+    info_requested: number;
+    to_enrol: number;
+  } | null>(null);
 
   useEffect(() => {
     if (can("content.publish")) void loadQueue().then((q) => setWaiting(q.length));
+    if (can("admissions.view")) {
+      void api.GET("/api/v1/staff/applications/counts").then(({ data }) => {
+        if (data) setApplications(data);
+      });
+    }
     if (can("enquiries.view")) {
       void api.GET("/api/v1/staff/enquiries/counts").then(({ data }) => {
         if (data) setEnquiries(data);
@@ -26,6 +37,33 @@ export function Overview() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Hello, {user.full_name.split(" ")[0]}</h1>
+      {can("admissions.view") ? (
+        <Card>
+          <h2 className="text-xl font-semibold">Applications</h2>
+          {applications === null ? (
+            <p>Checking…</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              <li>{plural(applications.new, "new application", "new applications")} to review</li>
+              {can("admissions.review") ? (
+                <li>{plural(applications.mine, "application is", "applications are")} with you</li>
+              ) : null}
+              <li>{plural(applications.info_requested, "applicant", "applicants")} to reply to a request</li>
+              <li>{plural(applications.to_enrol, "accepted offer", "accepted offers")} to enrol</li>
+            </ul>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <LinkButton href="/staff/applications?status=submitted" className="self-start">
+              See new applications
+            </LinkButton>
+            {can("admissions.review") ? (
+              <LinkButton href="/staff/applications?assigned=me" variant="outline" className="self-start">
+                Assigned to me
+              </LinkButton>
+            ) : null}
+          </div>
+        </Card>
+      ) : null}
       {can("enquiries.view") ? (
         <Card>
           <h2 className="text-xl font-semibold">Enquiries</h2>
@@ -87,4 +125,8 @@ export function Overview() {
       )}
     </div>
   );
+}
+
+function plural(n: number, one: string, many: string) {
+  return `${n} ${n === 1 ? one : many}`;
 }
