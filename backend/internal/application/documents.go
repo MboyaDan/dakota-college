@@ -145,7 +145,7 @@ func (s *Service) UploadDocument(ctx context.Context, p *auth.Principal, id uuid
 	if err != nil {
 		return nil, err
 	}
-	if a.Status != "draft" {
+	if a.Status != "draft" && a.Status != "info_requested" {
 		return nil, ErrNotEditable
 	}
 	if _, ok := DocumentKinds[kind]; !ok {
@@ -176,7 +176,7 @@ func (s *Service) UploadDocument(ctx context.Context, p *auth.Principal, id uuid
 		name = strings.TrimSuffix(name, path.Ext(name)) + "." + ext
 	}
 	var doc Document
-	err = s.edit(ctx, p.UserID, id, func(q *dbq.Queries, a dbq.LockOwnApplicationRow) error {
+	err = s.changeDocuments(ctx, p.UserID, id, func(q *dbq.Queries, a dbq.LockOwnApplicationRow, _ *time.Time) error {
 		existing, err := q.ListApplicationDocuments(ctx, a.ID)
 		if err != nil {
 			return err
@@ -209,17 +209,45 @@ func (s *Service) UploadDocument(ctx context.Context, p *auth.Principal, id uuid
 	return &doc, nil
 }
 
-// RemoveDocument takes a document off a draft. The file row is kept, marked
-// deleted, for the audit trail; the stored object is removed.
+// changeDocuments runs fn on a draft, or on a submitted application while
+// the admissions office is asking for more information (since is then when
+// they asked; documents sent before it are part of the record and stay).
+func (s *Service) changeDocuments(ctx context.Context, userID, id uuid.UUID, fn func(q *dbq.Queries, a dbq.LockOwnApplicationRow, since *time.Time) error) error {
+	err := s.edit(ctx, userID, id, func(q *dbq.Queries, a dbq.LockOwnApplicationRow) error { return fn(q, a, nil) })
+	if !errors.Is(err, ErrNotEditable) {
+		return err
+	}
+	return s.tx(ctx, func(q *dbq.Queries) error {
+		a, err := q.LockOwnApplication(ctx, dbq.LockOwnApplicationParams{ID: id, UserID: &userID})
+		if err != nil {
+			return err
+		}
+		if a.Status != "info_requested" {
+			return ErrNotEditable
+		}
+		r, err := q.GetOpenInfoRequest(ctx, a.ID)
+		if err != nil {
+			return err
+		}
+		return fn(q, a, &r.RequestedAt)
+	})
+}
+
+// RemoveDocument takes a document off a draft, or one sent in reply to an
+// open information request. The file row is kept, marked deleted, for the
+// audit trail; the stored object is removed.
 func (s *Service) RemoveDocument(ctx context.Context, userID, id, docID uuid.UUID, req audit.Request) error {
 	var bucket, key string
-	err := s.edit(ctx, userID, id, func(q *dbq.Queries, a dbq.LockOwnApplicationRow) error {
+	err := s.changeDocuments(ctx, userID, id, func(q *dbq.Queries, a dbq.LockOwnApplicationRow, since *time.Time) error {
 		d, err := q.GetApplicationDocument(ctx, dbq.GetApplicationDocumentParams{ID: docID, ApplicationID: a.ID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		}
 		if err != nil {
 			return err
+		}
+		if since != nil && d.CreatedAt.Before(*since) {
+			return ErrNotEditable
 		}
 		if err := q.DeleteApplicationDocument(ctx, d.ID); err != nil {
 			return err
@@ -247,8 +275,13 @@ type FileLink struct {
 }
 
 func (s *Service) issueLink(ctx context.Context, q *dbq.Queries, fileID, userID uuid.UUID) (*FileLink, error) {
+	return IssueLink(ctx, q, fileID, userID, s.now())
+}
+
+// IssueLink records a link to fileID for userID, valid for FileLinkTTL.
+func IssueLink(ctx context.Context, q *dbq.Queries, fileID, userID uuid.UUID, now time.Time) (*FileLink, error) {
 	token, hash := auth.NewToken()
-	expires := s.now().Add(FileLinkTTL)
+	expires := now.Add(FileLinkTTL)
 	if err := q.CreateFileLink(ctx, dbq.CreateFileLinkParams{TokenHash: hash, FileID: fileID, IssuedTo: userID, ExpiresAt: expires}); err != nil {
 		return nil, err
 	}

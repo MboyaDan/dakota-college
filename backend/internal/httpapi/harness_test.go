@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
+	"github.com/MboyaDan/dakota-college/backend/internal/admissions"
 	"github.com/MboyaDan/dakota-college/backend/internal/applicant"
 	"github.com/MboyaDan/dakota-college/backend/internal/application"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
@@ -83,6 +84,10 @@ func (h *harness) rebuild() {
 		Applications: application.NewService(application.Options{
 			Pool: h.pool, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
 			Storage: h.storage, PrivateBucket: "dakota-private", Scanner: h.scanner,
+		}),
+		Admissions: admissions.NewService(admissions.Options{
+			Pool: h.pool, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
+			Storage: h.storage, PrivateBucket: "dakota-private",
 		}),
 	})
 	if err != nil {

@@ -106,6 +106,25 @@ type ApplicationGuardian struct {
 	CreatedAt     time.Time
 }
 
+type ApplicationInfoRequest struct {
+	ID            uuid.UUID
+	ApplicationID uuid.UUID
+	Message       string
+	RequestedBy   uuid.UUID
+	RequestedAt   time.Time
+	Response      string
+	ClosedAt      *time.Time
+	ClosedBy      *uuid.UUID
+}
+
+type ApplicationNote struct {
+	ID            uuid.UUID
+	ApplicationID uuid.UUID
+	AuthorID      uuid.UUID
+	Body          string
+	CreatedAt     time.Time
+}
+
 type ApplicationStatusHistory struct {
 	ID            int64
 	ApplicationID uuid.UUID
@@ -114,6 +133,11 @@ type ApplicationStatusHistory struct {
 	ChangedBy     *uuid.UUID
 	Reason        string
 	CreatedAt     time.Time
+}
+
+type ApplicationTransition struct {
+	FromStatus string
+	ToStatus   string
 }
 
 type AuditLog struct {
@@ -301,6 +325,18 @@ type IdempotencyRecord struct {
 	ExpiresAt      time.Time
 }
 
+type Invoice struct {
+	ID        uuid.UUID
+	StudentID uuid.UUID
+	IntakeID  *uuid.UUID
+	Number    *string
+	Status    string
+	Note      string
+	CreatedBy uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type NewsPost struct {
 	ID             uuid.UUID
 	Slug           string
@@ -351,7 +387,7 @@ type Offer struct {
 	Conditions    string
 	IssuedBy      uuid.UUID
 	IssuedAt      time.Time
-	RespondBy     *time.Time
+	RespondBy     time.Time
 	AcceptedAt    *time.Time
 	DeclinedAt    *time.Time
 }
@@ -504,6 +540,29 @@ type Statistic struct {
 	IsSample   bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+}
+
+type Student struct {
+	ID                   uuid.UUID
+	StudentNumber        string
+	UserID               uuid.UUID
+	ApplicantID          uuid.UUID
+	ApplicationID        uuid.UUID
+	ProgrammeID          uuid.UUID
+	IntakeID             *uuid.UUID
+	FirstName            string
+	MiddleName           string
+	LastName             string
+	DateOfBirth          *time.Time
+	Email                string
+	Phone                *string
+	IdentityDocumentType *string
+	IdentityDocument     string
+	Status               string
+	EnrolledAt           time.Time
+	EnrolledBy           uuid.UUID
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
 }
 
 type User struct {

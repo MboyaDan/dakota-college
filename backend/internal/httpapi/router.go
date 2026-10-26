@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
+	"github.com/MboyaDan/dakota-college/backend/internal/admissions"
 	"github.com/MboyaDan/dakota-college/backend/internal/applicant"
 	"github.com/MboyaDan/dakota-college/backend/internal/application"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
@@ -41,7 +42,9 @@ type Deps struct {
 	Applicants *applicant.Service
 	// Applications is the applicant's own application form.
 	Applications *application.Service
-	Notify       *notify.Service
+	// Admissions is the staff workflow over submitted applications.
+	Admissions *admissions.Service
+	Notify     *notify.Service
 }
 
 const defaultBodyLimit = 1 << 20 // 1 MB for JSON endpoints
@@ -200,9 +203,30 @@ func NewRouter(d Deps) (*Router, error) {
 		own(http.MethodDelete, "/applicant/applications/:id/documents/:doc", fh.removeDocument)
 		own(http.MethodPost, "/applicant/applications/:id/documents/:doc/link", fh.documentLink)
 		own(http.MethodPost, "/applicant/applications/:id/submit", fh.submit)
+		own(http.MethodPost, "/applicant/applications/:id/reply", fh.reply)
+		own(http.MethodPost, "/applicant/applications/:id/accept-offer", fh.acceptOffer)
+		own(http.MethodPost, "/applicant/applications/:id/withdraw", fh.withdraw)
+		own(http.MethodPost, "/applicant/applications/:id/offer-letter/link", fh.offerLetterLink)
 		add(http.MethodPost, "/staff/applications/:id/documents/:doc/link", false, application.PermView, fh.staffDocumentLink)
 		// Any signed-in account; the link itself says whose it is.
 		add(http.MethodGet, "/files/:token", false, "", fh.openFile)
+	}
+
+	if d.Admissions != nil && d.Auth != nil {
+		xh := admissionsHandlers{svc: d.Admissions}
+		add(http.MethodGet, "/staff/applications", false, admissions.PermView, xh.list)
+		add(http.MethodGet, "/staff/applications/counts", false, admissions.PermView, xh.counts)
+		add(http.MethodGet, "/staff/applications/assignees", false, admissions.PermReview, xh.assignees)
+		add(http.MethodGet, "/staff/applications/report", false, admissions.PermView, xh.report)
+		add(http.MethodGet, "/staff/applications/:id", false, admissions.PermView, xh.get)
+		add(http.MethodPost, "/staff/applications/:id/assign", false, admissions.PermReview, xh.assign)
+		add(http.MethodPost, "/staff/applications/:id/notes", false, admissions.PermReview, xh.addNote)
+		add(http.MethodPost, "/staff/applications/:id/request-info", false, admissions.PermReview, xh.requestInfo)
+		add(http.MethodPost, "/staff/applications/:id/resume-review", false, admissions.PermReview, xh.resumeReview)
+		add(http.MethodPost, "/staff/applications/:id/reject", false, admissions.PermOffer, xh.reject)
+		add(http.MethodPost, "/staff/applications/:id/offer", false, admissions.PermOffer, xh.offer)
+		add(http.MethodPost, "/staff/applications/:id/offer-letter/link", false, admissions.PermView, xh.offerLetterLink)
+		add(http.MethodPost, "/staff/applications/:id/enrol", false, admissions.PermEnrol, xh.enrol)
 	}
 
 	if d.Content != nil && d.Enquiries != nil {

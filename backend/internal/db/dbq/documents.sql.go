@@ -94,7 +94,7 @@ func (q *Queries) DeleteApplicationDocument(ctx context.Context, id uuid.UUID) e
 }
 
 const getApplicationDocument = `-- name: GetApplicationDocument :one
-SELECT d.id, d.file_id, f.bucket, f.object_key
+SELECT d.id, d.file_id, d.created_at, f.bucket, f.object_key
 FROM application_documents d
 JOIN files f ON f.id = d.file_id
 WHERE d.id = $1 AND d.application_id = $2 AND f.deleted_at IS NULL
@@ -108,6 +108,7 @@ type GetApplicationDocumentParams struct {
 type GetApplicationDocumentRow struct {
 	ID        uuid.UUID
 	FileID    uuid.UUID
+	CreatedAt time.Time
 	Bucket    string
 	ObjectKey string
 }
@@ -118,6 +119,7 @@ func (q *Queries) GetApplicationDocument(ctx context.Context, arg GetApplication
 	err := row.Scan(
 		&i.ID,
 		&i.FileID,
+		&i.CreatedAt,
 		&i.Bucket,
 		&i.ObjectKey,
 	)

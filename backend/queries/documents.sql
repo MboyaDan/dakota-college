@@ -17,7 +17,7 @@ WHERE d.application_id = @application_id AND f.deleted_at IS NULL
 ORDER BY d.created_at;
 
 -- name: GetApplicationDocument :one
-SELECT d.id, d.file_id, f.bucket, f.object_key
+SELECT d.id, d.file_id, d.created_at, f.bucket, f.object_key
 FROM application_documents d
 JOIN files f ON f.id = d.file_id
 WHERE d.id = @id AND d.application_id = @application_id AND f.deleted_at IS NULL;

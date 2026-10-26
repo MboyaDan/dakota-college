@@ -31,6 +31,13 @@ tags:
       Applicants sign in without a password: a one-time link is emailed to them, or to the owner
       of an application when its reference number and email match (D-96). Requests for a link
       always answer the same, whether or not anything was sent.
+  - name: admissions
+    description: |
+      Staff admissions workflow over submitted applications (brief 8). admissions.view to read,
+      admissions.review to assign, add notes and ask for information, admissions.offer to offer
+      or reject, admissions.enrol to enrol. Status changes follow the state machine in
+      application_transitions; a change not allowed from the current status answers 409
+      not_allowed. Reasons are shown to the applicant; notes are not.
   - name: notifications
     description: |
       Editable text of emails and text messages sent to applicants (notifications.manage). Text
@@ -1323,6 +1330,411 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/reply:
+    post:
+      tags: [applicant]
+      operationId: replyToInfoRequest
+      summary: Answer the admissions office's request for more information
+      description: Only while the status is info_requested (409 not_allowed otherwise). Upload any documents first; the reply sends the application back for review.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, maxLength: 2000 }
+      responses:
+        "200":
+          description: The application after the reply.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/accept-offer:
+    post:
+      tags: [applicant]
+      operationId: acceptOffer
+      summary: Accept the offer of a place
+      description: Only while offered. After the respond-by date the offer lapses (409 offer_expired). A second accept answers 409 not_allowed.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The application, now offer_accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/withdraw:
+    post:
+      tags: [applicant]
+      operationId: withdrawApplication
+      summary: Withdraw the application, or decline an open offer
+      description: Allowed until enrolled, rejected or expired (can_withdraw). The optional reason is added to the status history.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, maxLength: 2000 }
+      responses:
+        "200":
+          description: The application, now withdrawn.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/applicant/applications/{id}/offer-letter/link:
+    post:
+      tags: [applicant]
+      operationId: linkMyOfferLetter
+      summary: A five-minute link to the applicant's offer letter (PDF)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The link.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileLink" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications:
+    get:
+      tags: [admissions]
+      operationId: listApplications
+      summary: Submitted applications, newest first, 25 per page (admissions.view)
+      description: Drafts are never listed. Offers past their respond-by date are expired first.
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [submitted, under_review, info_requested, offered, offer_accepted, enrolled, rejected, withdrawn, expired] } }
+        - { name: programme, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: intake, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: assigned, in: query, required: false, schema: { type: string }, description: "me, none, or a user id." }
+        - { name: q, in: query, required: false, schema: { type: string }, description: "Searches reference, name, email and phone." }
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: One page of applications.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffApplicationPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/counts:
+    get:
+      tags: [admissions]
+      operationId: applicationCounts
+      summary: Numbers for the staff overview (admissions.view)
+      responses:
+        "200":
+          description: New (submitted), yours in review, waiting on applicants, and accepted offers waiting for enrolment.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [new, mine, info_requested, to_enrol]
+                properties:
+                  new: { type: integer }
+                  mine: { type: integer }
+                  info_requested: { type: integer }
+                  to_enrol: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/assignees:
+    get:
+      tags: [admissions]
+      operationId: applicationAssignees
+      summary: Active staff who can review applications (admissions.review)
+      responses:
+        "200":
+          description: People whose roles include admissions.review.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, full_name]
+                      properties:
+                        id: { type: string, format: uuid }
+                        full_name: { type: string }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/report:
+    get:
+      tags: [admissions]
+      operationId: admissionsReport
+      summary: Applications submitted in a period, by programme and intake (admissions.view)
+      description: Dates are Nairobi dates, inclusive; at most two years. Defaults to 1 January this year to today.
+      parameters:
+        - { name: from, in: query, required: false, schema: { type: string, format: date } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: The report.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdmissionsReport" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/{id}:
+    get:
+      tags: [admissions]
+      operationId: getApplication
+      summary: One submitted application with everything needed to decide (admissions.view)
+      description: actions lists what the viewer may do now, from their permissions and the status. Drafts answer 404.
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The application.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/{id}/assign:
+    post:
+      tags: [admissions]
+      operationId: assignApplication
+      summary: Give the application to a reviewer, or clear the owner (admissions.review)
+      description: Assigning a submitted application starts its review (under_review). Only while submitted, under_review or info_requested. 422 not_assignable; 409 unchanged.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignee_id]
+              properties:
+                assignee_id: { type: [string, "null"], format: uuid }
+      responses:
+        "200":
+          description: The application after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/{id}/notes:
+    post:
+      tags: [admissions]
+      operationId: addApplicationNote
+      summary: Add an internal note (admissions.review)
+      description: Notes are for staff only and cannot be edited or deleted.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, maxLength: 5000 }
+      responses:
+        "200":
+          description: The application after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/{id}/request-info:
+    post:
+      tags: [admissions]
+      operationId: requestApplicationInfo
+      summary: Ask the applicant for more information (admissions.review)
+      description: Only while under_review. The applicant is emailed the message and can reply and upload documents.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, maxLength: 2000 }
+      responses:
+        "200":
+          description: The application after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/{id}/resume-review:
+    post:
+      tags: [admissions]
+      operationId: resumeApplicationReview
+      summary: Take the application back into review without waiting for a reply (admissions.review)
+      description: Only while info_requested. Closes the open request in your name. The reason is shown to the applicant.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, maxLength: 2000 }
+      responses:
+        "200":
+          description: The application after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/{id}/reject:
+    post:
+      tags: [admissions]
+      operationId: rejectApplication
+      summary: Reject the application with a reason (admissions.offer)
+      description: Only while under_review or info_requested. The applicant sees and is emailed the reason.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, maxLength: 2000 }
+      responses:
+        "200":
+          description: The application after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/{id}/offer:
+    post:
+      tags: [admissions]
+      operationId: offerPlace
+      summary: Offer a place, with a PDF offer letter (admissions.offer)
+      description: Only while under_review. respond_by defaults to today plus admissions.offer_response_days (14); it must be after today and within a year. 503 storage_unavailable when letters cannot be stored.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                conditions: { type: string, maxLength: 2000 }
+                respond_by: { type: string, format: date }
+      responses:
+        "200":
+          description: The application after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/{id}/offer-letter/link:
+    post:
+      tags: [admissions]
+      operationId: linkOfferLetterForStaff
+      summary: A five-minute link to the offer letter (admissions.view)
+      description: Every link issued is audited.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The link.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileLink" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/applications/{id}/enrol:
+    post:
+      tags: [admissions]
+      operationId: enrolApplicant
+      summary: Enrol an applicant who accepted their offer (admissions.enrol)
+      description: Only while offer_accepted. In one transaction - student number, student record, the applicant account becomes a student account (signed out), an empty draft first invoice. 409 account_not_applicant if the account is already a student account.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The application after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffApplicationDetail" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
   /api/v1/staff/applications/{id}/documents/{doc}/link:
     post:
       tags: [applicant]
@@ -1390,7 +1802,7 @@ paths:
       security: [{ session: [], csrf: [] }]
       parameters:
         - { name: key, in: path, required: true, schema: { type: string } }
-        - { name: channel, in: path, required: true, schema: { type: string, enum: [email, sms] } }
+        - { name: channel, in: path, required: true, schema: { type: string, enum: [email, sms, letter] } }
       requestBody:
         required: true
         content:
@@ -1803,7 +2215,7 @@ components:
       type: object
       required: [id, reference, status, editable, programme_title, programme_slug, intake_id, intake_name, intake_starts_on,
         open_intakes, email, personal, needs_guardian, guardian, education, sponsor, documents, required_documents,
-        missing, history, draft_expires_at, created_at, updated_at, submitted_at]
+        missing, history, can_upload, can_withdraw, info_request, offer, draft_expires_at, created_at, updated_at, submitted_at]
       properties:
         id: { type: string, format: uuid }
         reference: { type: string }
@@ -1855,16 +2267,211 @@ components:
               status: { $ref: "#/components/schemas/MyApplication/properties/status" }
               reason: { type: string }
               at: { type: string, format: date-time }
+        can_upload: { type: boolean, description: Documents can be added (a draft, or while more information is requested). }
+        can_withdraw: { type: boolean }
+        info_request:
+          type: [object, "null"]
+          description: What the admissions office is waiting for (status info_requested).
+          required: [message, requested_at]
+          properties:
+            message: { type: string }
+            requested_at: { type: string, format: date-time }
+        offer:
+          type: [object, "null"]
+          required: [issued_at, respond_by, conditions, accepted_at, declined_at, has_letter]
+          properties:
+            issued_at: { type: string, format: date-time }
+            respond_by: { type: string, format: date }
+            conditions: { type: string }
+            accepted_at: { type: [string, "null"], format: date-time }
+            declined_at: { type: [string, "null"], format: date-time }
+            has_letter: { type: boolean }
         draft_expires_at: { type: [string, "null"], format: date-time }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
         submitted_at: { type: [string, "null"], format: date-time }
+    ApplicationSnapshot:
+      type: object
+      description: The application exactly as submitted (D-114).
+      required: [reference, submitted_at, programme_title, programme_slug, intake_id, intake_name, intake_starts_on, email, personal, guardian, education, sponsor, documents]
+      properties:
+        reference: { type: string }
+        submitted_at: { type: string, format: date-time }
+        programme_title: { type: string }
+        programme_slug: { type: string }
+        intake_id: { type: [string, "null"], format: uuid }
+        intake_name: { type: [string, "null"] }
+        intake_starts_on: { type: [string, "null"], format: date }
+        email: { type: string }
+        personal: { $ref: "#/components/schemas/ApplicationPersonal" }
+        guardian:
+          oneOf:
+            - { $ref: "#/components/schemas/ApplicationGuardian" }
+            - { type: "null" }
+          description: Only for applicants under 18.
+        education: { type: array, items: { $ref: "#/components/schemas/ApplicationEducation" } }
+        sponsor: { $ref: "#/components/schemas/ApplicationSponsor" }
+        documents: { type: array, items: { $ref: "#/components/schemas/ApplicationDocument" } }
+    StaffApplicationItem:
+      type: object
+      required: [id, reference, status, applicant_name, email, programme_title, intake_name, intake_starts_on, assigned_to, assignee_name, respond_by, submitted_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        status: { $ref: "#/components/schemas/MyApplication/properties/status" }
+        applicant_name: { type: string }
+        email: { type: string }
+        programme_title: { type: string }
+        intake_name: { type: [string, "null"] }
+        intake_starts_on: { type: [string, "null"], format: date }
+        assigned_to: { type: [string, "null"], format: uuid }
+        assignee_name: { type: [string, "null"] }
+        respond_by: { type: [string, "null"], format: date, description: Set while an offer is open. }
+        submitted_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    StaffApplicationPage:
+      type: object
+      required: [items, page, total_pages, total]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/StaffApplicationItem" } }
+        page: { type: integer }
+        total_pages: { type: integer }
+        total: { type: integer }
+    StaffApplicationDetail:
+      type: object
+      required: [id, reference, status, programme_id, programme_title, intake_id, intake_name, intake_starts_on, applicant, assigned_to, assignee_name,
+        submitted_at, decided_at, updated_at, submitted, documents, history, notes, info_requests, offer, student, actions]
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        status: { $ref: "#/components/schemas/MyApplication/properties/status" }
+        programme_id: { type: string, format: uuid }
+        programme_title: { type: string }
+        intake_id: { type: [string, "null"], format: uuid }
+        intake_name: { type: [string, "null"] }
+        intake_starts_on: { type: [string, "null"], format: date }
+        applicant:
+          type: object
+          required: [name, email, phone]
+          properties:
+            name: { type: string }
+            email: { type: string }
+            phone: { type: [string, "null"] }
+        assigned_to: { type: [string, "null"], format: uuid }
+        assignee_name: { type: [string, "null"] }
+        submitted_at: { type: string, format: date-time }
+        decided_at: { type: [string, "null"], format: date-time }
+        updated_at: { type: string, format: date-time }
+        submitted:
+          oneOf:
+            - { $ref: "#/components/schemas/ApplicationSnapshot" }
+            - { type: "null" }
+        documents:
+          type: array
+          items:
+            allOf:
+              - { $ref: "#/components/schemas/ApplicationDocument" }
+              - type: object
+                required: [after_submission]
+                properties:
+                  after_submission: { type: boolean, description: Sent later, in reply to a request for information. }
+        history:
+          type: array
+          description: Every status change, oldest first, with who made it (null for the applicant or the system).
+          items:
+            type: object
+            required: [from, to, reason, at, changed_by_name]
+            properties:
+              from: { type: [string, "null"] }
+              to: { $ref: "#/components/schemas/MyApplication/properties/status" }
+              reason: { type: string }
+              at: { type: string, format: date-time }
+              changed_by_name: { type: [string, "null"] }
+        notes:
+          type: array
+          items:
+            type: object
+            required: [id, body, author_name, created_at]
+            properties:
+              id: { type: string, format: uuid }
+              body: { type: string }
+              author_name: { type: string }
+              created_at: { type: string, format: date-time }
+        info_requests:
+          type: array
+          items:
+            type: object
+            required: [id, message, requested_at, requested_by_name, response, closed_at, closed_by_name]
+            properties:
+              id: { type: string, format: uuid }
+              message: { type: string }
+              requested_at: { type: string, format: date-time }
+              requested_by_name: { type: string }
+              response: { type: string, description: The applicant's reply; empty if staff closed it. }
+              closed_at: { type: [string, "null"], format: date-time }
+              closed_by_name: { type: [string, "null"], description: Set when staff closed it without a reply. }
+        offer:
+          type: [object, "null"]
+          required: [issued_at, issued_by_name, respond_by, conditions, accepted_at, declined_at, has_letter]
+          properties:
+            issued_at: { type: string, format: date-time }
+            issued_by_name: { type: string }
+            respond_by: { type: string, format: date }
+            conditions: { type: string }
+            accepted_at: { type: [string, "null"], format: date-time }
+            declined_at: { type: [string, "null"], format: date-time }
+            has_letter: { type: boolean }
+        student:
+          type: [object, "null"]
+          required: [id, student_number, status, enrolled_at, invoice_id, invoice_status]
+          properties:
+            id: { type: string, format: uuid }
+            student_number: { type: string }
+            status: { type: string, enum: [active, deferred, suspended, withdrawn, graduated] }
+            enrolled_at: { type: string, format: date-time }
+            invoice_id: { type: string, format: uuid }
+            invoice_status: { type: string, enum: [draft, issued, void] }
+        actions:
+          type: array
+          items: { type: string, enum: [assign, note, request_info, resume_review, offer, reject, enrol] }
+    AdmissionsFigures:
+      type: object
+      required: [submitted, in_review, info_requested, offered, accepted, enrolled, rejected, withdrawn, expired]
+      properties:
+        submitted: { type: integer }
+        in_review: { type: integer, description: Submitted, under review or waiting on the applicant now. }
+        info_requested: { type: integer }
+        offered: { type: integer, description: Every application that received an offer, whatever happened next. }
+        accepted: { type: integer, description: Accepted, including those since enrolled. }
+        enrolled: { type: integer }
+        rejected: { type: integer }
+        withdrawn: { type: integer }
+        expired: { type: integer }
+    AdmissionsReport:
+      type: object
+      required: [from, to, rows, totals]
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        rows:
+          type: array
+          items:
+            allOf:
+              - type: object
+                required: [programme_id, programme_title, intake_id, intake_name]
+                properties:
+                  programme_id: { type: string, format: uuid }
+                  programme_title: { type: string }
+                  intake_id: { type: [string, "null"], format: uuid }
+                  intake_name: { type: [string, "null"] }
+              - { $ref: "#/components/schemas/AdmissionsFigures" }
+        totals: { $ref: "#/components/schemas/AdmissionsFigures" }
     NotificationTemplate:
       type: object
       required: [key, channel, name, description, subject, body, placeholders, max_length, sending, updated_at, updated_by_name]
       properties:
         key: { type: string }
-        channel: { type: string, enum: [email, sms] }
+        channel: { type: string, enum: [email, sms, letter], description: "letter: printed (the offer letter); subject is its heading." }
         name: { type: string }
         description: { type: string }
         subject: { type: string }

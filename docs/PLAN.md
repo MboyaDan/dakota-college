@@ -32,7 +32,7 @@ These look bigger than one review sitting. I will propose a split when I reach t
 
 - Stage 5 (content API and staff content manager): split into 5a API and 5b staff screens.
 - Stage 9 (application wizard): split into 9a wizard and autosave, 9b documents and submission.
-- Stage 10 (staff admissions): split into 10a review and state machine, 10b offer PDF and enrolment.
+- Stage 10 (staff admissions): split into 10a API (state machine, decisions, offer PDF, enrolment, report) and 10b screens (owner, 2026-10-26, D-119).
 - Stage 14 (finance core): split into 14a invoices and payments, 14b receipts, adjustments, statements.
 
 ## Risks (brief R-01 to R-09 apply; new ones found in Stage 0)

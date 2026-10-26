@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 9b, Documents, submission and status tracking. Done, awaiting review.
-- **Next stage:** 10, Staff admissions workflow.
-- **Branch:** `stage-09b-documents-submission` (from `main` after #25)
+- **Current stage:** 10a, Admissions workflow API. Done, awaiting review.
+- **Next stage:** 10b, Staff admissions screens and the applicant's offer and reply screens.
+- **Branch:** `stage-10a-admissions-api` (from `main` after #26)
 
 ## Stage status
 
@@ -27,8 +27,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 8a | Staff enquiry inbox | Merged (#23) |
 | 8b | Applicant sign-in and notifications | Merged (#24) |
 | 9a | Application form with autosave | Merged (#25) |
-| 9b | Documents and submission | Done, awaiting review |
-| 10 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 9b | Documents and submission | Merged (#26) |
+| 10a | Admissions workflow API | Done, awaiting review |
+| 10b | Admissions screens | Not started |
+| 11 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -41,6 +43,16 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 10a: Admissions workflow API (2026-10-26)
+
+- Stage 10 split into 10a (API) and 10b (screens) by the owner (D-119). Owner chose a 14-day offer window, an empty draft first invoice and a title-only signatory (A-22 to A-24).
+- Migration 00013: allowed status changes as a table checked by a trigger (D-120), information requests, staff notes, students, invoices, `admissions.offer_response_days`, four message templates and the offer letter template.
+- Staff API: inbox with filters and counts, detail with the submitted copy, documents, history, notes, requests, offer, student and allowed actions; assign (starts review), notes, request information, resume review, reject, offer with a PDF letter, enrol, report (D-121 to D-126).
+- Applicant API: reply to a request (with uploads), accept the offer, withdraw or decline, offer letter link; offers lapse after their respond-by date (D-122).
+- Enrolment: student number, student record, the applicant account becomes a student account, empty draft invoice, in one transaction (D-124).
+- Messages screen handles the offer letter template (D-127).
+- Verified: Go tests against PostgreSQL with `-race`, including every illegal status change refused by the database (90 pairs) and by the API (every action from every status), concurrent decisions and enrolments; 103 unit tests; 124 Playwright tests passed locally; a live offer through the site's `/api` rewrite stored its letter in MinIO and served it through a five-minute link.
 
 ### Stage 9b: Documents, submission and status tracking (2026-10-24)
 

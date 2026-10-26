@@ -29,6 +29,10 @@ func applicationError(c *gin.Context, err error) {
 		writeError(c, http.StatusConflict, "not_editable", "This application can no longer be changed. Reload the page to see its status.")
 	case errors.Is(err, application.ErrClosed):
 		writeError(c, http.StatusConflict, "applications_closed", "This programme is not taking applications now. Contact the admissions office.")
+	case errors.Is(err, application.ErrIllegalTransition):
+		writeError(c, http.StatusConflict, "not_allowed", "That is not possible at this stage of the application. Reload the page to see its status.")
+	case errors.Is(err, application.ErrOfferExpired):
+		writeError(c, http.StatusConflict, "offer_expired", "The date to reply to this offer has passed, so the offer has lapsed. Contact the admissions office.")
 	case errors.Is(err, application.ErrDuplicate):
 		writeError(c, http.StatusConflict, "duplicate_application", "You already have an application for that intake. Open it from your account page.")
 	default:
@@ -286,4 +290,41 @@ func (h applicationHandlers) openFile(c *gin.Context) {
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Header("Content-Security-Policy", "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox")
 	c.DataFromReader(http.StatusOK, f.Size, f.ContentType, f.Body, nil)
+}
+
+// ---------- replies, offers and withdrawal (Stage 10a) ----------
+
+func (h applicationHandlers) reply(c *gin.Context) {
+	saveStep(h, c, func(id uuid.UUID, b struct {
+		Message string `json:"message" binding:"max=20000"`
+	}) error {
+		return h.svc.Reply(c.Request.Context(), principal(c).UserID, id, b.Message, auditRequest(c))
+	})
+}
+
+func (h applicationHandlers) acceptOffer(c *gin.Context) {
+	if id, ok := applicationID(c); ok {
+		h.respond(c, id, h.svc.AcceptOffer(c.Request.Context(), principal(c).UserID, id, auditRequest(c)))
+	}
+}
+
+func (h applicationHandlers) withdraw(c *gin.Context) {
+	saveStep(h, c, func(id uuid.UUID, b struct {
+		Reason string `json:"reason" binding:"max=20000"`
+	}) error {
+		return h.svc.Withdraw(c.Request.Context(), principal(c).UserID, id, b.Reason, auditRequest(c))
+	})
+}
+
+func (h applicationHandlers) offerLetterLink(c *gin.Context) {
+	id, ok := applicationID(c)
+	if !ok {
+		return
+	}
+	link, err := h.svc.OfferLetterLink(c.Request.Context(), principal(c).UserID, id)
+	if err != nil {
+		applicationError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, link)
 }

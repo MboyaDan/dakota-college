@@ -114,10 +114,16 @@ type Detail struct {
 	RequiredDocuments []string     `json:"required_documents"`
 	Missing           []Missing    `json:"missing"`
 	History           []HistoryRow `json:"history"`
-	DraftExpiresAt    *time.Time   `json:"draft_expires_at"`
-	CreatedAt         time.Time    `json:"created_at"`
-	UpdatedAt         time.Time    `json:"updated_at"`
-	SubmittedAt       *time.Time   `json:"submitted_at"`
+	// CanUpload: documents can be added (a draft, or while the admissions
+	// office is asking for more information).
+	CanUpload      bool             `json:"can_upload"`
+	CanWithdraw    bool             `json:"can_withdraw"`
+	InfoRequest    *InfoRequestView `json:"info_request"`
+	Offer          *OfferView       `json:"offer"`
+	DraftExpiresAt *time.Time       `json:"draft_expires_at"`
+	CreatedAt      time.Time        `json:"created_at"`
+	UpdatedAt      time.Time        `json:"updated_at"`
+	SubmittedAt    *time.Time       `json:"submitted_at"`
 }
 
 func dateString(t *time.Time) *string {
@@ -229,6 +235,9 @@ func (s *Service) detail(ctx context.Context, q *dbq.Queries, a dbq.GetOwnApplic
 	}
 
 	d.Missing = d.missing()
+	if err := s.addWorkflow(ctx, q, d); err != nil {
+		return nil, err
+	}
 	return d, nil
 }
 

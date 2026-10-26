@@ -6,6 +6,7 @@
 *.avif binary
 *.ico binary
 *.woff2 binary
+*.ttf binary
 *.pdf binary
 *.docx binary
 
