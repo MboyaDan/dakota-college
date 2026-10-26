@@ -64,3 +64,6 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-25 | The year in a student number is the start year of the intake (the year of enrolment if there is no intake), and numbering restarts each year. | Default, Stage 10a; owner may change |
 | A-26 | An application must be assigned to a reviewer (which starts the review) before it can be offered or rejected; staff cannot reject straight from "submitted". | Default, Stage 10a; owner may change |
 | A-27 | An applicant can withdraw at any time before enrolment; withdrawing while an offer is open declines it. Once enrolled, the same email address cannot be used for a new application (one account per person) until the student portal offers it. | Default, Stage 10a; owner may change |
+| A-28 | Terms are created by the registrar with their own dates; there is no fixed number per year. | Confirmed (owner, 2026-10-26) |
+| A-29 | Heads of School see and manage only the schools they are assigned to; Registrar, Principal and Finance Officer see every school. | Confirmed (owner, 2026-10-26) |
+| A-30 | Trainers see only the units they are assigned to teach, with class lists that show student number, name and cohort, not contact details. | Confirmed (owner, 2026-10-26) for the scope; the class list fields are a default |
