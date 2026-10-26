@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 12b, Student portal screens. Done, awaiting review.
-- **Next stage:** 13, Results.
-- **Branch:** `stage-12b-student-portal-screens` (from `main` after #31)
+- **Current stage:** 13a, Results API. Done, awaiting review.
+- **Next stage:** 13b, Results screens.
+- **Branch:** `stage-13a-results-api` (from `main` after #32)
 
 ## Stage status
 
@@ -33,8 +33,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 11a | Student records and academics API | Merged (#29) |
 | 11b | Student records and academics screens | Merged (#30) |
 | 12a | Student portal API | Merged (#31) |
-| 12b | Student portal screens | Done, awaiting review |
-| 13 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 12b | Student portal screens | Merged (#32) |
+| 13a | Results API | Done, awaiting review |
+| 13b | Results screens | Not started |
+| 14 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -47,6 +49,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 13a: Results API (2026-10-26)
+
+- Stage 13 split into 13a (API) and 13b (screens); owner chose assessment per programme with marks by default, Trainer → Head → Registrar, and a results slip plus official transcripts on request (D-149 to D-152; DQ-07 confirmed; defaults A-35, A-36).
+- Migration 00016: assessment schemes, result sheets with events, marks, releases (all append-only where they record history), transcripts.
+- API: programme assessment; trainer's sheet, marks entry and submit; approval queue, approve, return; release queue and release; a student's released results, provisional slip PDF and own transcripts; staff transcript issue (optionally closing a transcript request) and links.
+- Verified: Go tests against PostgreSQL with `-race` (AC-09: nothing visible before release, each role only its step, a correction invisible until re-released, history cannot be edited; scope; competency and returns; slip and transcripts, including another student's request refused); integer rounding unit tests; 142 Playwright tests still pass; live sheet against the migrated dev API; PDFs rendered and checked by eye.
 
 ### Stage 12b: Student portal screens (2026-10-26)
 
