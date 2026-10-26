@@ -111,8 +111,26 @@ export function DocumentList({
   );
 }
 
+/** Uploads one document; on failure, says what went wrong in plain words. */
+export async function uploadDocument(appId: string, kind: Kind, file: File): Promise<string | null> {
+  if (file.size > MAX_DOCUMENT_BYTES) {
+    return `${file.name} is larger than 10 MB. Take a smaller photo or save the PDF at a lower quality.`;
+  }
+  const form = new FormData();
+  form.set("kind", kind);
+  form.set("file", file);
+  const { data, error } = await api.POST("/api/v1/applicant/applications/{id}/documents", {
+    params: { path: { id: appId } },
+    body: form as never,
+    bodySerializer: (b) => b as unknown as FormData,
+  });
+  if (data) return null;
+  const field = isApiError(error) ? error.error.fields?.[0]?.message : undefined;
+  return `${file.name}: ${field ?? errorMessage(error)}`;
+}
+
 /** A file picker that uploads as soon as a file is chosen. */
-function UploadButton({
+export function UploadButton({
   id,
   label,
   busy,
@@ -153,30 +171,15 @@ export function DocumentsStep({ id, detail, editable, setDetail, reload, next, b
 
   async function upload(kind: Kind, file: File) {
     setMessage(null);
-    if (file.size > MAX_DOCUMENT_BYTES) {
-      setMessage({
-        tone: "danger",
-        text: `${file.name} is larger than 10 MB. Take a smaller photo or save the PDF at a lower quality.`,
-      });
-      return;
-    }
     setBusy(kind);
-    const form = new FormData();
-    form.set("kind", kind);
-    form.set("file", file);
-    const { data, error } = await api.POST("/api/v1/applicant/applications/{id}/documents", {
-      params: { path: { id } },
-      body: form as never,
-      bodySerializer: (b) => b as unknown as FormData,
-    });
+    const problem = await uploadDocument(id, kind, file);
     setBusy(null);
-    if (data) {
-      setMessage({ tone: "success", text: `${kindLabels[kind]} uploaded.` });
-      await reload();
+    if (problem) {
+      setMessage({ tone: "danger", text: problem });
       return;
     }
-    const field = isApiError(error) ? error.error.fields?.[0]?.message : undefined;
-    setMessage({ tone: "danger", text: `${file.name}: ${field ?? errorMessage(error)}` });
+    setMessage({ tone: "success", text: `${kindLabels[kind]} uploaded.` });
+    await reload();
   }
 
   async function remove(doc: Doc) {

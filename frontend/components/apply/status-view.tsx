@@ -6,18 +6,33 @@ import { Card } from "@/components/ui/card";
 import { StatusTag } from "@/components/ui/tag";
 import { applicationStatus } from "@/lib/apply/status";
 import { formatNairobi } from "@/lib/staff/datetime";
+import { InfoRequestPanel, OfferPanel, WithdrawPanel } from "./decision-panels";
 import { DocumentList } from "./documents";
 import type { Detail } from "./step-kit";
 
 /**
- * Where an application stands once it can no longer be changed: its
- * status, what happens next, every change so far, and the documents sent.
+ * Where an application stands once it can no longer be changed: anything
+ * the applicant needs to do (send more, reply to an offer), its status,
+ * what happens next, every change so far, and the documents sent.
  */
-export function StatusView({ detail, id }: { detail: Detail; id: string }) {
+export function StatusView({
+  detail,
+  id,
+  onChange,
+  reload,
+}: {
+  detail: Detail;
+  id: string;
+  onChange: (d: Detail) => void;
+  reload: () => Promise<void>;
+}) {
   const pathname = usePathname();
   const st = applicationStatus[detail.status];
+  const panel = { id, detail, onChange, reload };
   return (
     <div className="flex flex-col gap-6">
+      <InfoRequestPanel {...panel} />
+      <OfferPanel {...panel} />
       <section aria-labelledby="status-title" className="flex flex-col gap-3">
         <h2 id="status-title" className="text-2xl font-semibold text-navy-900">
           Where your application is
@@ -56,6 +71,8 @@ export function StatusView({ detail, id }: { detail: Detail; id: string }) {
           <DocumentList appId={id} docs={detail.documents} />
         </Card>
       ) : null}
+
+      <WithdrawPanel {...panel} />
 
       <div className="flex flex-wrap gap-x-6 gap-y-2">
         <Link
