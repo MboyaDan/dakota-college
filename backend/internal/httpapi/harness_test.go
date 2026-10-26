@@ -28,6 +28,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
+	"github.com/MboyaDan/dakota-college/backend/internal/results"
 	"github.com/MboyaDan/dakota-college/backend/internal/testdb"
 )
 
@@ -89,6 +90,9 @@ func (h *harness) rebuild() {
 			Storage: h.storage, PrivateBucket: "dakota-private", Scanner: h.scanner,
 		}),
 		Academics: academicsSvc,
+		Results: results.NewService(results.Options{
+			Pool: h.pool, Logger: logger, Storage: h.storage, PrivateBucket: "dakota-private", Now: func() time.Time { return h.now() },
+		}),
 		Portal: portal.NewService(portal.Options{
 			Pool: h.pool, Academics: academicsSvc, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
 		}),
