@@ -35,6 +35,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
+	"github.com/MboyaDan/dakota-college/backend/internal/portal"
 )
 
 func main() {
@@ -109,6 +110,7 @@ func run() error {
 	}
 
 	notifier := notify.NewService(pool, mailer, logger)
+	academicsSvc := academics.NewService(pool, nil)
 	router, err := httpapi.NewRouter(httpapi.Deps{
 		Logger:         logger,
 		DB:             pool,
@@ -128,7 +130,10 @@ func run() error {
 			Pool: pool, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
 			Storage: store, PrivateBucket: cfg.S3.PrivateBucket, Scanner: scanner,
 		}),
-		Academics: academics.NewService(pool, nil),
+		Academics: academicsSvc,
+		Portal: portal.NewService(portal.Options{
+			Pool: pool, Academics: academicsSvc, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
+		}),
 		Admissions: admissions.NewService(admissions.Options{
 			Pool: pool, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
 			Storage: store, PrivateBucket: cfg.S3.PrivateBucket,

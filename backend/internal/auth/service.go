@@ -336,8 +336,8 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string, req au
 	msg := mail.Message{
 		To:      u.Email,
 		Subject: "Reset your Dakota Training College password",
-		Text: fmt.Sprintf("Hello %s,\n\nWe received a request to reset your password. Open this link within one hour to choose a new one:\n\n%s/reset-password?token=%s\n\nIf you did not ask for this, you can ignore this email. Your password has not changed.\n\nDakota Training College\n",
-			u.FullName, s.appBaseURL, token),
+		Text: fmt.Sprintf("Hello %s,\n\nWe received a request to reset your password. Open this link within one hour to choose a new one:\n\n%s%s\n\nIf you did not ask for this, you can ignore this email. Your password has not changed.\n\nDakota Training College\n",
+			u.FullName, s.appBaseURL, ResetPath(token, u.Kind)),
 	}
 	// Sent in the background so response time does not reveal whether the
 	// account exists. Stage 16 moves email onto a retrying queue.

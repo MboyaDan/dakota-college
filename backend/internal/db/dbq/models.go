@@ -376,6 +376,21 @@ type NewsPost struct {
 	UpdatedAt      time.Time
 }
 
+type Notice struct {
+	ID          uuid.UUID
+	Audience    string
+	SchoolID    *uuid.UUID
+	CohortID    *uuid.UUID
+	OfferingID  *uuid.UUID
+	Title       string
+	Body        string
+	EndsOn      *time.Time
+	CreatedBy   uuid.UUID
+	CreatedAt   time.Time
+	WithdrawnAt *time.Time
+	WithdrawnBy *uuid.UUID
+}
+
 type Notification struct {
 	ID          uuid.UUID
 	TemplateKey string
@@ -444,6 +459,19 @@ type Permission struct {
 	Key         string
 	Module      string
 	Description string
+}
+
+type ProfileChangeRequest struct {
+	ID        uuid.UUID
+	StudentID uuid.UUID
+	OldValues []byte
+	NewValues []byte
+	Reason    string
+	Status    string
+	Decision  string
+	DecidedBy *uuid.UUID
+	DecidedAt *time.Time
+	CreatedAt time.Time
 }
 
 type Programme struct {
@@ -541,6 +569,18 @@ type SchoolAssignment struct {
 	UserID    uuid.UUID
 	SchoolID  uuid.UUID
 	CreatedAt time.Time
+}
+
+type ServiceRequest struct {
+	ID        uuid.UUID
+	StudentID uuid.UUID
+	Kind      string
+	Details   string
+	Status    string
+	Response  string
+	HandledBy *uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Session struct {

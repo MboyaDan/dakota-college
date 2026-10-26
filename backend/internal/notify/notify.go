@@ -47,20 +47,25 @@ const (
 	ApplicationEnrolled      = "application.enrolled"
 	// OfferLetter is printed (channel "letter"), never sent as a message.
 	OfferLetter = "offer.letter"
+	// Stage 12a: the student portal.
+	StudentRequestUpdated       = "student.request_updated"
+	StudentProfileChangeDecided = "student.profile_change_decided"
 )
 
 // Placeholders lists what each template may use. A template saved with any
 // other {name} is refused, so a message never goes out with a raw brace.
 var Placeholders = map[string][]string{
-	ApplicantSignInLink:      {"name", "link", "minutes"},
-	ApplicantResumeLink:      {"name", "reference", "link", "minutes"},
-	ApplicationStarted:       {"name", "reference", "programme", "link"},
-	ApplicationSubmitted:     {"name", "reference", "programme", "link"},
-	ApplicationInfoRequested: {"name", "reference", "programme", "message", "link"},
-	ApplicationOffered:       {"name", "reference", "programme", "intake", "respond_by", "link"},
-	ApplicationRejected:      {"name", "reference", "programme", "reason", "link"},
-	ApplicationEnrolled:      {"name", "reference", "programme", "student_number"},
-	OfferLetter:              {"name", "reference", "programme", "intake", "starts_on", "respond_by"},
+	ApplicantSignInLink:         {"name", "link", "minutes"},
+	ApplicantResumeLink:         {"name", "reference", "link", "minutes"},
+	ApplicationStarted:          {"name", "reference", "programme", "link"},
+	ApplicationSubmitted:        {"name", "reference", "programme", "link"},
+	ApplicationInfoRequested:    {"name", "reference", "programme", "message", "link"},
+	ApplicationOffered:          {"name", "reference", "programme", "intake", "respond_by", "link"},
+	ApplicationRejected:         {"name", "reference", "programme", "reason", "link"},
+	ApplicationEnrolled:         {"name", "reference", "programme", "student_number", "link"},
+	StudentRequestUpdated:       {"name", "kind", "status", "response", "link"},
+	StudentProfileChangeDecided: {"name", "decision", "reason", "link"},
+	OfferLetter:                 {"name", "reference", "programme", "intake", "starts_on", "respond_by"},
 }
 
 // needsLink are the templates whose whole purpose is the link in them.

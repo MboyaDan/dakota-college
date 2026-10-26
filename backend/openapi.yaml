@@ -44,6 +44,10 @@ tags:
       academics.manage for units, cohorts, terms, offerings, timetables and registration;
       academics.teach for a trainer's own offerings (AC-08). Without schools.all, records reach
       only the schools you are assigned to; anything outside answers 404.
+  - name: student
+    description: |
+      The student portal. Students sign in with their student number; every other route admits
+      student accounts only and reaches the signed-in student's own record (AC-08).
   - name: notifications
     description: |
       Editable text of emails and text messages sent to applicants (notifications.manage). Text
@@ -2388,6 +2392,498 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/v1/student/sign-in:
+    post:
+      tags: [student]
+      operationId: studentSignIn
+      summary: Sign in with a student number and password
+      description: Same rate limits and lockout as staff sign-in. An unknown number answers like a wrong password.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [student_number, password], properties: { student_number: { type: string, maxLength: 40 }, password: { type: string } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/v1/student/password-reset:
+    post:
+      tags: [student]
+      operationId: studentPasswordReset
+      summary: Email a password link to the address on record for a student number
+      description: Always the same answer, whether or not the number exists.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [student_number], properties: { student_number: { type: string, maxLength: 40 } } }
+      responses:
+        "202":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [message], properties: { message: { type: string } } }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/v1/student/dashboard:
+    get:
+      tags: [student]
+      operationId: studentDashboard
+      summary: The student's dashboard (student accounts only)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentDashboard" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/student/profile:
+    get:
+      tags: [student]
+      operationId: studentProfile
+      summary: The student's own record, contacts and change requests
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentProfile" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/student/profile/phone:
+    put:
+      tags: [student]
+      operationId: setStudentPhone
+      summary: Change your phone number (at once, audited)
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [phone], properties: { phone: { type: string } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentProfile" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/student/profile/change-request:
+    post:
+      tags: [student]
+      operationId: requestStudentChange
+      summary: Ask the registrar to change your name, date of birth or ID number
+      description: Empty fields stay as they are. One request may wait at a time (409 change_pending).
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { first_name: { type: string }, middle_name: { type: string }, last_name: { type: string }, date_of_birth: { type: string, description: YYYY-MM-DD }, identity_document: { type: string }, reason: { type: string, maxLength: 2000 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentProfile" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/student/guardians:
+    post:
+      tags: [student]
+      operationId: addOwnGuardian
+      summary: Add a parent, guardian or next of kin
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuardianInput" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentProfile" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/student/guardians/{item}:
+    put:
+      tags: [student]
+      operationId: updateOwnGuardian
+      summary: Correct a contact
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { name: item, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuardianInput" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentProfile" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [student]
+      operationId: removeOwnGuardian
+      summary: Remove a contact
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { name: item, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentProfile" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/student/registration:
+    get:
+      tags: [student]
+      operationId: studentRegistration
+      summary: Classes open to register for today, and your registrations
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentRegistration" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/student/registration/{id}:
+    post:
+      tags: [student]
+      operationId: registerForClass
+      summary: Register for a class (offering id)
+      description: Only active students, while the term's registration window is open, for units of their programme (409 not_active, registration_closed).
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentRegistration" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/student/registration/{id}/drop:
+    post:
+      tags: [student]
+      operationId: dropClass
+      summary: Drop a class while registration is open
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentRegistration" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/student/timetable:
+    get:
+      tags: [student]
+      operationId: studentTimetable
+      summary: Your classes and exams for terms not yet ended
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StudentTimetableEntry" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/student/notices:
+    get:
+      tags: [student]
+      operationId: studentNotices
+      summary: Notices to everyone, your school, your cohort or your classes
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Notice" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/student/requests:
+    get:
+      tags: [student]
+      operationId: studentRequests
+      summary: Your service requests
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/ServiceRequest" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [student]
+      operationId: createStudentRequest
+      summary: Ask for a letter, transcript, deferment or change of course
+      description: At most 5 open at once (409 too_many_requests_open).
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [kind, details], properties: { kind: { type: string, enum: [letter, transcript, deferment, change_of_course, other] }, details: { type: string, maxLength: 2000 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/ServiceRequest" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/notices:
+    get:
+      tags: [academics]
+      operationId: listNotices
+      summary: Notices in your schools (academics.manage)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffNotice" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [academics]
+      operationId: postNotice
+      summary: Post a notice to everyone (schools.all), a school, a cohort or a class in your schools (academics.manage)
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NoticeInput" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffNotice" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/notices/{id}/withdraw:
+    post:
+      tags: [academics]
+      operationId: withdrawNotice
+      summary: Take a notice down (academics.manage)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffNotice" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/teaching/{id}/notices:
+    get:
+      tags: [academics]
+      operationId: listClassNotices
+      summary: Notices of a class you teach (academics.teach)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffNotice" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [academics]
+      operationId: postClassNotice
+      summary: Post a notice to a class you teach (academics.teach)
+      description: audience and ids in the body are ignored; the notice goes to this class.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NoticeInput" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffNotice" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/teaching/{id}/notices/{item}/withdraw:
+    post:
+      tags: [academics]
+      operationId: withdrawClassNotice
+      summary: Take down a notice you posted (academics.teach)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: item, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffNotice" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/service-requests:
+    get:
+      tags: [academics]
+      operationId: listServiceRequests
+      summary: Students' service requests in your schools (students.view)
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [open, in_progress, done, declined] } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffServiceRequest" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/service-requests/{id}:
+    post:
+      tags: [academics]
+      operationId: updateServiceRequest
+      summary: Move a request on, with a response the student reads (students.update)
+      description: Declining needs a response. Done and declined are final. The student is emailed.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [status], properties: { status: { type: string, enum: [in_progress, done, declined] }, response: { type: string, maxLength: 2000 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffServiceRequest" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/profile-requests:
+    get:
+      tags: [academics]
+      operationId: listProfileRequests
+      summary: Students' requests to change personal details (students.view)
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [pending, approved, declined] } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffChangeRequest" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/profile-requests/{id}/approve:
+    post:
+      tags: [academics]
+      operationId: approveProfileRequest
+      summary: Approve, writing the new values to the student record and account name (students.update)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { decision: { type: string, maxLength: 2000 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffChangeRequest" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/profile-requests/{id}/decline:
+    post:
+      tags: [academics]
+      operationId: declineProfileRequest
+      summary: Decline, with a reason the student reads (students.update)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { decision: { type: string, maxLength: 2000 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/StaffChangeRequest" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
   /api/v1/staff/notification-templates:
     get:
       tags: [notifications]
@@ -3345,6 +3841,147 @@ components:
                   unit_code: { type: string }
                   unit_title: { type: string }
                   term_name: { type: string }
+    Notice:
+      type: object
+      required: [id, audience, audience_name, title, body, ends_on, author_name, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        audience: { type: string, enum: [all, school, cohort, offering] }
+        audience_name: { type: string, description: The school, cohort or class; empty for everyone. }
+        title: { type: string }
+        body: { type: string }
+        ends_on: { type: [string, "null"], format: date }
+        author_name: { type: string }
+        created_at: { type: string, format: date-time }
+    StaffNotice:
+      allOf:
+        - { $ref: "#/components/schemas/Notice" }
+        - type: object
+          required: [withdrawn, created_by]
+          properties:
+            withdrawn: { type: boolean }
+            created_by: { type: string, format: uuid }
+    NoticeInput:
+      type: object
+      required: [title, body]
+      properties:
+        audience: { type: string, enum: [all, school, cohort, offering] }
+        school_id: { type: [string, "null"], format: uuid }
+        cohort_id: { type: [string, "null"], format: uuid }
+        offering_id: { type: [string, "null"], format: uuid }
+        title: { type: string, maxLength: 160 }
+        body: { type: string, maxLength: 5000 }
+        ends_on: { type: string, description: YYYY-MM-DD, or empty for no end. }
+    ServiceRequest:
+      type: object
+      required: [id, kind, details, status, response, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [letter, transcript, deferment, change_of_course, other] }
+        details: { type: string }
+        status: { type: string, enum: [open, in_progress, done, declined] }
+        response: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    StaffServiceRequest:
+      allOf:
+        - { $ref: "#/components/schemas/ServiceRequest" }
+        - type: object
+          required: [student_id, student_number, student_name, handled_by_name]
+          properties:
+            student_id: { type: string, format: uuid }
+            student_number: { type: string }
+            student_name: { type: string }
+            handled_by_name: { type: [string, "null"] }
+    ChangeRequest:
+      type: object
+      required: [id, old_values, new_values, reason, status, decision, decided_at, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        old_values: { type: object, additionalProperties: { type: string } }
+        new_values: { type: object, additionalProperties: { type: string } }
+        reason: { type: string }
+        status: { type: string, enum: [pending, approved, declined] }
+        decision: { type: string }
+        decided_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    StaffChangeRequest:
+      allOf:
+        - { $ref: "#/components/schemas/ChangeRequest" }
+        - type: object
+          required: [student_id, student_number, student_name, decided_by_name]
+          properties:
+            student_id: { type: string, format: uuid }
+            student_number: { type: string }
+            student_name: { type: string }
+            decided_by_name: { type: [string, "null"] }
+    StudentProfile:
+      type: object
+      required: [student_number, first_name, middle_name, last_name, date_of_birth, email, phone, identity_document_type, identity_document,
+        status, enrolled_at, programme_title, school_name, intake_name, cohort_name, guardians, change_requests]
+      properties:
+        student_number: { type: string }
+        first_name: { type: string }
+        middle_name: { type: string }
+        last_name: { type: string }
+        date_of_birth: { type: [string, "null"], format: date }
+        email: { type: string }
+        phone: { type: [string, "null"] }
+        identity_document_type: { type: [string, "null"] }
+        identity_document: { type: string }
+        status: { $ref: "#/components/schemas/StudentStatus" }
+        enrolled_at: { type: string, format: date-time }
+        programme_title: { type: string }
+        school_name: { type: string }
+        intake_name: { type: [string, "null"] }
+        cohort_name: { type: [string, "null"] }
+        guardians: { type: array, items: { $ref: "#/components/schemas/Guardian" } }
+        change_requests: { type: array, items: { $ref: "#/components/schemas/ChangeRequest" } }
+    StudentTimetableEntry:
+      allOf:
+        - { $ref: "#/components/schemas/TimetableEntry" }
+        - type: object
+          required: [offering_id, unit_code, unit_title, term_name]
+          properties:
+            offering_id: { type: string, format: uuid }
+            unit_code: { type: string }
+            unit_title: { type: string }
+            term_name: { type: string }
+    StudentRegistration:
+      type: object
+      required: [can_register, open, current]
+      properties:
+        can_register: { type: boolean, description: False unless the student is active. }
+        open:
+          type: array
+          items:
+            type: object
+            required: [offering_id, term_name, registration_closes_on, unit_code, unit_title, stage, is_core, registered]
+            properties:
+              offering_id: { type: string, format: uuid }
+              term_name: { type: string }
+              registration_closes_on: { type: [string, "null"], format: date }
+              unit_code: { type: string }
+              unit_title: { type: string }
+              stage: { type: integer }
+              is_core: { type: boolean }
+              registered: { type: boolean }
+        current: { $ref: "#/components/schemas/Student/properties/registrations" }
+    StudentDashboard:
+      type: object
+      required: [name, student_number, status, programme_title, cohort_name, timetable, notices, open_requests, change_request_pending, registration_open, fee_balance_cents]
+      properties:
+        name: { type: string }
+        student_number: { type: string }
+        status: { $ref: "#/components/schemas/StudentStatus" }
+        programme_title: { type: string }
+        cohort_name: { type: [string, "null"] }
+        timetable: { type: array, items: { $ref: "#/components/schemas/StudentTimetableEntry" } }
+        notices: { type: array, items: { $ref: "#/components/schemas/Notice" } }
+        open_requests: { type: integer }
+        change_request_pending: { type: boolean }
+        registration_open: { type: integer, description: Classes open to register for that you have not registered for. }
+        fee_balance_cents: { type: [integer, "null"], description: Null until finance is set up (Stage 14). }
     NotificationTemplate:
       type: object
       required: [key, channel, name, description, subject, body, placeholders, max_length, sending, updated_at, updated_by_name]

@@ -358,8 +358,8 @@ func TestNotificationTemplates(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil {
 		t.Fatal(err)
 	}
-	// 6 from Stage 8b; 8 messages and the offer letter from Stage 10a.
-	if len(list.Items) != 15 {
+	// 6 from Stage 8b; 8 messages and the offer letter from Stage 10a; 2 from 12a.
+	if len(list.Items) != 17 {
 		t.Fatalf("templates = %+v", list.Items)
 	}
 	for _, it := range list.Items {
