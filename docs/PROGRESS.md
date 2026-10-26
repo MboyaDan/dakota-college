@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 11a, Student records and academics API. Done, awaiting review.
-- **Next stage:** 11b, Student records and academics screens.
-- **Branch:** `stage-11a-academics-api` (from `main` after #28)
+- **Current stage:** 11b, Student records and academics screens. Done, awaiting review.
+- **Next stage:** 12, Student portal.
+- **Branch:** `stage-11b-academics-screens` (from `main` after #29)
 
 ## Stage status
 
@@ -30,8 +30,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 9b | Documents and submission | Merged (#26) |
 | 10a | Admissions workflow API | Merged (#27) |
 | 10b | Admissions screens | Merged (#28) |
-| 11a | Student records and academics API | Done, awaiting review |
-| 11b | Student records and academics screens | Not started |
+| 11a | Student records and academics API | Merged (#29) |
+| 11b | Student records and academics screens | Done, awaiting review |
 | 12 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -45,6 +45,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 11b: Student records and academics screens (2026-10-26)
+
+- Staff screens: Students, My teaching, Classes, Units and terms, Staff schools; overview card for trainers (D-137).
+- Dev seed: sample term, ICT units, two classes, four enrolled test students, Head of School assignment; the go-live sample check covers terms and units (D-138).
+- Fixed: tables with screen-reader-only text widened the page on phones (D-139).
+- Verified: 109 unit tests; 136 Playwright tests passed locally, including the trainer seeing only ICT 101 and no contact details (AC-08), the Head of School seeing no students outside Medical, the registrar's record, status, contact, timetable and registration flow, and the Staff schools page, with axe and the overflow check at 360 px and desktop; Go seed and backend tests pass. Screenshots checked by eye.
 
 ### Stage 11a: Student records and academics API (2026-10-26)
 

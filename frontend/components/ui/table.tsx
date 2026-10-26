@@ -23,11 +23,13 @@ type TableProps<Row> = {
 export function Table<Row>({ caption, columns, rows, rowKey, empty, captionHidden }: TableProps<Row>) {
   return (
     // Focusable so keyboard users can scroll wide tables on small screens.
+    // Relative, so screen-reader-only text in cells stays inside the scroll
+    // box instead of widening the page.
     <div
       role="region"
       aria-label={caption}
       tabIndex={0}
-      className="overflow-x-auto rounded-card border border-stone bg-white"
+      className="relative overflow-x-auto rounded-card border border-stone bg-white"
     >
       <table className="w-full border-collapse text-left">
         <caption
