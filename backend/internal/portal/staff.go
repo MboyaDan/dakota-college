@@ -261,7 +261,7 @@ func (s *Service) UpdateServiceRequest(ctx context.Context, p *auth.Principal, s
 	}
 	s.tell(ctx, notify.StudentRequestUpdated, to, id.String(), map[string]string{
 		"name": name, "kind": requestKindLabels[kind], "status": requestStatusLabels[status], "response": response,
-		"link": s.appBaseURL + "/portal/requests"})
+		"link": s.appBaseURL + "/student/requests"})
 	return nil
 }
 
@@ -362,6 +362,6 @@ func (s *Service) DecideChange(ctx context.Context, p *auth.Principal, sc academ
 		return err
 	}
 	s.tell(ctx, notify.StudentProfileChangeDecided, to, id.String(), map[string]string{
-		"name": name, "decision": status, "reason": decision, "link": s.appBaseURL + "/portal/profile"})
+		"name": name, "decision": status, "reason": decision, "link": s.appBaseURL + "/student/profile"})
 	return nil
 }

@@ -186,7 +186,7 @@ func Run(ctx context.Context, pool *pgxpool.Pool, password string) (Summary, err
 		}
 		sum.Users++
 		sum.Applications++
-		return seedAcademics(ctx, tx, q, &sum)
+		return seedAcademics(ctx, tx, q, hash, &sum)
 	})
 	if err != nil {
 		return Summary{}, err

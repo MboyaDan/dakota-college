@@ -369,7 +369,7 @@ func TestNoticesAndServiceRequests(t *testing.T) {
 	if err := h.pool.QueryRow(context.Background(), `SELECT email FROM students WHERE id = $1`, a.students[0]).Scan(&email); err != nil {
 		t.Fatal(err)
 	}
-	if text := h.waitMail(email, "Your request"); !strings.Contains(text, "Collect it from the office.") || !strings.Contains(text, "/portal/requests") {
+	if text := h.waitMail(email, "Your request"); !strings.Contains(text, "Collect it from the office.") || !strings.Contains(text, "/student/requests") {
 		t.Fatalf("request email: %s", text)
 	}
 	// Trainers do not see students' requests.

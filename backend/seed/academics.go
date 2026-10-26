@@ -11,7 +11,8 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
 )
 
-// Sample academics (Stage 11b): a current term, three ICT units on the ICT
+// Sample academics (Stage 11b, 12b): a current term with registration open
+// around today, a notice to everyone, three ICT units on the ICT
 // diploma, two offerings (one taught by the test trainer), four enrolled
 // test students in the diploma's cohort, and the medical Head of School
 // assigned to their school. Idempotent like the rest of the seed.
@@ -31,7 +32,7 @@ var sampleUnits = []struct{ code, title string }{
 	{"ICT 103", "(Sample) Networking basics"},
 }
 
-func seedAcademics(ctx context.Context, tx pgx.Tx, q *dbq.Queries, sum *Summary) error {
+func seedAcademics(ctx context.Context, tx pgx.Tx, q *dbq.Queries, hash string, sum *Summary) error {
 	one := func(sql string, dst any, args ...any) error {
 		if err := tx.QueryRow(ctx, sql, args...).Scan(dst); err != nil {
 			return fmt.Errorf("%s: %w", sql, err)
@@ -57,7 +58,7 @@ func seedAcademics(ctx context.Context, tx pgx.Tx, q *dbq.Queries, sum *Summary)
 	ends := starts.AddDate(0, 3, 0).AddDate(0, 0, -1)
 	var term uuid.UUID
 	if err := one(`INSERT INTO academic_terms (name, starts_on, ends_on, registration_opens_on, registration_closes_on, is_sample)
-		VALUES ($1, $2, $3, $2, $2::date + 21, true)
+		VALUES ($1, $2, $3, current_date - 7, current_date + 14, true)
 		ON CONFLICT (name) DO UPDATE SET starts_on = EXCLUDED.starts_on, ends_on = EXCLUDED.ends_on,
 		  registration_opens_on = EXCLUDED.registration_opens_on, registration_closes_on = EXCLUDED.registration_closes_on
 		RETURNING id`, &term, sampleTermName, starts, ends); err != nil {
@@ -109,6 +110,16 @@ func seedAcademics(ctx context.Context, tx pgx.Tx, q *dbq.Queries, sum *Summary)
 		offerings = append(offerings, id)
 	}
 	if err := exec(`INSERT INTO trainer_assignments (offering_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, offerings[0], trainer); err != nil {
+		return err
+	}
+
+	// A notice to everyone, so the portal has one to show.
+	if err := exec(`DELETE FROM notices WHERE title = '(Sample) Welcome to the new term'`); err != nil {
+		return err
+	}
+	if err := exec(`INSERT INTO notices (audience, title, body, created_by)
+		SELECT 'all', '(Sample) Welcome to the new term', '(Sample) A placeholder notice for development.', id
+		FROM users WHERE email = 'registrar@example.invalid'`); err != nil {
 		return err
 	}
 
@@ -171,6 +182,10 @@ func seedAcademics(ctx context.Context, tx pgx.Tx, q *dbq.Queries, sum *Summary)
 				student, intake, user); err != nil {
 				return err
 			}
+		}
+		// Every test student signs in to the portal with SEED_PASSWORD.
+		if err := exec(`UPDATE users SET password_hash = $2, password_changed_at = now() WHERE email = $1`, email, hash); err != nil {
+			return err
 		}
 		for _, o := range offerings {
 			if err := exec(`INSERT INTO unit_registrations (offering_id, student_id)
