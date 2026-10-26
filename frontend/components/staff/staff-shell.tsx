@@ -17,6 +17,10 @@ export function StaffShell({ children }: { children: ReactNode }) {
   const nav: NavItem[] = [
     { href: "/staff", label: "Overview", show: true },
     { href: "/staff/applications", label: "Applications", show: can("admissions.view") },
+    { href: "/staff/students", label: "Students", show: can("students.view") },
+    { href: "/staff/teaching", label: "My teaching", show: can("academics.teach") },
+    { href: "/staff/offerings", label: "Classes", show: can("academics.manage") },
+    { href: "/staff/academics", label: "Units and terms", show: can("academics.manage") },
     { href: "/staff/enquiries", label: "Enquiries", show: can("enquiries.view") },
     { href: "/staff/approvals", label: "Waiting for approval", show: can("content.publish") },
     ...kindOrder.map((k) => ({
@@ -26,6 +30,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
     })),
     { href: "/staff/settings", label: "Site settings", show: can("content.read") },
     { href: "/staff/messages", label: "Messages to applicants", show: can("notifications.manage") },
+    { href: "/staff/staff-schools", label: "Staff schools", show: can("users.manage") },
   ];
   const isCurrent = (href: string) => (href === "/staff" ? pathname === "/staff" : pathname.startsWith(href));
 
