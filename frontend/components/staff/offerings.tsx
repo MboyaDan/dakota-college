@@ -13,7 +13,7 @@ import { Loading, Skeleton, SkeletonText } from "@/components/ui/skeleton";
 import { Table } from "@/components/ui/table";
 import { api, errorMessage } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
-import { sortTimetable, weekdayName, weekdays } from "@/lib/staff/academics";
+import { describeEntry, sortTimetable, weekdays } from "@/lib/staff/academics";
 import { formatDate } from "@/lib/staff/datetime";
 import { useAction } from "./use-action";
 
@@ -23,13 +23,6 @@ type Term = components["schemas"]["Term"];
 type Unit = components["schemas"]["Unit"];
 type Cohort = components["schemas"]["Cohort"];
 type Person = components["schemas"]["Person"];
-type Entry = components["schemas"]["TimetableEntry"];
-
-/** "Tuesday 08:30 to 10:00, Lab 1" or "Exam 3 March 2027, 09:00 to 11:00". */
-export function describeEntry(e: Entry): string {
-  const when = e.kind === "class" ? weekdayName(e.weekday) : `Exam ${formatDate(e.on_date)},`;
-  return `${when} ${e.starts_at} to ${e.ends_at}${e.room ? `, ${e.room}` : ""}`;
-}
 
 function useList<T>(load: () => Promise<{ data?: { items: T[] } }>, deps: unknown[] = []) {
   const [items, setItems] = useState<T[] | null>(null);

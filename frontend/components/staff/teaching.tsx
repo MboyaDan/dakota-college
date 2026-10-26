@@ -10,9 +10,9 @@ import { Loading, SkeletonText } from "@/components/ui/skeleton";
 import { Table } from "@/components/ui/table";
 import { api, errorMessage } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
-import { sortTimetable, weekdays } from "@/lib/staff/academics";
+import { describeEntry, sortTimetable, weekdays } from "@/lib/staff/academics";
 import { formatDate } from "@/lib/staff/datetime";
-import { describeEntry } from "./offerings";
+import { ClassNotices } from "./notices";
 
 // A trainer's own classes (academics.teach, AC-08): only what they teach.
 
@@ -205,6 +205,7 @@ export function MyClass({ id }: { id: string }) {
           { key: "cohort", header: "Cohort", cell: (c) => c.cohort_name ?? "None" },
         ]}
       />
+      <ClassNotices offeringId={offering.id} />
     </div>
   );
 }
