@@ -36,6 +36,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
+	"github.com/MboyaDan/dakota-college/backend/internal/results"
 )
 
 func main() {
@@ -131,6 +132,9 @@ func run() error {
 			Storage: store, PrivateBucket: cfg.S3.PrivateBucket, Scanner: scanner,
 		}),
 		Academics: academicsSvc,
+		Results: results.NewService(results.Options{
+			Pool: pool, Logger: logger, Storage: store, PrivateBucket: cfg.S3.PrivateBucket,
+		}),
 		Portal: portal.NewService(portal.Options{
 			Pool: pool, Academics: academicsSvc, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
 		}),

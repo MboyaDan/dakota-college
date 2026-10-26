@@ -48,6 +48,10 @@ tags:
     description: |
       The student portal. Students sign in with their student number; every other route admits
       student accounts only and reaches the signed-in student's own record (AC-08).
+  - name: results
+    description: |
+      Results (AC-09). Trainers enter and submit marks for their own classes; the Head of School
+      approves or returns; the registrar releases. Students see only released results.
   - name: notifications
     description: |
       Editable text of emails and text messages sent to applicants (notifications.manage). Text
@@ -2884,6 +2888,347 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/programmes/{id}/assessment:
+    get:
+      tags: [results]
+      operationId: getAssessmentScheme
+      summary: How a programme assesses its units (any staff account)
+      description: is_default is true until the college sets it (DQ-07).
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssessmentScheme" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [results]
+      operationId: setAssessmentScheme
+      summary: Set a programme's assessment (academics.manage, programme in your schools)
+      description: Sheets that already hold marks keep the scheme they started with.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssessmentScheme" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssessmentScheme" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/teaching/{id}/results:
+    get:
+      tags: [results]
+      operationId: getClassResults
+      summary: The result sheet of a class you teach (academics.marks.enter)
+      description: Made on first use with the scheme of the class's programme.
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultSheet" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/teaching/{id}/results/marks:
+    put:
+      tags: [results]
+      operationId: enterMarks
+      summary: Enter marks for a class you teach (academics.marks.enter)
+      description: All or nothing. While submitted, 409 waiting_for_approval. After approval or release, a reason is needed and the sheet goes back to draft.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [entries], properties: { entries: { type: array, maxItems: 2000, items: { type: object, required: [student_id, component], properties: { student_id: { type: string, format: uuid }, component: { type: string }, score: { type: [integer, "null"], minimum: 0, maximum: 100 }, outcome: { type: [string, "null"], enum: [competent, not_yet_competent, null] } } } }, reason: { type: string, maxLength: 500 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultSheet" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/teaching/{id}/results/submit:
+    post:
+      tags: [results]
+      operationId: submitResults
+      summary: Send complete marks to the Head of School (academics.marks.enter)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultSheet" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/result-approvals:
+    get:
+      tags: [results]
+      operationId: listResultApprovals
+      summary: Result sheets in your schools (academics.results.approve)
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [submitted, approved, released, draft], default: submitted } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/ResultSheetItem" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/result-approvals/{id}:
+    get:
+      tags: [results]
+      operationId: getResultApproval
+      summary: One result sheet (academics.results.approve)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultSheet" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/result-approvals/{id}/approve:
+    post:
+      tags: [results]
+      operationId: approveResults
+      summary: Approve submitted results (academics.results.approve)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { reason: { type: string, maxLength: 500 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultSheet" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/result-approvals/{id}/return:
+    post:
+      tags: [results]
+      operationId: returnResults
+      summary: Return submitted results to the trainer, with a reason (academics.results.approve)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { reason: { type: string, maxLength: 500 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultSheet" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/result-releases:
+    get:
+      tags: [results]
+      operationId: listResultReleases
+      summary: Approved and released result sheets in your schools (academics.results.release)
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [approved, released], default: approved } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/ResultSheetItem" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/result-releases/{id}:
+    get:
+      tags: [results]
+      operationId: getResultRelease
+      summary: One result sheet (academics.results.release)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultSheet" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/result-releases/{id}/release:
+    post:
+      tags: [results]
+      operationId: releaseResults
+      summary: Release approved results to students (academics.results.release)
+      description: The computed results are frozen as a new release version; students see the newest.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { reason: { type: string, maxLength: 500 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultSheet" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/students/{id}/results:
+    get:
+      tags: [results]
+      operationId: staffStudentResults
+      summary: A student's released results and official transcripts (students.view)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [results, transcripts], properties: { results: { type: array, items: { $ref: "#/components/schemas/StudentResult" } }, transcripts: { type: array, items: { $ref: "#/components/schemas/Transcript" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/students/{id}/transcripts:
+    post:
+      tags: [results]
+      operationId: issueTranscript
+      summary: Issue an official transcript of released results (academics.results.release)
+      description: Numbered DTC/TR/YYYY/NNNN. With service_request_id, that transcript request is marked done.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { service_request_id: { type: [string, "null"], format: uuid } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [results, transcripts], properties: { results: { type: array, items: { $ref: "#/components/schemas/StudentResult" } }, transcripts: { type: array, items: { $ref: "#/components/schemas/Transcript" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/students/{id}/transcripts/{item}/link:
+    post:
+      tags: [results]
+      operationId: linkTranscriptForStaff
+      summary: A five-minute link to a transcript (students.view, audited)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: item, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileLink" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/student/results:
+    get:
+      tags: [student]
+      operationId: studentResults
+      summary: Your released results and official transcripts
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items, transcripts], properties: { items: { type: array, items: { $ref: "#/components/schemas/StudentResult" } }, transcripts: { type: array, items: { $ref: "#/components/schemas/Transcript" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/student/results/slip:
+    get:
+      tags: [student]
+      operationId: studentResultsSlip
+      summary: A provisional results slip (PDF), not an official transcript
+      responses:
+        "200":
+          description: The PDF.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/student/transcripts/{id}/link:
+    post:
+      tags: [student]
+      operationId: linkMyTranscript
+      summary: A five-minute link to one of your official transcripts
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileLink" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
   /api/v1/staff/notification-templates:
     get:
       tags: [notifications]
@@ -3982,6 +4327,116 @@ components:
         change_request_pending: { type: boolean }
         registration_open: { type: integer, description: Classes open to register for that you have not registered for. }
         fee_balance_cents: { type: [integer, "null"], description: Null until finance is set up (Stage 14). }
+    AssessmentScheme:
+      type: object
+      required: [kind, components, pass_mark, grade_bands]
+      properties:
+        kind: { type: string, enum: [marks, competency] }
+        components:
+          type: array
+          items:
+            type: object
+            required: [name, weight]
+            properties:
+              key: { type: string }
+              name: { type: string, maxLength: 60 }
+              weight: { type: integer, minimum: 0, maximum: 100 }
+        pass_mark: { type: integer, minimum: 0, maximum: 100 }
+        grade_bands:
+          type: array
+          items:
+            type: object
+            required: [grade, min]
+            properties:
+              grade: { type: string, maxLength: 3 }
+              min: { type: integer }
+        is_default: { type: boolean }
+    ComputedResult:
+      type: object
+      required: [complete, total, grade, passed, outcome]
+      properties:
+        complete: { type: boolean }
+        total: { type: [integer, "null"] }
+        grade: { type: string }
+        passed: { type: boolean }
+        outcome: { type: [string, "null"], enum: [competent, not_yet_competent, null] }
+    ResultSheetItem:
+      type: object
+      required: [id, offering_id, status, term_name, unit_code, unit_title, students, released_version, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        offering_id: { type: string, format: uuid }
+        status: { type: string, enum: [draft, submitted, approved, released] }
+        term_name: { type: string }
+        unit_code: { type: string }
+        unit_title: { type: string }
+        students: { type: integer }
+        released_version: { type: integer, description: 0 until first released. }
+        updated_at: { type: string, format: date-time }
+    ResultSheet:
+      type: object
+      required: [id, offering_id, status, scheme, unit_code, unit_title, term_name, rows, complete, events, released_version, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        offering_id: { type: string, format: uuid }
+        status: { type: string, enum: [draft, submitted, approved, released] }
+        scheme: { $ref: "#/components/schemas/AssessmentScheme" }
+        unit_code: { type: string }
+        unit_title: { type: string }
+        term_name: { type: string }
+        rows:
+          type: array
+          items:
+            type: object
+            required: [student_id, student_number, name, marks, result]
+            properties:
+              student_id: { type: string, format: uuid }
+              student_number: { type: string }
+              name: { type: string }
+              marks:
+                type: object
+                additionalProperties:
+                  type: object
+                  required: [score, outcome]
+                  properties:
+                    score: { type: [integer, "null"] }
+                    outcome: { type: [string, "null"] }
+              result: { $ref: "#/components/schemas/ComputedResult" }
+        complete: { type: boolean }
+        events:
+          type: array
+          items:
+            type: object
+            required: [from, to, reason, at, actor_name]
+            properties:
+              from: { type: string }
+              to: { type: string }
+              reason: { type: string }
+              at: { type: string, format: date-time }
+              actor_name: { type: string }
+        released_version: { type: integer }
+        updated_at: { type: string, format: date-time }
+    StudentResult:
+      type: object
+      required: [term_name, unit_code, unit_title, released_at, version, total, grade, passed, outcome]
+      properties:
+        term_name: { type: string }
+        unit_code: { type: string }
+        unit_title: { type: string }
+        released_at: { type: string, format: date-time }
+        version: { type: integer }
+        total: { type: [integer, "null"] }
+        grade: { type: string }
+        passed: { type: boolean }
+        outcome: { type: [string, "null"], enum: [competent, not_yet_competent, null] }
+    Transcript:
+      type: object
+      required: [id, number, issued_at, issued_by_name]
+      properties:
+        id: { type: string, format: uuid }
+        number: { type: string }
+        issued_at: { type: string, format: date-time }
+        issued_by_name: { type: string }
     NotificationTemplate:
       type: object
       required: [key, channel, name, description, subject, body, placeholders, max_length, sending, updated_at, updated_by_name]
