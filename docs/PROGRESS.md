@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 10a, Admissions workflow API. Done, awaiting review.
-- **Next stage:** 10b, Staff admissions screens and the applicant's offer and reply screens.
-- **Branch:** `stage-10a-admissions-api` (from `main` after #26)
+- **Current stage:** 10b, Admissions screens. Done, awaiting review.
+- **Next stage:** 11, Student records and academics (core).
+- **Branch:** `stage-10b-admissions-screens` (from `main` after #27)
 
 ## Stage status
 
@@ -28,8 +28,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 8b | Applicant sign-in and notifications | Merged (#24) |
 | 9a | Application form with autosave | Merged (#25) |
 | 9b | Documents and submission | Merged (#26) |
-| 10a | Admissions workflow API | Done, awaiting review |
-| 10b | Admissions screens | Not started |
+| 10a | Admissions workflow API | Merged (#27) |
+| 10b | Admissions screens | Done, awaiting review |
 | 11 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -43,6 +43,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 10b: Admissions screens (2026-10-26)
+
+- Staff: Applications inbox with queues and filters, review screen with every decision the viewer may take, admissions report, overview counts, nav entry (D-128).
+- Applicant: status page with the information request (upload and reply), the offer (letter, accept, decline) and withdraw (D-129).
+- Fixed: inbox filters were blocked by the browser when a filter was "Any" (also in the 8a enquiry inbox) (D-130); wide tables widened the staff page on desktop (D-131).
+- Verified: 107 unit tests; 128 Playwright tests passed locally, including the whole path from submitted to enrolled across three browsers (officer, applicant, registrar) and declining an offer, with axe and the overflow check on each new screen at 360 px and desktop. Screenshots checked by eye.
 
 ### Stage 10a: Admissions workflow API (2026-10-26)
 
