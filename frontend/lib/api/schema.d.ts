@@ -994,6 +994,337 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applicant/applications/{id}/reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Answer the admissions office's request for more information
+         * @description Only while the status is info_requested (409 not_allowed otherwise). Upload any documents first; the reply sends the application back for review.
+         */
+        post: operations["replyToInfoRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/accept-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept the offer of a place
+         * @description Only while offered. After the respond-by date the offer lapses (409 offer_expired). A second accept answers 409 not_allowed.
+         */
+        post: operations["acceptOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw the application, or decline an open offer
+         * @description Allowed until enrolled, rejected or expired (can_withdraw). The optional reason is added to the status history.
+         */
+        post: operations["withdrawApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applicant/applications/{id}/offer-letter/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A five-minute link to the applicant's offer letter (PDF) */
+        post: operations["linkMyOfferLetter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Submitted applications, newest first, 25 per page (admissions.view)
+         * @description Drafts are never listed. Offers past their respond-by date are expired first.
+         */
+        get: operations["listApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Numbers for the staff overview (admissions.view) */
+        get: operations["applicationCounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active staff who can review applications (admissions.review) */
+        get: operations["applicationAssignees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Applications submitted in a period, by programme and intake (admissions.view)
+         * @description Dates are Nairobi dates, inclusive; at most two years. Defaults to 1 January this year to today.
+         */
+        get: operations["admissionsReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One submitted application with everything needed to decide (admissions.view)
+         * @description actions lists what the viewer may do now, from their permissions and the status. Drafts answer 404.
+         */
+        get: operations["getApplication"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give the application to a reviewer, or clear the owner (admissions.review)
+         * @description Assigning a submitted application starts its review (under_review). Only while submitted, under_review or info_requested. 422 not_assignable; 409 unchanged.
+         */
+        post: operations["assignApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an internal note (admissions.review)
+         * @description Notes are for staff only and cannot be edited or deleted.
+         */
+        post: operations["addApplicationNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/{id}/request-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask the applicant for more information (admissions.review)
+         * @description Only while under_review. The applicant is emailed the message and can reply and upload documents.
+         */
+        post: operations["requestApplicationInfo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/{id}/resume-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take the application back into review without waiting for a reply (admissions.review)
+         * @description Only while info_requested. Closes the open request in your name. The reason is shown to the applicant.
+         */
+        post: operations["resumeApplicationReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject the application with a reason (admissions.offer)
+         * @description Only while under_review or info_requested. The applicant sees and is emailed the reason.
+         */
+        post: operations["rejectApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/{id}/offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Offer a place, with a PDF offer letter (admissions.offer)
+         * @description Only while under_review. respond_by defaults to today plus admissions.offer_response_days (14); it must be after today and within a year. 503 storage_unavailable when letters cannot be stored.
+         */
+        post: operations["offerPlace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/{id}/offer-letter/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A five-minute link to the offer letter (admissions.view)
+         * @description Every link issued is audited.
+         */
+        post: operations["linkOfferLetterForStaff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/applications/{id}/enrol": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enrol an applicant who accepted their offer (admissions.enrol)
+         * @description Only while offer_accepted. In one transaction - student number, student record, the applicant account becomes a student account (signed out), an empty draft first invoice. 409 account_not_applicant if the account is already a student account.
+         */
+        post: operations["enrolApplicant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/applications/{id}/documents/{doc}/link": {
         parameters: {
             query?: never;
@@ -1445,6 +1776,27 @@ export interface components {
                 /** Format: date-time */
                 at: string;
             }[];
+            /** @description Documents can be added (a draft */
+            can_upload: boolean;
+            can_withdraw: boolean;
+            /** @description What the admissions office is waiting for (status info_requested). */
+            info_request: {
+                message: string;
+                /** Format: date-time */
+                requested_at: string;
+            } | null;
+            offer: {
+                /** Format: date-time */
+                issued_at: string;
+                /** Format: date */
+                respond_by: string;
+                conditions: string;
+                /** Format: date-time */
+                accepted_at: string | null;
+                /** Format: date-time */
+                declined_at: string | null;
+                has_letter: boolean;
+            } | null;
             /** Format: date-time */
             draft_expires_at: string | null;
             /** Format: date-time */
@@ -1454,10 +1806,183 @@ export interface components {
             /** Format: date-time */
             submitted_at: string | null;
         };
+        /** @description The application exactly as submitted (D-114). */
+        ApplicationSnapshot: {
+            reference: string;
+            /** Format: date-time */
+            submitted_at: string;
+            programme_title: string;
+            programme_slug: string;
+            /** Format: uuid */
+            intake_id: string | null;
+            intake_name: string | null;
+            /** Format: date */
+            intake_starts_on: string | null;
+            email: string;
+            personal: components["schemas"]["ApplicationPersonal"];
+            /** @description Only for applicants under 18. */
+            guardian: components["schemas"]["ApplicationGuardian"] | null;
+            education: components["schemas"]["ApplicationEducation"][];
+            sponsor: components["schemas"]["ApplicationSponsor"];
+            documents: components["schemas"]["ApplicationDocument"][];
+        };
+        StaffApplicationItem: {
+            /** Format: uuid */
+            id: string;
+            reference: string;
+            status: components["schemas"]["MyApplication"]["status"];
+            applicant_name: string;
+            email: string;
+            programme_title: string;
+            intake_name: string | null;
+            /** Format: date */
+            intake_starts_on: string | null;
+            /** Format: uuid */
+            assigned_to: string | null;
+            assignee_name: string | null;
+            /**
+             * Format: date
+             * @description Set while an offer is open.
+             */
+            respond_by: string | null;
+            /** Format: date-time */
+            submitted_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        StaffApplicationPage: {
+            items: components["schemas"]["StaffApplicationItem"][];
+            page: number;
+            total_pages: number;
+            total: number;
+        };
+        StaffApplicationDetail: {
+            /** Format: uuid */
+            id: string;
+            reference: string;
+            status: components["schemas"]["MyApplication"]["status"];
+            /** Format: uuid */
+            programme_id: string;
+            programme_title: string;
+            /** Format: uuid */
+            intake_id: string | null;
+            intake_name: string | null;
+            /** Format: date */
+            intake_starts_on: string | null;
+            applicant: {
+                name: string;
+                email: string;
+                phone: string | null;
+            };
+            /** Format: uuid */
+            assigned_to: string | null;
+            assignee_name: string | null;
+            /** Format: date-time */
+            submitted_at: string;
+            /** Format: date-time */
+            decided_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            submitted: components["schemas"]["ApplicationSnapshot"] | null;
+            documents: (components["schemas"]["ApplicationDocument"] & {
+                /** @description Sent later */
+                after_submission: boolean;
+            })[];
+            /** @description Every status change, oldest first, with who made it (null for the applicant or the system). */
+            history: {
+                from: string | null;
+                to: components["schemas"]["MyApplication"]["status"];
+                reason: string;
+                /** Format: date-time */
+                at: string;
+                changed_by_name: string | null;
+            }[];
+            notes: {
+                /** Format: uuid */
+                id: string;
+                body: string;
+                author_name: string;
+                /** Format: date-time */
+                created_at: string;
+            }[];
+            info_requests: {
+                /** Format: uuid */
+                id: string;
+                message: string;
+                /** Format: date-time */
+                requested_at: string;
+                requested_by_name: string;
+                /** @description The applicant's reply; empty if staff closed it. */
+                response: string;
+                /** Format: date-time */
+                closed_at: string | null;
+                /** @description Set when staff closed it without a reply. */
+                closed_by_name: string | null;
+            }[];
+            offer: {
+                /** Format: date-time */
+                issued_at: string;
+                issued_by_name: string;
+                /** Format: date */
+                respond_by: string;
+                conditions: string;
+                /** Format: date-time */
+                accepted_at: string | null;
+                /** Format: date-time */
+                declined_at: string | null;
+                has_letter: boolean;
+            } | null;
+            student: {
+                /** Format: uuid */
+                id: string;
+                student_number: string;
+                /** @enum {string} */
+                status: "active" | "deferred" | "suspended" | "withdrawn" | "graduated";
+                /** Format: date-time */
+                enrolled_at: string;
+                /** Format: uuid */
+                invoice_id: string;
+                /** @enum {string} */
+                invoice_status: "draft" | "issued" | "void";
+            } | null;
+            actions: ("assign" | "note" | "request_info" | "resume_review" | "offer" | "reject" | "enrol")[];
+        };
+        AdmissionsFigures: {
+            submitted: number;
+            /** @description Submitted */
+            in_review: number;
+            info_requested: number;
+            /** @description Every application that received an offer */
+            offered: number;
+            /** @description Accepted */
+            accepted: number;
+            enrolled: number;
+            rejected: number;
+            withdrawn: number;
+            expired: number;
+        };
+        AdmissionsReport: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            rows: ({
+                /** Format: uuid */
+                programme_id: string;
+                programme_title: string;
+                /** Format: uuid */
+                intake_id: string | null;
+                intake_name: string | null;
+            } & components["schemas"]["AdmissionsFigures"])[];
+            totals: components["schemas"]["AdmissionsFigures"];
+        };
         NotificationTemplate: {
             key: string;
-            /** @enum {string} */
-            channel: "email" | "sms";
+            /**
+             * @description letter: printed (the offer letter); subject is its heading.
+             * @enum {string}
+             */
+            channel: "email" | "sms" | "letter";
             name: string;
             description: string;
             subject: string;
@@ -3479,6 +4004,514 @@ export interface operations {
             422: components["responses"]["Error"];
         };
     };
+    replyToInfoRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The application after the reply. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    acceptOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The application, now offer_accepted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    withdrawApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The application, now withdrawn. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    linkMyOfferLetter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileLink"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    listApplications: {
+        parameters: {
+            query?: {
+                status?: "submitted" | "under_review" | "info_requested" | "offered" | "offer_accepted" | "enrolled" | "rejected" | "withdrawn" | "expired";
+                programme?: string;
+                intake?: string;
+                /** @description me, none, or a user id. */
+                assigned?: string;
+                /** @description Searches reference, name, email and phone. */
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of applications. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffApplicationPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    applicationCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description New (submitted), yours in review, waiting on applicants, and accepted offers waiting for enrolment. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        new: number;
+                        mine: number;
+                        info_requested: number;
+                        to_enrol: number;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    applicationAssignees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description People whose roles include admissions.review. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            /** Format: uuid */
+                            id: string;
+                            full_name: string;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    admissionsReport: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The report. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsReport"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The application. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    assignApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    assignee_id: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The application after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    addApplicationNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The application after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    requestApplicationInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The application after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    resumeApplicationReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The application after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    rejectApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The application after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    offerPlace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    conditions?: string;
+                    /** Format: date */
+                    respond_by?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The application after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    linkOfferLetterForStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileLink"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    enrolApplicant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The application after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
     linkApplicationDocumentForStaff: {
         parameters: {
             query?: never;
@@ -3561,7 +4594,7 @@ export interface operations {
             header?: never;
             path: {
                 key: string;
-                channel: "email" | "sms";
+                channel: "email" | "sms" | "letter";
             };
             cookie?: never;
         };

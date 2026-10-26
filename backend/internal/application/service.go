@@ -249,7 +249,7 @@ func splitName(full string) (first, last string) {
 }
 
 // load reads the application for its owner, expiring it first if it is a
-// draft past its expiry date.
+// draft past its expiry date or an offer past its respond-by date.
 func (s *Service) load(ctx context.Context, userID, id uuid.UUID) (dbq.GetOwnApplicationRow, error) {
 	q := dbq.New(s.pool)
 	a, err := q.GetOwnApplication(ctx, dbq.GetOwnApplicationParams{ID: id, UserID: &userID})
@@ -258,6 +258,16 @@ func (s *Service) load(ctx context.Context, userID, id uuid.UUID) (dbq.GetOwnApp
 	}
 	if err != nil {
 		return a, err
+	}
+	if a.Status == "offered" {
+		// An offer past its respond-by date lapses when next looked at.
+		n, err := q.ExpireOverdueOffers(ctx, s.today())
+		if err != nil {
+			return a, err
+		}
+		if n > 0 {
+			return q.GetOwnApplication(ctx, dbq.GetOwnApplicationParams{ID: id, UserID: &userID})
+		}
 	}
 	if s.due(a.Status, a.DraftExpiresAt) {
 		if err := s.tx(ctx, func(q *dbq.Queries) error {

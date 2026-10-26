@@ -22,6 +22,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
+	"github.com/MboyaDan/dakota-college/backend/internal/admissions"
 	"github.com/MboyaDan/dakota-college/backend/internal/applicant"
 	"github.com/MboyaDan/dakota-college/backend/internal/application"
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
@@ -125,6 +126,10 @@ func run() error {
 		Applications: application.NewService(application.Options{
 			Pool: pool, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
 			Storage: store, PrivateBucket: cfg.S3.PrivateBucket, Scanner: scanner,
+		}),
+		Admissions: admissions.NewService(admissions.Options{
+			Pool: pool, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
+			Storage: store, PrivateBucket: cfg.S3.PrivateBucket,
 		}),
 	})
 	if err != nil {

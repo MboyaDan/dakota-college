@@ -40,16 +40,31 @@ const (
 	ApplicantResumeLink  = "applicant.resume_link"
 	ApplicationStarted   = "application.started"
 	ApplicationSubmitted = "application.submitted"
+	// Stage 10a: decisions and enrolment.
+	ApplicationInfoRequested = "application.info_requested"
+	ApplicationOffered       = "application.offered"
+	ApplicationRejected      = "application.rejected"
+	ApplicationEnrolled      = "application.enrolled"
+	// OfferLetter is printed (channel "letter"), never sent as a message.
+	OfferLetter = "offer.letter"
 )
 
 // Placeholders lists what each template may use. A template saved with any
 // other {name} is refused, so a message never goes out with a raw brace.
 var Placeholders = map[string][]string{
-	ApplicantSignInLink:  {"name", "link", "minutes"},
-	ApplicantResumeLink:  {"name", "reference", "link", "minutes"},
-	ApplicationStarted:   {"name", "reference", "programme", "link"},
-	ApplicationSubmitted: {"name", "reference", "programme", "link"},
+	ApplicantSignInLink:      {"name", "link", "minutes"},
+	ApplicantResumeLink:      {"name", "reference", "link", "minutes"},
+	ApplicationStarted:       {"name", "reference", "programme", "link"},
+	ApplicationSubmitted:     {"name", "reference", "programme", "link"},
+	ApplicationInfoRequested: {"name", "reference", "programme", "message", "link"},
+	ApplicationOffered:       {"name", "reference", "programme", "intake", "respond_by", "link"},
+	ApplicationRejected:      {"name", "reference", "programme", "reason", "link"},
+	ApplicationEnrolled:      {"name", "reference", "programme", "student_number"},
+	OfferLetter:              {"name", "reference", "programme", "intake", "starts_on", "respond_by"},
 }
+
+// needsLink are the templates whose whole purpose is the link in them.
+var needsLink = []string{ApplicantSignInLink, ApplicantResumeLink}
 
 const (
 	MaxSubjectLength = 150
@@ -189,6 +204,16 @@ func (s *Service) ListTemplates(ctx context.Context) ([]Template, error) {
 	return out, nil
 }
 
+// Letter returns a printed letter's heading and body with placeholders
+// filled in.
+func (s *Service) Letter(ctx context.Context, key string, vars map[string]string) (heading, body string, err error) {
+	t, err := dbq.New(s.pool).GetNotificationTemplate(ctx, dbq.GetNotificationTemplateParams{Key: key, Channel: "letter"})
+	if err != nil {
+		return "", "", fmt.Errorf("letter template %s: %w", key, err)
+	}
+	return strings.Join(strings.Fields(Render(t.Subject, vars)), " "), Render(t.Body, vars), nil
+}
+
 func maxLength(channel string) int {
 	if channel == "sms" {
 		return MaxSMSLength
@@ -202,12 +227,12 @@ var ErrNotFound = errors.New("template not found")
 // UpdateTemplate saves new text after checking lengths and placeholders.
 // Problems come back as a *content.ValidationError.
 func (s *Service) UpdateTemplate(ctx context.Context, key, channel, subject, body string, req audit.Request) error {
-	if _, ok := Placeholders[key]; !ok || (channel != "email" && channel != "sms") {
+	if _, ok := Placeholders[key]; !ok || (channel != "email" && channel != "sms" && channel != "letter") {
 		return ErrNotFound
 	}
 	subject, body = strings.TrimSpace(subject), strings.TrimSpace(body)
 	var p content.Problems
-	if channel == "email" {
+	if channel == "email" || channel == "letter" {
 		p.Required("subject", subject, MaxSubjectLength)
 		if strings.ContainsAny(subject, "\r\n") {
 			p.Add("subject", "Keep the subject on one line.")
@@ -222,7 +247,7 @@ func (s *Service) UpdateTemplate(ctx context.Context, key, channel, subject, bod
 			p.Add(f.field, fmt.Sprintf("Remove {%s}: this message can only use {%s}.", strings.Join(bad, "}, {"), allowed))
 		}
 	}
-	if key != ApplicationStarted && key != ApplicationSubmitted && !strings.Contains(body, "{link}") {
+	if slices.Contains(needsLink, key) && !strings.Contains(body, "{link}") {
 		p.Add("body", "Keep {link} in the message: it is how the applicant signs in.")
 	}
 	if err := p.Err(); err != nil {

@@ -46,7 +46,7 @@ func validateSetting(p *Problems, key, v string) {
 		} else {
 			p.link(key, v)
 		}
-	case key == "applications.draft_expiry_days":
+	case key == "applications.draft_expiry_days", key == "admissions.offer_response_days":
 		if n, err := strconv.Atoi(v); err != nil || n < 1 || n > 365 {
 			p.add(key, "Enter a number of days from 1 to 365.")
 		}
