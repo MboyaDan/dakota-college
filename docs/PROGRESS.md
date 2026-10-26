@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 10b, Admissions screens. Done, awaiting review.
-- **Next stage:** 11, Student records and academics (core).
-- **Branch:** `stage-10b-admissions-screens` (from `main` after #27)
+- **Current stage:** 11a, Student records and academics API. Done, awaiting review.
+- **Next stage:** 11b, Student records and academics screens.
+- **Branch:** `stage-11a-academics-api` (from `main` after #28)
 
 ## Stage status
 
@@ -29,8 +29,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 9a | Application form with autosave | Merged (#25) |
 | 9b | Documents and submission | Merged (#26) |
 | 10a | Admissions workflow API | Merged (#27) |
-| 10b | Admissions screens | Done, awaiting review |
-| 11 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 10b | Admissions screens | Merged (#28) |
+| 11a | Student records and academics API | Done, awaiting review |
+| 11b | Student records and academics screens | Not started |
+| 12 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -43,6 +45,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 11a: Student records and academics API (2026-10-26)
+
+- Stage 11 split into 11a (API) and 11b (screens); terms set by the registrar; Heads of School scoped to their schools; trainers get a teaching permission instead of `students.view` (owner, D-132, D-133).
+- Migration 00014: terms, cohorts, units, programme units, offerings, trainer assignments, unit registrations, timetable, student guardians, student status history, school assignments; three permissions and new grants; backfill of students enrolled in Stage 10 (D-134).
+- API: students (list, record, status with reason, cohort, guardians), cohorts, terms, unit catalogue, programme units, offerings with trainers, timetable and registration (by student or cohort, drops kept), a trainer's own teaching and class lists, school assignments for staff (D-135, D-136). Enrolment now files students into their intake's cohort.
+- Verified: Go tests against PostgreSQL with `-race` (AC-08 for trainers, Head of School scope including no assignment, records, offerings and registration rules, enrolment cohorts, migration backfill, route walk); 128 Playwright tests still pass; live check through the site's `/api` rewrite after migrating the dev database (seeded trainer refused student records, registrar sees all).
 
 ### Stage 10b: Admissions screens (2026-10-26)
 

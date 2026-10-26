@@ -1367,6 +1367,432 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Students, by student number, 25 per page (students.view; your schools unless schools.all) */
+        get: operations["listStudents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/students/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One student record with guardians, status history and registrations (students.view) */
+        get: operations["getStudent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/students/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change a student's status, with a reason (students.update)
+         * @description Graduated is final. Every change is kept in the status history.
+         */
+        post: operations["setStudentStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/students/{id}/cohort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a student to another cohort of their programme (students.update) */
+        post: operations["setStudentCohort"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/students/{id}/guardians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a parent, guardian or next of kin (students.update) */
+        post: operations["addStudentGuardian"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/students/{id}/guardians/{item}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Correct a guardian's details (students.update) */
+        put: operations["updateStudentGuardian"];
+        post?: never;
+        /** Remove a guardian (students.update) */
+        delete: operations["removeStudentGuardian"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/cohorts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cohorts with student counts (students.view; your schools unless schools.all) */
+        get: operations["listCohorts"];
+        put?: never;
+        /**
+         * Add a cohort without an intake (academics.manage)
+         * @description Intake cohorts are made by enrolment.
+         */
+        post: operations["createCohort"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Academic terms, newest first (any staff account) */
+        get: operations["listTerms"];
+        put?: never;
+        /**
+         * Add a term (academics.manage with schools.all)
+         * @description 403 college_wide without schools.all.
+         */
+        post: operations["createTerm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/terms/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a term (academics.manage with schools.all) */
+        put: operations["updateTerm"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The unit catalogue (any staff account) */
+        get: operations["listUnits"];
+        put?: never;
+        /**
+         * Add a unit to a school (academics.manage; your schools unless schools.all)
+         * @description 403 outside_your_schools for another school.
+         */
+        post: operations["createUnit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/units/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One unit (any staff account) */
+        get: operations["getUnit"];
+        /** Edit a unit; its school never changes (academics.manage) */
+        put: operations["updateUnit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/programmes/{id}/units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The units of a programme by stage (any staff account) */
+        get: operations["listProgrammeUnits"];
+        /** Replace the units of a programme (academics.manage; programme in your schools) */
+        put: operations["setProgrammeUnits"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/trainers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active staff who can teach (academics.manage) */
+        get: operations["listTrainers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/offerings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Units scheduled in terms (academics.manage; your schools unless schools.all) */
+        get: operations["listOfferings"];
+        put?: never;
+        /**
+         * Schedule a unit in a term (academics.manage)
+         * @description 409 duplicate if it is already scheduled in that term.
+         */
+        post: operations["createOffering"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/offerings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One offering with trainers, timetable and class list (academics.manage) */
+        get: operations["getOffering"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/offerings/{id}/trainers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace who teaches an offering; each must hold academics.teach (academics.manage) */
+        put: operations["setOfferingTrainers"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/offerings/{id}/timetable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a weekly class or an exam (academics.manage)
+         * @description Classes take a weekday (1 Monday to 7 Sunday); exams a date within the term. Times are HH:MM, Nairobi.
+         */
+        post: operations["addTimetableEntry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/offerings/{id}/timetable/{item}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a timetable entry (academics.manage) */
+        delete: operations["removeTimetableEntry"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/offerings/{id}/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register students, or a cohort's active students (academics.manage)
+         * @description Only active students whose programme includes the unit, in your schools, are registered; the rest are counted as not eligible. Closed once the term has ended.
+         */
+        post: operations["registerStudents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/offerings/{id}/registrations/{item}/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a student off the class list; the registration is kept as dropped (academics.manage) */
+        post: operations["dropRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/teaching": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The offerings you are assigned to teach, and their timetable (academics.teach) */
+        get: operations["myTeaching"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/teaching/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One of your offerings with its class list (academics.teach)
+         * @description Offerings you are not assigned to answer 404 (AC-08).
+         */
+        get: operations["myOffering"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/schools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Schools a member of staff works in (users.manage) */
+        get: operations["getUserSchools"];
+        /**
+         * Replace the schools a member of staff works in (users.manage)
+         * @description Without schools.all, students.view and academics.manage reach only these schools.
+         */
+        put: operations["setUserSchools"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/notification-templates": {
         parameters: {
             query?: never;
@@ -1975,6 +2401,276 @@ export interface components {
                 intake_name: string | null;
             } & components["schemas"]["AdmissionsFigures"])[];
             totals: components["schemas"]["AdmissionsFigures"];
+        };
+        Person: {
+            /** Format: uuid */
+            id: string;
+            full_name: string;
+        };
+        School: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        /** @enum {string} */
+        StudentStatus: "active" | "deferred" | "suspended" | "withdrawn" | "graduated";
+        StudentItem: {
+            /** Format: uuid */
+            id: string;
+            student_number: string;
+            name: string;
+            email: string;
+            status: components["schemas"]["StudentStatus"];
+            programme_title: string;
+            cohort_name: string | null;
+            /** Format: date-time */
+            enrolled_at: string;
+        };
+        StudentPage: {
+            items: components["schemas"]["StudentItem"][];
+            page: number;
+            total_pages: number;
+            total: number;
+        };
+        Guardian: {
+            /** Format: uuid */
+            id: string;
+            full_name: string;
+            /** @enum {string} */
+            relationship: "mother" | "father" | "guardian" | "other_relative" | "spouse" | "other";
+            phone: string;
+            email: string;
+            is_primary: boolean;
+        };
+        GuardianInput: {
+            full_name: string;
+            /** @enum {string} */
+            relationship: "mother" | "father" | "guardian" | "other_relative" | "spouse" | "other";
+            phone: string;
+            email: string;
+            is_primary: boolean;
+        };
+        Student: {
+            /** Format: uuid */
+            id: string;
+            student_number: string;
+            first_name: string;
+            middle_name: string;
+            last_name: string;
+            /** Format: date */
+            date_of_birth: string | null;
+            email: string;
+            phone: string | null;
+            identity_document_type: string | null;
+            identity_document: string;
+            status: components["schemas"]["StudentStatus"];
+            /** Format: date-time */
+            enrolled_at: string;
+            /** Format: uuid */
+            application_id: string;
+            /** Format: uuid */
+            programme_id: string;
+            programme_title: string;
+            intake_name: string | null;
+            /** Format: uuid */
+            cohort_id: string | null;
+            cohort_name: string | null;
+            guardians: components["schemas"]["Guardian"][];
+            history: {
+                from: string | null;
+                to: components["schemas"]["StudentStatus"];
+                reason: string;
+                /** Format: date-time */
+                at: string;
+                changed_by_name: string | null;
+            }[];
+            registrations: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                offering_id: string;
+                term_name: string;
+                unit_code: string;
+                unit_title: string;
+                /** @enum {string} */
+                status: "registered" | "dropped";
+                /** Format: date-time */
+                registered_at: string;
+                /** Format: date-time */
+                dropped_at: string | null;
+            }[];
+        };
+        Cohort: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            programme_id: string;
+            programme_title: string;
+            /** Format: uuid */
+            intake_id: string | null;
+            intake_name: string | null;
+            students: number;
+            active_students: number;
+        };
+        Term: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on: string;
+            /** Format: date */
+            registration_opens_on: string | null;
+            /** Format: date */
+            registration_closes_on: string | null;
+            is_sample: boolean;
+        };
+        TermInput: {
+            name: string;
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on: string;
+            /** @description YYYY-MM-DD or empty. */
+            registration_opens_on?: string;
+            /** @description YYYY-MM-DD or empty. */
+            registration_closes_on?: string;
+        };
+        Unit: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            school_id: string;
+            school_name: string;
+            code: string;
+            title: string;
+            description: string;
+            hours: number | null;
+            active: boolean;
+            is_sample: boolean;
+        };
+        UnitInput: {
+            /**
+             * Format: uuid
+             * @description Required when creating; ignored when editing.
+             */
+            school_id?: string;
+            /** @description 2 to 20 capitals, digits, spaces, slashes or dashes, like ICT 101. */
+            code: string;
+            title: string;
+            description?: string;
+            hours?: number | null;
+            active?: boolean;
+        };
+        ProgrammeUnit: {
+            /** Format: uuid */
+            unit_id: string;
+            code: string;
+            title: string;
+            hours: number | null;
+            stage: number;
+            is_core: boolean;
+        };
+        OfferingItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            term_id: string;
+            term_name: string;
+            /** Format: uuid */
+            unit_id: string;
+            unit_code: string;
+            unit_title: string;
+            trainer_names: string;
+            registered: number;
+        };
+        TimetableEntry: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "class" | "exam";
+            /** @description 1 is Monday. */
+            weekday: number | null;
+            /** Format: date */
+            on_date: string | null;
+            /** @description HH:MM */
+            starts_at: string;
+            /** @description HH:MM */
+            ends_at: string;
+            room: string;
+        };
+        TimetableInput: {
+            /** @enum {string} */
+            kind: "class" | "exam";
+            weekday?: number | null;
+            /** @description YYYY-MM-DD */
+            on_date?: string;
+            /** @description HH:MM */
+            starts_at: string;
+            /** @description HH:MM */
+            ends_at: string;
+            room?: string;
+        };
+        Offering: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            term_id: string;
+            term_name: string;
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on: string;
+            /** Format: uuid */
+            unit_id: string;
+            unit_code: string;
+            unit_title: string;
+            trainers: components["schemas"]["Person"][];
+            timetable: components["schemas"]["TimetableEntry"][];
+            /** @description Students on the class list, without contact details. */
+            class_list: {
+                /** Format: uuid */
+                registration_id: string;
+                /** Format: uuid */
+                student_id: string;
+                student_number: string;
+                name: string;
+                cohort_name: string | null;
+                /** @enum {string} */
+                status: "registered" | "dropped";
+                /** Format: date-time */
+                registered_at: string;
+            }[];
+        };
+        RegisterResult: {
+            registered: number;
+            already_registered: number;
+            /** @description Not active */
+            not_eligible: number;
+        };
+        Teaching: {
+            offerings: {
+                /** Format: uuid */
+                id: string;
+                term_name: string;
+                /** Format: date */
+                starts_on: string;
+                /** Format: date */
+                ends_on: string;
+                unit_code: string;
+                unit_title: string;
+                registered: number;
+            }[];
+            /** @description Entries of your offerings whose term has not ended. */
+            timetable: (components["schemas"]["TimetableEntry"] & {
+                /** Format: uuid */
+                offering_id: string;
+                unit_code: string;
+                unit_title: string;
+                term_name: string;
+            })[];
         };
         NotificationTemplate: {
             key: string;
@@ -4562,6 +5258,914 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             404: components["responses"]["Error"];
+        };
+    };
+    listStudents: {
+        parameters: {
+            query?: {
+                status?: "active" | "deferred" | "suspended" | "withdrawn" | "graduated";
+                programme?: string;
+                cohort?: string;
+                /** @description Student number, name or email. */
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentPage"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    getStudent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    setStudentStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "active" | "deferred" | "suspended" | "withdrawn" | "graduated";
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    setStudentCohort: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    cohort_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    addStudentGuardian: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuardianInput"];
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    updateStudentGuardian: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+                item: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuardianInput"];
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    removeStudentGuardian: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+                item: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    listCohorts: {
+        parameters: {
+            query?: {
+                programme?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Cohort"][];
+                    };
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createCohort: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    programme_id: string;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Created"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    listTerms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Term"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TermInput"];
+            };
+        };
+        responses: {
+            /** @description OK. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Created"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    updateTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TermInput"];
+            };
+        };
+        responses: {
+            /** @description Done. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    listUnits: {
+        parameters: {
+            query?: {
+                school?: string;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Unit"][];
+                    };
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnitInput"];
+            };
+        };
+        responses: {
+            /** @description OK. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Created"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unit"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    updateUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnitInput"];
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unit"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    listProgrammeUnits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ProgrammeUnit"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    setProgrammeUnits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    items: {
+                        /** Format: uuid */
+                        unit_id: string;
+                        stage: number;
+                        is_core: boolean;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ProgrammeUnit"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    listTrainers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Person"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    listOfferings: {
+        parameters: {
+            query?: {
+                term?: string;
+                unit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["OfferingItem"][];
+                    };
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createOffering: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    term_id: string;
+                    /** Format: uuid */
+                    unit_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Created"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getOffering: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    setOfferingTrainers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    trainer_ids: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    addTimetableEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimetableInput"];
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    removeTimetableEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+                item: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    registerStudents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    student_ids?: string[];
+                    /** Format: uuid */
+                    cohort_id?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        result: components["schemas"]["RegisterResult"];
+                        offering: components["schemas"]["Offering"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    dropRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+                item: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    myTeaching: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Teaching"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    myOffering: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offering"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    getUserSchools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["School"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    setUserSchools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    school_ids: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["School"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
         };
     };
     listNotificationTemplates: {

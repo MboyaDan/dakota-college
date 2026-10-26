@@ -38,6 +38,12 @@ tags:
       or reject, admissions.enrol to enrol. Status changes follow the state machine in
       application_transitions; a change not allowed from the current status answers 409
       not_allowed. Reasons are shown to the applicant; notes are not.
+  - name: academics
+    description: |
+      Student records and academics (Stage 11). students.view and students.update for records;
+      academics.manage for units, cohorts, terms, offerings, timetables and registration;
+      academics.teach for a trainer's own offerings (AC-08). Without schools.all, records reach
+      only the schools you are assigned to; anything outside answers 404.
   - name: notifications
     description: |
       Editable text of emails and text messages sent to applicants (notifications.manage). Text
@@ -1774,6 +1780,614 @@ paths:
             image/png: { schema: { type: string, format: binary } }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/students:
+    get:
+      tags: [academics]
+      operationId: listStudents
+      summary: Students, by student number, 25 per page (students.view; your schools unless schools.all)
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [active, deferred, suspended, withdrawn, graduated] } }
+        - { name: programme, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: cohort, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: q, in: query, required: false, schema: { type: string }, description: "Student number, name or email." }
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentPage" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/students/{id}:
+    get:
+      tags: [academics]
+      operationId: getStudent
+      summary: One student record with guardians, status history and registrations (students.view)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Student" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/students/{id}/status:
+    post:
+      tags: [academics]
+      operationId: setStudentStatus
+      summary: Change a student's status, with a reason (students.update)
+      description: Graduated is final. Every change is kept in the status history.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [status, reason], properties: { status: { type: string, enum: [active, deferred, suspended, withdrawn, graduated] }, reason: { type: string, maxLength: 2000 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Student" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/students/{id}/cohort:
+    post:
+      tags: [academics]
+      operationId: setStudentCohort
+      summary: Move a student to another cohort of their programme (students.update)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [cohort_id], properties: { cohort_id: { type: string, format: uuid } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Student" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/students/{id}/guardians:
+    post:
+      tags: [academics]
+      operationId: addStudentGuardian
+      summary: Add a parent, guardian or next of kin (students.update)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuardianInput" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Student" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/students/{id}/guardians/{item}:
+    put:
+      tags: [academics]
+      operationId: updateStudentGuardian
+      summary: Correct a guardian's details (students.update)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: item, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuardianInput" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Student" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [academics]
+      operationId: removeStudentGuardian
+      summary: Remove a guardian (students.update)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: item, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Student" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/cohorts:
+    get:
+      tags: [academics]
+      operationId: listCohorts
+      summary: Cohorts with student counts (students.view; your schools unless schools.all)
+      parameters:
+        - { name: programme, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Cohort" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [academics]
+      operationId: createCohort
+      summary: Add a cohort without an intake (academics.manage)
+      description: Intake cohorts are made by enrolment.
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [programme_id, name], properties: { programme_id: { type: string, format: uuid }, name: { type: string, maxLength: 120 } } }
+      responses:
+        "201":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Created" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/terms:
+    get:
+      tags: [academics]
+      operationId: listTerms
+      summary: Academic terms, newest first (any staff account)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Term" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [academics]
+      operationId: createTerm
+      summary: Add a term (academics.manage with schools.all)
+      description: 403 college_wide without schools.all.
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TermInput" }
+      responses:
+        "201":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Created" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/terms/{id}:
+    put:
+      tags: [academics]
+      operationId: updateTerm
+      summary: Change a term (academics.manage with schools.all)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TermInput" }
+      responses:
+        "204": { description: Done. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/units:
+    get:
+      tags: [academics]
+      operationId: listUnits
+      summary: The unit catalogue (any staff account)
+      parameters:
+        - { name: school, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: q, in: query, required: false, schema: { type: string } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Unit" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [academics]
+      operationId: createUnit
+      summary: Add a unit to a school (academics.manage; your schools unless schools.all)
+      description: 403 outside_your_schools for another school.
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UnitInput" }
+      responses:
+        "201":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Created" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/units/{id}:
+    get:
+      tags: [academics]
+      operationId: getUnit
+      summary: One unit (any staff account)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Unit" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [academics]
+      operationId: updateUnit
+      summary: Edit a unit; its school never changes (academics.manage)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UnitInput" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Unit" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/programmes/{id}/units:
+    get:
+      tags: [academics]
+      operationId: listProgrammeUnits
+      summary: The units of a programme by stage (any staff account)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/ProgrammeUnit" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [academics]
+      operationId: setProgrammeUnits
+      summary: Replace the units of a programme (academics.manage; programme in your schools)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [items], properties: { items: { type: array, maxItems: 200, items: { type: object, required: [unit_id, stage, is_core], properties: { unit_id: { type: string, format: uuid }, stage: { type: integer, minimum: 1, maximum: 10 }, is_core: { type: boolean } } } } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/ProgrammeUnit" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/trainers:
+    get:
+      tags: [academics]
+      operationId: listTrainers
+      summary: Active staff who can teach (academics.manage)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Person" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/offerings:
+    get:
+      tags: [academics]
+      operationId: listOfferings
+      summary: Units scheduled in terms (academics.manage; your schools unless schools.all)
+      parameters:
+        - { name: term, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: unit, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/OfferingItem" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [academics]
+      operationId: createOffering
+      summary: Schedule a unit in a term (academics.manage)
+      description: 409 duplicate if it is already scheduled in that term.
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [term_id, unit_id], properties: { term_id: { type: string, format: uuid }, unit_id: { type: string, format: uuid } } }
+      responses:
+        "201":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Created" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/offerings/{id}:
+    get:
+      tags: [academics]
+      operationId: getOffering
+      summary: One offering with trainers, timetable and class list (academics.manage)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offering" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/offerings/{id}/trainers:
+    put:
+      tags: [academics]
+      operationId: setOfferingTrainers
+      summary: Replace who teaches an offering; each must hold academics.teach (academics.manage)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [trainer_ids], properties: { trainer_ids: { type: array, maxItems: 10, items: { type: string, format: uuid } } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offering" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/offerings/{id}/timetable:
+    post:
+      tags: [academics]
+      operationId: addTimetableEntry
+      summary: Add a weekly class or an exam (academics.manage)
+      description: Classes take a weekday (1 Monday to 7 Sunday); exams a date within the term. Times are HH:MM, Nairobi.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TimetableInput" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offering" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/offerings/{id}/timetable/{item}:
+    delete:
+      tags: [academics]
+      operationId: removeTimetableEntry
+      summary: Remove a timetable entry (academics.manage)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: item, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offering" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/offerings/{id}/registrations:
+    post:
+      tags: [academics]
+      operationId: registerStudents
+      summary: Register students, or a cohort's active students (academics.manage)
+      description: Only active students whose programme includes the unit, in your schools, are registered; the rest are counted as not eligible. Closed once the term has ended.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { student_ids: { type: array, maxItems: 500, items: { type: string, format: uuid } }, cohort_id: { type: [string, "null"], format: uuid } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [result, offering], properties: { result: { $ref: "#/components/schemas/RegisterResult" }, offering: { $ref: "#/components/schemas/Offering" } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/offerings/{id}/registrations/{item}/drop:
+    post:
+      tags: [academics]
+      operationId: dropRegistration
+      summary: Take a student off the class list; the registration is kept as dropped (academics.manage)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: item, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offering" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/teaching:
+    get:
+      tags: [academics]
+      operationId: myTeaching
+      summary: The offerings you are assigned to teach, and their timetable (academics.teach)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Teaching" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/teaching/{id}:
+    get:
+      tags: [academics]
+      operationId: myOffering
+      summary: One of your offerings with its class list (academics.teach)
+      description: Offerings you are not assigned to answer 404 (AC-08).
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offering" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/users/{id}/schools:
+    get:
+      tags: [academics]
+      operationId: getUserSchools
+      summary: Schools a member of staff works in (users.manage)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/School" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [academics]
+      operationId: setUserSchools
+      summary: Replace the schools a member of staff works in (users.manage)
+      description: Without schools.all, students.view and academics.manage reach only these schools.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [school_ids], properties: { school_ids: { type: array, maxItems: 50, items: { type: string, format: uuid } } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/School" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
   /api/v1/staff/notification-templates:
     get:
       tags: [notifications]
@@ -2466,6 +3080,271 @@ components:
                   intake_name: { type: [string, "null"] }
               - { $ref: "#/components/schemas/AdmissionsFigures" }
         totals: { $ref: "#/components/schemas/AdmissionsFigures" }
+    Person:
+      type: object
+      required: [id, full_name]
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string }
+    School:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+    StudentStatus: { type: string, enum: [active, deferred, suspended, withdrawn, graduated] }
+    StudentItem:
+      type: object
+      required: [id, student_number, name, email, status, programme_title, cohort_name, enrolled_at]
+      properties:
+        id: { type: string, format: uuid }
+        student_number: { type: string }
+        name: { type: string }
+        email: { type: string }
+        status: { $ref: "#/components/schemas/StudentStatus" }
+        programme_title: { type: string }
+        cohort_name: { type: [string, "null"] }
+        enrolled_at: { type: string, format: date-time }
+    StudentPage:
+      type: object
+      required: [items, page, total_pages, total]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/StudentItem" } }
+        page: { type: integer }
+        total_pages: { type: integer }
+        total: { type: integer }
+    Guardian:
+      type: object
+      required: [id, full_name, relationship, phone, email, is_primary]
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string }
+        relationship: { type: string, enum: [mother, father, guardian, other_relative, spouse, other] }
+        phone: { type: string }
+        email: { type: string }
+        is_primary: { type: boolean }
+    GuardianInput:
+      type: object
+      required: [full_name, relationship, phone, email, is_primary]
+      properties:
+        full_name: { type: string, maxLength: 120 }
+        relationship: { type: string, enum: [mother, father, guardian, other_relative, spouse, other] }
+        phone: { type: string }
+        email: { type: string }
+        is_primary: { type: boolean }
+    Student:
+      type: object
+      required: [id, student_number, first_name, middle_name, last_name, date_of_birth, email, phone, identity_document_type,
+        identity_document, status, enrolled_at, application_id, programme_id, programme_title, intake_name, cohort_id, cohort_name,
+        guardians, history, registrations]
+      properties:
+        id: { type: string, format: uuid }
+        student_number: { type: string }
+        first_name: { type: string }
+        middle_name: { type: string }
+        last_name: { type: string }
+        date_of_birth: { type: [string, "null"], format: date }
+        email: { type: string }
+        phone: { type: [string, "null"] }
+        identity_document_type: { type: [string, "null"] }
+        identity_document: { type: string }
+        status: { $ref: "#/components/schemas/StudentStatus" }
+        enrolled_at: { type: string, format: date-time }
+        application_id: { type: string, format: uuid }
+        programme_id: { type: string, format: uuid }
+        programme_title: { type: string }
+        intake_name: { type: [string, "null"] }
+        cohort_id: { type: [string, "null"], format: uuid }
+        cohort_name: { type: [string, "null"] }
+        guardians: { type: array, items: { $ref: "#/components/schemas/Guardian" } }
+        history:
+          type: array
+          items:
+            type: object
+            required: [from, to, reason, at, changed_by_name]
+            properties:
+              from: { type: [string, "null"] }
+              to: { $ref: "#/components/schemas/StudentStatus" }
+              reason: { type: string }
+              at: { type: string, format: date-time }
+              changed_by_name: { type: [string, "null"] }
+        registrations:
+          type: array
+          items:
+            type: object
+            required: [id, offering_id, term_name, unit_code, unit_title, status, registered_at, dropped_at]
+            properties:
+              id: { type: string, format: uuid }
+              offering_id: { type: string, format: uuid }
+              term_name: { type: string }
+              unit_code: { type: string }
+              unit_title: { type: string }
+              status: { type: string, enum: [registered, dropped] }
+              registered_at: { type: string, format: date-time }
+              dropped_at: { type: [string, "null"], format: date-time }
+    Cohort:
+      type: object
+      required: [id, name, programme_id, programme_title, intake_id, intake_name, students, active_students]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        programme_id: { type: string, format: uuid }
+        programme_title: { type: string }
+        intake_id: { type: [string, "null"], format: uuid }
+        intake_name: { type: [string, "null"] }
+        students: { type: integer }
+        active_students: { type: integer }
+    Term:
+      type: object
+      required: [id, name, starts_on, ends_on, registration_opens_on, registration_closes_on, is_sample]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+        registration_opens_on: { type: [string, "null"], format: date }
+        registration_closes_on: { type: [string, "null"], format: date }
+        is_sample: { type: boolean }
+    TermInput:
+      type: object
+      required: [name, starts_on, ends_on]
+      properties:
+        name: { type: string, maxLength: 80 }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+        registration_opens_on: { type: string, description: YYYY-MM-DD or empty. }
+        registration_closes_on: { type: string, description: YYYY-MM-DD or empty. }
+    Unit:
+      type: object
+      required: [id, school_id, school_name, code, title, description, hours, active, is_sample]
+      properties:
+        id: { type: string, format: uuid }
+        school_id: { type: string, format: uuid }
+        school_name: { type: string }
+        code: { type: string }
+        title: { type: string }
+        description: { type: string }
+        hours: { type: [integer, "null"] }
+        active: { type: boolean }
+        is_sample: { type: boolean }
+    UnitInput:
+      type: object
+      required: [code, title]
+      properties:
+        school_id: { type: string, format: uuid, description: Required when creating; ignored when editing. }
+        code: { type: string, description: "2 to 20 capitals, digits, spaces, slashes or dashes, like ICT 101." }
+        title: { type: string, maxLength: 160 }
+        description: { type: string, maxLength: 2000 }
+        hours: { type: [integer, "null"], minimum: 1, maximum: 2000 }
+        active: { type: boolean }
+    ProgrammeUnit:
+      type: object
+      required: [unit_id, code, title, hours, stage, is_core]
+      properties:
+        unit_id: { type: string, format: uuid }
+        code: { type: string }
+        title: { type: string }
+        hours: { type: [integer, "null"] }
+        stage: { type: integer }
+        is_core: { type: boolean }
+    OfferingItem:
+      type: object
+      required: [id, term_id, term_name, unit_id, unit_code, unit_title, trainer_names, registered]
+      properties:
+        id: { type: string, format: uuid }
+        term_id: { type: string, format: uuid }
+        term_name: { type: string }
+        unit_id: { type: string, format: uuid }
+        unit_code: { type: string }
+        unit_title: { type: string }
+        trainer_names: { type: string }
+        registered: { type: integer }
+    TimetableEntry:
+      type: object
+      required: [id, kind, weekday, on_date, starts_at, ends_at, room]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [class, exam] }
+        weekday: { type: [integer, "null"], minimum: 1, maximum: 7, description: 1 is Monday. }
+        on_date: { type: [string, "null"], format: date }
+        starts_at: { type: string, description: HH:MM }
+        ends_at: { type: string, description: HH:MM }
+        room: { type: string }
+    TimetableInput:
+      type: object
+      required: [kind, starts_at, ends_at]
+      properties:
+        kind: { type: string, enum: [class, exam] }
+        weekday: { type: [integer, "null"], minimum: 1, maximum: 7 }
+        on_date: { type: string, description: YYYY-MM-DD, for exams. }
+        starts_at: { type: string, description: HH:MM }
+        ends_at: { type: string, description: HH:MM }
+        room: { type: string, maxLength: 60 }
+    Offering:
+      type: object
+      required: [id, term_id, term_name, starts_on, ends_on, unit_id, unit_code, unit_title, trainers, timetable, class_list]
+      properties:
+        id: { type: string, format: uuid }
+        term_id: { type: string, format: uuid }
+        term_name: { type: string }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+        unit_id: { type: string, format: uuid }
+        unit_code: { type: string }
+        unit_title: { type: string }
+        trainers: { type: array, items: { $ref: "#/components/schemas/Person" } }
+        timetable: { type: array, items: { $ref: "#/components/schemas/TimetableEntry" } }
+        class_list:
+          type: array
+          description: Students on the class list, without contact details.
+          items:
+            type: object
+            required: [registration_id, student_id, student_number, name, cohort_name, status, registered_at]
+            properties:
+              registration_id: { type: string, format: uuid }
+              student_id: { type: string, format: uuid }
+              student_number: { type: string }
+              name: { type: string }
+              cohort_name: { type: [string, "null"] }
+              status: { type: string, enum: [registered, dropped] }
+              registered_at: { type: string, format: date-time }
+    RegisterResult:
+      type: object
+      required: [registered, already_registered, not_eligible]
+      properties:
+        registered: { type: integer }
+        already_registered: { type: integer }
+        not_eligible: { type: integer, description: Not active, unit not in their programme, or outside your schools. }
+    Teaching:
+      type: object
+      required: [offerings, timetable]
+      properties:
+        offerings:
+          type: array
+          items:
+            type: object
+            required: [id, term_name, starts_on, ends_on, unit_code, unit_title, registered]
+            properties:
+              id: { type: string, format: uuid }
+              term_name: { type: string }
+              starts_on: { type: string, format: date }
+              ends_on: { type: string, format: date }
+              unit_code: { type: string }
+              unit_title: { type: string }
+              registered: { type: integer }
+        timetable:
+          type: array
+          description: Entries of your offerings whose term has not ended.
+          items:
+            allOf:
+              - { $ref: "#/components/schemas/TimetableEntry" }
+              - type: object
+                required: [offering_id, unit_code, unit_title, term_name]
+                properties:
+                  offering_id: { type: string, format: uuid }
+                  unit_code: { type: string }
+                  unit_title: { type: string }
+                  term_name: { type: string }
     NotificationTemplate:
       type: object
       required: [key, channel, name, description, subject, body, placeholders, max_length, sending, updated_at, updated_by_name]

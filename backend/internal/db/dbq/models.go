@@ -9,7 +9,20 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type AcademicTerm struct {
+	ID                   uuid.UUID
+	Name                 string
+	StartsOn             time.Time
+	EndsOn               time.Time
+	RegistrationOpensOn  *time.Time
+	RegistrationClosesOn *time.Time
+	IsSample             bool
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+}
 
 type Accreditation struct {
 	ID           uuid.UUID
@@ -164,6 +177,14 @@ type Banner struct {
 	IsSample  bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type Cohort struct {
+	ID          uuid.UUID
+	ProgrammeID uuid.UUID
+	IntakeID    *uuid.UUID
+	Name        string
+	CreatedAt   time.Time
 }
 
 type Consent struct {
@@ -474,6 +495,14 @@ type ProgrammeRequirement struct {
 	SortOrder   int32
 }
 
+type ProgrammeUnit struct {
+	ProgrammeID uuid.UUID
+	UnitID      uuid.UUID
+	Stage       int16
+	IsCore      bool
+	SortOrder   int32
+}
+
 type Role struct {
 	ID          uuid.UUID
 	Key         string
@@ -506,6 +535,12 @@ type School struct {
 	UpdatedAt   time.Time
 	CreatedBy   *uuid.UUID
 	UpdatedBy   *uuid.UUID
+}
+
+type SchoolAssignment struct {
+	UserID    uuid.UUID
+	SchoolID  uuid.UUID
+	CreatedAt time.Time
 }
 
 type Session struct {
@@ -563,6 +598,79 @@ type Student struct {
 	EnrolledBy           uuid.UUID
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
+	CohortID             *uuid.UUID
+}
+
+type StudentGuardian struct {
+	ID           uuid.UUID
+	StudentID    uuid.UUID
+	FullName     string
+	Relationship string
+	Phone        string
+	Email        *string
+	IsPrimary    bool
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+type StudentStatusHistory struct {
+	ID         int64
+	StudentID  uuid.UUID
+	FromStatus *string
+	ToStatus   string
+	Reason     string
+	ChangedBy  *uuid.UUID
+	CreatedAt  time.Time
+}
+
+type TimetableEntry struct {
+	ID         uuid.UUID
+	OfferingID uuid.UUID
+	Kind       string
+	Weekday    *int16
+	OnDate     *time.Time
+	StartsAt   pgtype.Time
+	EndsAt     pgtype.Time
+	Room       string
+	CreatedAt  time.Time
+}
+
+type TrainerAssignment struct {
+	OfferingID uuid.UUID
+	UserID     uuid.UUID
+	AssignedBy *uuid.UUID
+	CreatedAt  time.Time
+}
+
+type Unit struct {
+	ID          uuid.UUID
+	SchoolID    uuid.UUID
+	Code        string
+	Title       string
+	Description string
+	Hours       *int32
+	Active      bool
+	IsSample    bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type UnitOffering struct {
+	ID        uuid.UUID
+	TermID    uuid.UUID
+	UnitID    uuid.UUID
+	CreatedAt time.Time
+}
+
+type UnitRegistration struct {
+	ID           uuid.UUID
+	OfferingID   uuid.UUID
+	StudentID    uuid.UUID
+	Status       string
+	RegisteredAt time.Time
+	RegisteredBy *uuid.UUID
+	DroppedAt    *time.Time
+	DroppedBy    *uuid.UUID
 }
 
 type User struct {

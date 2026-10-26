@@ -203,10 +203,10 @@ FROM applicants WHERE id = @id;
 UPDATE users SET kind = 'student' WHERE id = @id AND kind = 'applicant';
 
 -- name: InsertStudent :one
-INSERT INTO students (student_number, user_id, applicant_id, application_id, programme_id, intake_id,
+INSERT INTO students (student_number, user_id, applicant_id, application_id, programme_id, intake_id, cohort_id,
                       first_name, middle_name, last_name, date_of_birth, email, phone,
                       identity_document_type, identity_document, enrolled_by)
-VALUES (@student_number, @user_id, @applicant_id, @application_id, @programme_id, @intake_id,
+VALUES (@student_number, @user_id, @applicant_id, @application_id, @programme_id, @intake_id, @cohort_id,
         @first_name, @middle_name, @last_name, @date_of_birth, @email, @phone,
         @identity_document_type, @identity_document, @enrolled_by)
 RETURNING id, enrolled_at;

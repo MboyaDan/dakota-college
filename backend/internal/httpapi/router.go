@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/MboyaDan/dakota-college/backend/internal/academics"
 	"github.com/MboyaDan/dakota-college/backend/internal/access"
 	"github.com/MboyaDan/dakota-college/backend/internal/admissions"
 	"github.com/MboyaDan/dakota-college/backend/internal/applicant"
@@ -44,7 +45,9 @@ type Deps struct {
 	Applications *application.Service
 	// Admissions is the staff workflow over submitted applications.
 	Admissions *admissions.Service
-	Notify     *notify.Service
+	// Academics is student records, units, offerings and teaching.
+	Academics *academics.Service
+	Notify    *notify.Service
 }
 
 const defaultBodyLimit = 1 << 20 // 1 MB for JSON endpoints
@@ -227,6 +230,49 @@ func NewRouter(d Deps) (*Router, error) {
 		add(http.MethodPost, "/staff/applications/:id/offer", false, admissions.PermOffer, xh.offer)
 		add(http.MethodPost, "/staff/applications/:id/offer-letter/link", false, admissions.PermView, xh.offerLetterLink)
 		add(http.MethodPost, "/staff/applications/:id/enrol", false, admissions.PermEnrol, xh.enrol)
+	}
+
+	if d.Academics != nil && d.Auth != nil {
+		ac := academicsHandlers{svc: d.Academics}
+		staff := func(method, path string, h gin.HandlerFunc) {
+			mount(Route{Method: method, Path: path, Kind: "staff"}, defaultBodyLimit, h)
+		}
+		add(http.MethodGet, "/staff/students", false, academics.PermStudentsView, ac.listStudents)
+		add(http.MethodGet, "/staff/students/:id", false, academics.PermStudentsView, ac.getStudent)
+		add(http.MethodPost, "/staff/students/:id/status", false, academics.PermStudentsUpdate, ac.setStudentStatus)
+		add(http.MethodPost, "/staff/students/:id/cohort", false, academics.PermStudentsUpdate, ac.setStudentCohort)
+		add(http.MethodPost, "/staff/students/:id/guardians", false, academics.PermStudentsUpdate, ac.addGuardian)
+		add(http.MethodPut, "/staff/students/:id/guardians/:item", false, academics.PermStudentsUpdate, ac.updateGuardian)
+		add(http.MethodDelete, "/staff/students/:id/guardians/:item", false, academics.PermStudentsUpdate, ac.removeGuardian)
+		add(http.MethodGet, "/staff/cohorts", false, academics.PermStudentsView, ac.listCohorts)
+		add(http.MethodPost, "/staff/cohorts", false, academics.PermManage, ac.createCohort)
+
+		// Reference lists any member of staff may read.
+		staff(http.MethodGet, "/staff/terms", ac.listTerms)
+		staff(http.MethodGet, "/staff/units", ac.listUnits)
+		staff(http.MethodGet, "/staff/units/:id", ac.getUnit)
+		staff(http.MethodGet, "/staff/programmes/:id/units", ac.programmeUnits)
+
+		add(http.MethodPost, "/staff/terms", false, academics.PermManage, ac.createTerm)
+		add(http.MethodPut, "/staff/terms/:id", false, academics.PermManage, ac.updateTerm)
+		add(http.MethodPost, "/staff/units", false, academics.PermManage, ac.createUnit)
+		add(http.MethodPut, "/staff/units/:id", false, academics.PermManage, ac.updateUnit)
+		add(http.MethodPut, "/staff/programmes/:id/units", false, academics.PermManage, ac.setProgrammeUnits)
+		add(http.MethodGet, "/staff/trainers", false, academics.PermManage, ac.trainers)
+		add(http.MethodGet, "/staff/offerings", false, academics.PermManage, ac.listOfferings)
+		add(http.MethodPost, "/staff/offerings", false, academics.PermManage, ac.createOffering)
+		add(http.MethodGet, "/staff/offerings/:id", false, academics.PermManage, ac.getOffering)
+		add(http.MethodPut, "/staff/offerings/:id/trainers", false, academics.PermManage, ac.setTrainers)
+		add(http.MethodPost, "/staff/offerings/:id/timetable", false, academics.PermManage, ac.addTimetableEntry)
+		add(http.MethodDelete, "/staff/offerings/:id/timetable/:item", false, academics.PermManage, ac.removeTimetableEntry)
+		add(http.MethodPost, "/staff/offerings/:id/registrations", false, academics.PermManage, ac.register)
+		add(http.MethodPost, "/staff/offerings/:id/registrations/:item/drop", false, academics.PermManage, ac.drop)
+
+		add(http.MethodGet, "/staff/teaching", false, academics.PermTeach, ac.myTeaching)
+		add(http.MethodGet, "/staff/teaching/:id", false, academics.PermTeach, ac.myOffering)
+
+		add(http.MethodGet, "/admin/users/:id/schools", false, "users.manage", ac.userSchools)
+		add(http.MethodPut, "/admin/users/:id/schools", false, "users.manage", ac.setUserSchools)
 	}
 
 	if d.Content != nil && d.Enquiries != nil {

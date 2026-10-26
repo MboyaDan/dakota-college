@@ -18,7 +18,7 @@ import (
 )
 
 func concretePath(path string) string {
-	return strings.NewReplacer(":id", uuid.NewString(), ":doc", uuid.NewString(), ":kind", "schools", ":token", "not-a-token").Replace(path)
+	return strings.NewReplacer(":id", uuid.NewString(), ":doc", uuid.NewString(), ":item", uuid.NewString(), ":kind", "schools", ":token", "not-a-token").Replace(path)
 }
 
 // AC-07: the backend denies unauthorised calls even if the frontend is

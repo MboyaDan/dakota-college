@@ -139,7 +139,7 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !contains(perms, "system.admin") || len(perms) != 24 {
+	if !contains(perms, "system.admin") || len(perms) != 27 {
 		t.Fatalf("super admin permissions = %v", perms)
 	}
 }
