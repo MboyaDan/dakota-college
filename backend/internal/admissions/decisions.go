@@ -310,6 +310,7 @@ func FormatStudentNumber(format string, year int, n int64) string {
 func (s *Service) Enrol(ctx context.Context, p *auth.Principal, id uuid.UUID, req audit.Request) (*Student, error) {
 	var out Student
 	var to recipient
+	var setupPath string
 	err := s.change(ctx, id, func(q *dbq.Queries, a dbq.LockApplicationRow) error {
 		if a.Status != "offer_accepted" {
 			return application.ErrIllegalTransition
@@ -407,6 +408,10 @@ func (s *Service) Enrol(ctx context.Context, p *auth.Principal, id uuid.UUID, re
 		if err := application.Move(ctx, q, id, a.Status, "enrolled", &p.UserID, "Enrolled as student "+number); err != nil {
 			return err
 		}
+		// The enrolment email carries a link to choose a password (D-141).
+		if setupPath, err = auth.IssueSetupLink(ctx, q, *ap.UserID, s.now()); err != nil {
+			return err
+		}
 		out = Student{ID: st.ID, StudentNumber: number, Status: "active", EnrolledAt: st.EnrolledAt, InvoiceID: inv, InvoiceStatus: "draft"}
 		if to, err = s.recipient(ctx, q, a); err != nil {
 			return err
@@ -420,7 +425,7 @@ func (s *Service) Enrol(ctx context.Context, p *auth.Principal, id uuid.UUID, re
 	if err != nil {
 		return nil, err
 	}
-	s.tell(ctx, notify.ApplicationEnrolled, id, to, map[string]string{"student_number": out.StudentNumber})
+	s.tell(ctx, notify.ApplicationEnrolled, id, to, map[string]string{"student_number": out.StudentNumber, "link": s.appBaseURL + setupPath})
 	return &out, nil
 }
 
