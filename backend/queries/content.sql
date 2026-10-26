@@ -94,6 +94,8 @@ SELECT
   + (SELECT count(*) FROM gallery_items WHERE is_sample)
   + (SELECT count(*) FROM statistics WHERE is_sample)
   + (SELECT count(*) FROM accreditations WHERE is_sample)
+  + (SELECT count(*) FROM academic_terms WHERE is_sample)
+  + (SELECT count(*) FROM units WHERE is_sample)
   + (SELECT count(*) FROM pages WHERE is_sample)
   AS total;
 

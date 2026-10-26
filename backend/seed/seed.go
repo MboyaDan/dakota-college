@@ -15,7 +15,7 @@ import (
 
 // Summary counts what one run wrote.
 type Summary struct {
-	Schools, Programmes, Intakes, FeeItems, FAQs, Settings, Pages, News, Events, Users, Applications int
+	Schools, Programmes, Intakes, FeeItems, FAQs, Settings, Pages, News, Events, Users, Applications, Students int
 }
 
 // Run writes the sample data in one transaction. It is idempotent: running it
@@ -186,7 +186,7 @@ func Run(ctx context.Context, pool *pgxpool.Pool, password string) (Summary, err
 		}
 		sum.Users++
 		sum.Applications++
-		return nil
+		return seedAcademics(ctx, tx, q, &sum)
 	})
 	if err != nil {
 		return Summary{}, err
