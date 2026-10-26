@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 12a, Student portal API. Done, awaiting review.
-- **Next stage:** 12b, Student portal screens.
-- **Branch:** `stage-12a-student-portal-api` (from `main` after #30)
+- **Current stage:** 12b, Student portal screens. Done, awaiting review.
+- **Next stage:** 13, Results.
+- **Branch:** `stage-12b-student-portal-screens` (from `main` after #31)
 
 ## Stage status
 
@@ -32,8 +32,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 10b | Admissions screens | Merged (#28) |
 | 11a | Student records and academics API | Merged (#29) |
 | 11b | Student records and academics screens | Merged (#30) |
-| 12a | Student portal API | Done, awaiting review |
-| 12b | Student portal screens | Not started |
+| 12a | Student portal API | Merged (#31) |
+| 12b | Student portal screens | Done, awaiting review |
 | 13 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -47,6 +47,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 12b: Student portal screens (2026-10-26)
+
+- Student portal at `/student` (fixing the public "Student Portal" link): sign-in by number, forgot password, Home, Timetable, Units, Notices, Requests, Profile (D-146).
+- Staff: Notices, Student requests (services and changes of details), class notices for trainers (D-147).
+- Dev seed: registration open around today, a sample notice, passwords for all test students (D-148).
+- Verified: 111 unit tests; 142 Playwright tests passed locally (twice for the new portal spec), including a student signing in by number, seeing a notice, dropping and re-registering a unit, sending a request the registrar answers, changing their phone and asking for a correction the registrar declines, a trainer's class notice, and the reset page leading back to the portal, with axe and the overflow check at 360 px and desktop. Screenshots checked by eye.
 
 ### Stage 12a: Student portal API (2026-10-26)
 

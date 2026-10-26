@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sortTimetable, weekdayName } from "./academics";
+import { describeEntry, sortTimetable, weekdayName } from "./academics";
 
 describe("weekdayName", () => {
   it("names 1 to 7 from Monday and nothing else", () => {
@@ -37,5 +37,17 @@ describe("sortTimetable", () => {
       "exam2027-03-0114:00",
       "exam2027-03-0209:00",
     ]);
+  });
+});
+
+describe("describeEntry", () => {
+  const base = { id: "x", starts_at: "08:30", ends_at: "10:00" };
+  it("describes a weekly class and an exam", () => {
+    expect(describeEntry({ ...base, kind: "class", weekday: 2, on_date: null, room: "Lab 1" })).toBe(
+      "Tuesday 08:30 to 10:00, Lab 1",
+    );
+    expect(describeEntry({ ...base, kind: "exam", weekday: null, on_date: "2027-03-03", room: "" })).toBe(
+      "Exam 3 March 2027, 08:30 to 10:00",
+    );
   });
 });

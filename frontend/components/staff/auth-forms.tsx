@@ -10,15 +10,36 @@ import { Input } from "@/components/ui/field";
 import { api, errorMessage } from "@/lib/api/client";
 import { useHydrated } from "@/lib/use-hydrated";
 
+const portals = {
+  staff: {
+    name: "Staff portal",
+    points: [
+      "Write and publish website content",
+      "Changes to live pages wait for approval",
+      "Every action is recorded",
+    ],
+  },
+  student: {
+    name: "Student portal",
+    points: [
+      "Your timetable and units",
+      "Notices from the college",
+      "Letters, transcripts and other requests",
+    ],
+  },
+};
+
 /** Split layout for sign-in pages: brand panel and form (brief 5.1). */
 export function AuthLayout({
   title,
   intro,
   children,
+  portal = "staff",
 }: {
   title: string;
   intro?: ReactNode;
   children: ReactNode;
+  portal?: keyof typeof portals;
 }) {
   return (
     <div className="grid min-h-full flex-1 lg:grid-cols-2">
@@ -32,11 +53,11 @@ export function AuthLayout({
           priority
           className="-ml-2 h-20 w-auto self-start lg:-ml-3 lg:h-28"
         />
-        <p className="font-serif text-2xl">Staff portal</p>
+        <p className="font-serif text-2xl">{portals[portal].name}</p>
         <ul className="hidden list-disc flex-col gap-2 pl-5 text-white/90 lg:flex">
-          <li>Write and publish website content</li>
-          <li>Changes to live pages wait for approval</li>
-          <li>Every action is recorded</li>
+          {portals[portal].points.map((p) => (
+            <li key={p}>{p}</li>
+          ))}
         </ul>
       </div>
       <main id="main" className="flex flex-col justify-center gap-6 bg-ivory p-6 sm:p-12">
@@ -180,6 +201,8 @@ export function ForgotPasswordForm() {
 export function ResetPasswordForm() {
   const params = useSearchParams();
   const token = params.get("token") ?? "";
+  // Students' links say so, and lead back to the student portal (D-141).
+  const home = params.get("portal") === "student" ? "/student" : "/staff";
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -206,7 +229,7 @@ export function ResetPasswordForm() {
     return (
       <Alert tone="warning" title="This link is incomplete">
         Open the link from your email again, or{" "}
-        <Link href="/staff/forgot-password" className="text-royal underline">
+        <Link href={`${home}/forgot-password`} className="text-royal underline">
           ask for a new one
         </Link>
         .
@@ -217,7 +240,7 @@ export function ResetPasswordForm() {
     return (
       <Alert tone="success" title="Password changed" live>
         You can now{" "}
-        <Link href="/staff/login" className="text-royal underline">
+        <Link href={`${home}/login`} className="text-royal underline">
           sign in
         </Link>{" "}
         with your new password. You were signed out everywhere else.

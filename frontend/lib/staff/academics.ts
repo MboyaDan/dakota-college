@@ -1,5 +1,6 @@
 import type { Status } from "@/components/ui/tag";
 import type { components } from "@/lib/api/schema";
+import { formatDate } from "@/lib/staff/datetime";
 
 // Staff wording for student records and academics (Stage 11b).
 
@@ -42,4 +43,12 @@ export function sortTimetable<T extends Entry>(entries: T[]): T[] {
       return (a.weekday ?? 0) - (b.weekday ?? 0) || a.starts_at.localeCompare(b.starts_at);
     return (a.on_date ?? "").localeCompare(b.on_date ?? "") || a.starts_at.localeCompare(b.starts_at);
   });
+}
+
+type TimetableEntry = components["schemas"]["TimetableEntry"];
+
+/** "Tuesday 08:30 to 10:00, Lab 1" or "Exam 3 March 2027, 09:00 to 11:00". */
+export function describeEntry(e: TimetableEntry): string {
+  const when = e.kind === "class" ? weekdayName(e.weekday) : `Exam ${formatDate(e.on_date)},`;
+  return `${when} ${e.starts_at} to ${e.ends_at}${e.room ? `, ${e.room}` : ""}`;
 }

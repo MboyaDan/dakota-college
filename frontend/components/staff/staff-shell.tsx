@@ -18,9 +18,11 @@ export function StaffShell({ children }: { children: ReactNode }) {
     { href: "/staff", label: "Overview", show: true },
     { href: "/staff/applications", label: "Applications", show: can("admissions.view") },
     { href: "/staff/students", label: "Students", show: can("students.view") },
+    { href: "/staff/student-requests", label: "Student requests", show: can("students.view") },
     { href: "/staff/teaching", label: "My teaching", show: can("academics.teach") },
     { href: "/staff/offerings", label: "Classes", show: can("academics.manage") },
     { href: "/staff/academics", label: "Units and terms", show: can("academics.manage") },
+    { href: "/staff/notices", label: "Notices", show: can("academics.manage") },
     { href: "/staff/enquiries", label: "Enquiries", show: can("enquiries.view") },
     { href: "/staff/approvals", label: "Waiting for approval", show: can("content.publish") },
     ...kindOrder.map((k) => ({
