@@ -363,13 +363,41 @@ func (s *Service) Enrol(ctx context.Context, p *auth.Principal, id uuid.UUID, re
 		}
 		number := FormatStudentNumber(format, year, seq)
 
+		// The cohort of the programme's intake (Stage 11, D-134).
+		var cohort *uuid.UUID
+		if a.IntakeID != nil && prog.IntakeName != nil {
+			c, err := q.CohortForIntake(ctx, dbq.CohortForIntakeParams{ProgrammeID: a.ProgrammeID, IntakeID: a.IntakeID,
+				Name: truncate(prog.Title+" · "+*prog.IntakeName, 120)})
+			if err != nil {
+				return err
+			}
+			cohort = &c
+		}
+
 		st, err := q.InsertStudent(ctx, dbq.InsertStudentParams{
 			StudentNumber: number, UserID: *ap.UserID, ApplicantID: ap.ID, ApplicationID: id, ProgrammeID: a.ProgrammeID, IntakeID: a.IntakeID,
+			CohortID:  cohort,
 			FirstName: ap.FirstName, MiddleName: ap.MiddleName, LastName: ap.LastName, DateOfBirth: ap.DateOfBirth, Email: ap.Email, Phone: ap.Phone,
 			IdentityDocumentType: ap.IdentityDocumentType, IdentityDocument: ap.IdentityDocument, EnrolledBy: p.UserID,
 		})
 		if err != nil {
 			return err
+		}
+		if err := q.InsertStudentStatusHistory(ctx, dbq.InsertStudentStatusHistoryParams{
+			StudentID: st.ID, ToStatus: "active", Reason: "Enrolled", ChangedBy: &p.UserID,
+		}); err != nil {
+			return err
+		}
+		// The parent or guardian named on the application comes along.
+		switch g, err := q.GetGuardian(ctx, id); {
+		case errors.Is(err, pgx.ErrNoRows):
+		case err != nil:
+			return err
+		default:
+			if _, err := q.InsertStudentGuardian(ctx, dbq.InsertStudentGuardianParams{StudentID: st.ID, FullName: g.FullName,
+				Relationship: g.Relationship, Phone: g.Phone, Email: g.Email, IsPrimary: true}); err != nil {
+				return err
+			}
 		}
 		inv, err := q.InsertDraftInvoice(ctx, dbq.InsertDraftInvoiceParams{StudentID: st.ID, IntakeID: a.IntakeID, CreatedBy: p.UserID,
 			Note: "Opened at enrolment. Finance adds the fee lines and issues it."})
@@ -434,4 +462,11 @@ func (s *Service) tell(ctx context.Context, template string, id uuid.UUID, to re
 			s.logger.Error("admissions SMS not recorded", slog.String("template", template), slog.String("error", err.Error()))
 		}
 	}
+}
+
+func truncate(s string, n int) string {
+	if r := []rune(s); len(r) > n {
+		return string(r[:n])
+	}
+	return s
 }
