@@ -35,6 +35,7 @@ func TestEveryRouteIsProtected(t *testing.T) {
 		"GET /api/v1/public/events": true, "GET /api/v1/public/events/:slug": true,
 		"POST /api/v1/applicant/sign-in-link": true, "POST /api/v1/applicant/resume": true,
 		"POST /api/v1/applicant/sign-in": true,
+		"POST /api/v1/student/sign-in":   true, "POST /api/v1/student/password-reset": true,
 	}
 	// Routes any signed-in account may use. Every other protected route
 	// names a permission or a kind of account.
