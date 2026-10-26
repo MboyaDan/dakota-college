@@ -470,12 +470,12 @@ func (q *Queries) InsertOffer(ctx context.Context, arg InsertOfferParams) (Inser
 }
 
 const insertStudent = `-- name: InsertStudent :one
-INSERT INTO students (student_number, user_id, applicant_id, application_id, programme_id, intake_id,
+INSERT INTO students (student_number, user_id, applicant_id, application_id, programme_id, intake_id, cohort_id,
                       first_name, middle_name, last_name, date_of_birth, email, phone,
                       identity_document_type, identity_document, enrolled_by)
-VALUES ($1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10, $11, $12,
-        $13, $14, $15)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10, $11, $12, $13,
+        $14, $15, $16)
 RETURNING id, enrolled_at
 `
 
@@ -486,6 +486,7 @@ type InsertStudentParams struct {
 	ApplicationID        uuid.UUID
 	ProgrammeID          uuid.UUID
 	IntakeID             *uuid.UUID
+	CohortID             *uuid.UUID
 	FirstName            string
 	MiddleName           string
 	LastName             string
@@ -510,6 +511,7 @@ func (q *Queries) InsertStudent(ctx context.Context, arg InsertStudentParams) (I
 		arg.ApplicationID,
 		arg.ProgrammeID,
 		arg.IntakeID,
+		arg.CohortID,
 		arg.FirstName,
 		arg.MiddleName,
 		arg.LastName,
