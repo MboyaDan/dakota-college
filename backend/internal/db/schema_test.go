@@ -156,9 +156,10 @@ func TestRolesAndPermissions(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM roles), (SELECT count(*) FROM permissions)`).Scan(&roles, &perms); err != nil {
 		t.Fatal(err)
 	}
-	// 24 until Stage 11a added academics.teach, academics.manage and schools.all.
-	if roles != 10 || perms != 27 {
-		t.Fatalf("got %d roles and %d permissions, want 10 and 27", roles, perms)
+	// 24 until Stage 11a added academics.teach, academics.manage and
+	// schools.all; Stage 14a added finance.payment.record.
+	if roles != 10 || perms != 28 {
+		t.Fatalf("got %d roles and %d permissions, want 10 and 28", roles, perms)
 	}
 
 	// A role in use cannot be deleted (brief 11).

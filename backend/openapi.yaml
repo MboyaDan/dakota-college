@@ -52,6 +52,14 @@ tags:
     description: |
       Results (AC-09). Trainers enter and submit marks for their own classes; the Head of School
       approves or returns; the registrar releases. Students see only released results.
+  - name: finance
+    description: |
+      Fees and payments (brief 9, AC-10, AC-11). finance.view to read; finance.invoice for fee
+      structures, invoices and billing; finance.payment.record to record payments;
+      finance.payment.confirm to confirm or reject them; finance.adjust for adjustments. Money is
+      integer cents of KES. Balances are derived from records: issued invoice lines and charges,
+      less confirmed payments and credits. Issued invoices, decided payments, receipts and
+      adjustments never change. Finance access is college-wide.
   - name: notifications
     description: |
       Editable text of emails and text messages sent to applicants (notifications.manage). Text
@@ -3229,6 +3237,594 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/summary:
+    get:
+      tags: [finance]
+      operationId: financeSummary
+      summary: Drafts and payments waiting, and the college's net outstanding balance (finance.view)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FinanceSummary" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/fee-structures:
+    get:
+      tags: [finance]
+      operationId: listFeeStructures
+      summary: Every fee structure (finance.view)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/FeeStructureSummary" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [finance]
+      operationId: createFeeStructure
+      summary: Start the fee structure of a programme, for one intake or every intake (finance.invoice)
+      description: With from_published, it starts from the fees published on the programme page; warnings name lines to check.
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [programme_id]
+              properties:
+                programme_id: { type: string, format: uuid }
+                intake_id: { type: [string, "null"], format: uuid }
+                from_published: { type: boolean }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeeStructure" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/fee-structures/{id}:
+    get:
+      tags: [finance]
+      operationId: getFeeStructure
+      summary: A fee structure with its lines and instalments (finance.view)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeeStructure" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [finance]
+      operationId: updateFeeStructure
+      summary: Replace a structure's lines and instalments (finance.invoice); existing invoices do not change
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lines]
+              properties:
+                note: { type: string, maxLength: 1000 }
+                lines: { type: array, maxItems: 30, items: { $ref: "#/components/schemas/StructureLine" } }
+                instalments: { type: array, maxItems: 12, items: { $ref: "#/components/schemas/Instalment" } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeeStructure" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [finance]
+      operationId: deleteFeeStructure
+      summary: Remove a fee structure (finance.invoice); invoices keep their lines
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "204": { description: Removed. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/invoices:
+    get:
+      tags: [finance]
+      operationId: listInvoices
+      summary: Invoices, newest first, 50 a page (finance.view)
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [draft, issued, void] } }
+        - { name: term_id, in: query, schema: { type: string, format: uuid } }
+        - { name: cohort_id, in: query, schema: { type: string, format: uuid } }
+        - { name: q, in: query, description: Invoice number, student number or name., schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items, total, page_size], properties: { items: { type: array, items: { $ref: "#/components/schemas/InvoiceSummary" } }, total: { type: integer }, page_size: { type: integer } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/invoices/issue:
+    post:
+      tags: [finance]
+      operationId: issueInvoices
+      summary: Issue several drafts, all or none (finance.invoice)
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [ids], properties: { ids: { type: array, minItems: 1, maxItems: 500, items: { type: string, format: uuid } } } }
+      responses:
+        "200":
+          description: Issued, with their numbers.
+          content:
+            application/json:
+              schema: { type: object, required: [issued, numbers], properties: { issued: { type: integer }, numbers: { type: array, items: { type: string } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/invoices/{id}:
+    get:
+      tags: [finance]
+      operationId: getInvoice
+      summary: An invoice with its lines and instalments (finance.view)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invoice" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [finance]
+      operationId: updateInvoice
+      summary: Replace a draft's note, lines and instalments (finance.invoice); 409 not_draft once issued
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string, maxLength: 1000 }
+                lines: { type: array, maxItems: 30, items: { $ref: "#/components/schemas/InvoiceLine" } }
+                instalments: { type: array, maxItems: 12, items: { $ref: "#/components/schemas/Instalment" } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invoice" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/invoices/{id}/fill:
+    post:
+      tags: [finance]
+      operationId: fillInvoice
+      summary: Replace a draft's lines with the student's fee structure (finance.invoice)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invoice" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/invoices/{id}/issue:
+    post:
+      tags: [finance]
+      operationId: issueInvoice
+      summary: Issue a draft (finance.invoice)
+      description: Numbers it DTC/INV/YYYY/NNNNN (gapless) and fixes each instalment's amount and due date. It never changes again.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invoice" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/invoices/{id}/void:
+    post:
+      tags: [finance]
+      operationId: voidInvoice
+      summary: Set aside a draft that is not needed, with a reason (finance.invoice)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 5, maxLength: 500 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invoice" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/invoices/{id}/pdf:
+    get:
+      tags: [finance]
+      operationId: invoicePdf
+      summary: An issued invoice as a PDF (finance.view)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The PDF.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/billing:
+    post:
+      tags: [finance]
+      operationId: billCohort
+      summary: Draft term invoices for every active student of a class (finance.invoice)
+      description: Students who already have an invoice for the term are skipped, so running it twice bills nobody twice.
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [cohort_id, term_id], properties: { cohort_id: { type: string, format: uuid }, term_id: { type: string, format: uuid } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [created, skipped, invoice_ids], properties: { created: { type: integer }, skipped: { type: integer }, invoice_ids: { type: array, items: { type: string, format: uuid } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/payments:
+    get:
+      tags: [finance]
+      operationId: listPayments
+      summary: Payments, newest first, 50 a page (finance.view)
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [pending, confirmed, rejected] } }
+        - { name: method, in: query, schema: { type: string, enum: [cash, bank, mpesa, sponsor] } }
+        - { name: q, in: query, description: Reference, receipt number, student number or name., schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items, total, page_size], properties: { items: { type: array, items: { $ref: "#/components/schemas/Payment" } }, total: { type: integer }, page_size: { type: integer } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [finance]
+      operationId: recordPayment
+      summary: Record money received (finance.payment.record)
+      description: |
+        Bank, M-Pesa and sponsor payments are pending until confirmed and do not count (AC-11).
+        Cash recorded by someone who also holds finance.payment.confirm is confirmed and receipted
+        at once. A retry with the same Idempotency-Key gets the first answer (header
+        Idempotent-Replayed); the same key with other details answers 422 idempotency_key_reused.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentInput" }
+      responses:
+        "200":
+          description: Recorded, or the stored answer to a retry.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/payments/{id}:
+    get:
+      tags: [finance]
+      operationId: getPayment
+      summary: A payment (finance.view)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/payments/{id}/confirm:
+    post:
+      tags: [finance]
+      operationId: confirmPayment
+      summary: Confirm a pending payment against the statement and issue its receipt (finance.payment.confirm)
+      description: The receipt is numbered DTC/RCT/YYYY/NNNNN (gapless). 409 already_decided if it was confirmed or rejected before.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { note: { type: string, maxLength: 1000 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/payments/{id}/reject:
+    post:
+      tags: [finance]
+      operationId: rejectPayment
+      summary: Reject a pending payment that is not on the statement, with a reason (finance.payment.confirm)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 5, maxLength: 1000 } } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/payments/{id}/receipt:
+    get:
+      tags: [finance]
+      operationId: paymentReceipt
+      summary: The receipt of a confirmed payment as a PDF (finance.view)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The PDF.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/arrears:
+    get:
+      tags: [finance]
+      operationId: financeArrears
+      summary: Students who owe money, most overdue first (finance.view)
+      parameters:
+        - { name: cohort_id, in: query, schema: { type: string, format: uuid } }
+        - { name: overdue, in: query, description: 1 lists only students with an amount overdue., schema: { type: string, enum: ["1"] } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/ArrearsRow" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/students/{id}:
+    get:
+      tags: [finance]
+      operationId: studentAccount
+      summary: A student's account (finance.view)
+      description: Invoices, payments, adjustments, and the statement and balance derived from them (AC-10).
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Account" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/students/{id}/statement:
+    get:
+      tags: [finance]
+      operationId: studentStatementPdf
+      summary: A student's fee statement as a PDF (finance.view)
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The PDF.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/students/{id}/invoices:
+    post:
+      tags: [finance]
+      operationId: createInvoice
+      summary: Open an empty draft for a student, for a term or for anything else (finance.invoice)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [kind], properties: { kind: { type: string, enum: [term, other] }, term_id: { type: [string, "null"], format: uuid } } }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invoice" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/students/{id}/adjustments:
+    post:
+      tags: [finance]
+      operationId: adjustAccount
+      summary: Record a compensating charge or credit with a reason (finance.adjust)
+      description: Never edits what it corrects; it may point at the issued invoice or confirmed payment it corrects. Takes an Idempotency-Key.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, amount_cents, reason]
+              properties:
+                kind: { type: string, enum: [charge, credit] }
+                amount_cents: { type: integer, format: int64, minimum: 1 }
+                reason: { type: string, minLength: 5, maxLength: 1000 }
+                invoice_id: { type: [string, "null"], format: uuid }
+                payment_id: { type: [string, "null"], format: uuid }
+      responses:
+        "200":
+          description: Recorded, or the stored answer to a retry.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Adjustment" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/student/fees:
+    get:
+      tags: [student]
+      operationId: myFees
+      summary: Your fees, invoices, payments, statement and fee structure
+      description: Only issued invoices; payments waiting for confirmation are listed but not counted.
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentFees" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/student/fees/statement:
+    get:
+      tags: [student]
+      operationId: myFeeStatement
+      summary: Your fee statement as a PDF
+      responses:
+        "200":
+          description: The PDF.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/student/fees/invoices/{id}:
+    get:
+      tags: [student]
+      operationId: myInvoicePdf
+      summary: One of your issued invoices as a PDF
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The PDF.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/student/fees/payments/{id}/receipt:
+    get:
+      tags: [student]
+      operationId: myReceipt
+      summary: The receipt of one of your confirmed payments as a PDF
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The PDF.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
   /api/v1/staff/notification-templates:
     get:
       tags: [notifications]
@@ -3299,6 +3895,12 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: A new key for each action the user takes, and the same key when retrying it (NN-04).
+      schema: { type: string, minLength: 8, maxLength: 128 }
   responses:
     Error:
       description: Error; the code says which.
@@ -4769,6 +5371,221 @@ components:
                   action: { type: string, enum: [enquiry.assigned, enquiry.status_changed, enquiry.note_added] }
                   actor_name: { type: [string, "null"] }
                   details: { type: object, additionalProperties: true }
+    Cents:
+      description: An amount in integer cents of KES (never a float).
+      type: integer
+      format: int64
+    InvoiceLine:
+      type: object
+      required: [label, category, amount_cents]
+      properties:
+        label: { type: string, maxLength: 120 }
+        category: { type: string, enum: [tuition, registration, assessment, caution, other] }
+        amount_cents: { $ref: "#/components/schemas/Cents" }
+    StructureLine:
+      type: object
+      required: [label, category, charge, amount_cents]
+      properties:
+        label: { type: string, maxLength: 120 }
+        category: { type: string, enum: [tuition, registration, assessment, caution, other] }
+        charge: { type: string, enum: [once, per_term], description: "once: on the first invoice, at enrolment; per_term: on every invoice." }
+        amount_cents: { $ref: "#/components/schemas/Cents" }
+    Instalment:
+      type: object
+      required: [percent, due_days]
+      properties:
+        percent: { type: integer, minimum: 1, maximum: 100 }
+        due_days: { type: integer, minimum: 0, maximum: 730, description: Days after the invoice is issued. }
+    InvoiceInstalment:
+      type: object
+      required: [seq, percent, due_days, amount_cents, due_on]
+      properties:
+        seq: { type: integer }
+        percent: { type: integer }
+        due_days: { type: integer }
+        amount_cents: { type: [integer, "null"], format: int64, description: Set when issued. }
+        due_on: { type: [string, "null"], format: date, description: Set when issued. }
+    FeeStructureSummary:
+      type: object
+      required: [id, programme_id, programme_title, intake_id, intake_name, once_cents, per_term_cents, is_sample, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        programme_id: { type: string, format: uuid }
+        programme_title: { type: string }
+        intake_id: { type: [string, "null"], format: uuid, description: Null means every intake of the programme. }
+        intake_name: { type: [string, "null"] }
+        once_cents: { $ref: "#/components/schemas/Cents" }
+        per_term_cents: { $ref: "#/components/schemas/Cents" }
+        is_sample: { type: boolean }
+        updated_at: { type: string, format: date-time }
+    FeeStructure:
+      allOf:
+        - { $ref: "#/components/schemas/FeeStructureSummary" }
+        - type: object
+          required: [note, updated_by_name, lines, instalments]
+          properties:
+            note: { type: string }
+            updated_by_name: { type: [string, "null"] }
+            lines: { type: array, items: { $ref: "#/components/schemas/StructureLine" } }
+            instalments: { type: array, items: { $ref: "#/components/schemas/Instalment" } }
+            warnings: { type: array, items: { type: string } }
+    InvoiceSummary:
+      type: object
+      required: [id, student_id, kind, status, number, term_name, total_cents, created_at, issued_at]
+      properties:
+        id: { type: string, format: uuid }
+        student_id: { type: string, format: uuid }
+        student_number: { type: string }
+        student_name: { type: string }
+        kind: { type: string, enum: [enrolment, term, other] }
+        status: { type: string, enum: [draft, issued, void] }
+        number: { type: [string, "null"] }
+        term_name: { type: [string, "null"] }
+        total_cents: { $ref: "#/components/schemas/Cents" }
+        created_at: { type: string, format: date-time }
+        issued_at: { type: [string, "null"], format: date-time }
+    Invoice:
+      allOf:
+        - { $ref: "#/components/schemas/InvoiceSummary" }
+        - type: object
+          required: [programme_title, note, void_reason, created_by_name, issued_by_name, lines, instalments, has_structure]
+          properties:
+            programme_title: { type: string }
+            note: { type: string }
+            void_reason: { type: string }
+            created_by_name: { type: string }
+            issued_by_name: { type: [string, "null"] }
+            lines: { type: array, items: { $ref: "#/components/schemas/InvoiceLine" } }
+            instalments: { type: array, items: { $ref: "#/components/schemas/InvoiceInstalment" } }
+            has_structure: { type: boolean, description: A fee structure exists to fill this draft from. }
+    PaymentInput:
+      type: object
+      required: [student_id, method, amount_cents, paid_on]
+      properties:
+        student_id: { type: string, format: uuid }
+        method: { type: string, enum: [cash, bank, mpesa, sponsor] }
+        amount_cents: { $ref: "#/components/schemas/Cents" }
+        paid_on: { type: string, format: date }
+        reference: { type: string, maxLength: 60, description: "M-Pesa transaction code (required for M-Pesa) or bank slip or transfer reference (required for bank)." }
+        payer_name: { type: string, maxLength: 120, description: Required for sponsor payments. }
+        note: { type: string, maxLength: 1000 }
+    Payment:
+      type: object
+      required: [id, student_id, method, amount_cents, paid_on, reference, payer_name, status, recorded_at, decided_at, receipt_id, receipt_number]
+      properties:
+        id: { type: string, format: uuid }
+        student_id: { type: string, format: uuid }
+        student_number: { type: string }
+        student_name: { type: string }
+        method: { type: string, enum: [cash, bank, mpesa, sponsor] }
+        amount_cents: { $ref: "#/components/schemas/Cents" }
+        paid_on: { type: string, format: date }
+        reference: { type: string }
+        payer_name: { type: string }
+        note: { type: string }
+        status: { type: string, enum: [pending, confirmed, rejected] }
+        confirmed_via: { type: [string, "null"], enum: [finance, provider, null] }
+        recorded_at: { type: string, format: date-time }
+        recorded_by_name: { type: string }
+        decided_at: { type: [string, "null"], format: date-time }
+        decided_by_name: { type: [string, "null"] }
+        decision_note: { type: string }
+        receipt_id: { type: [string, "null"], format: uuid }
+        receipt_number: { type: [string, "null"] }
+    Adjustment:
+      type: object
+      required: [id, kind, amount_cents, reason, invoice_id, invoice_number, payment_id, receipt_number, created_at, created_by_name]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [charge, credit] }
+        amount_cents: { $ref: "#/components/schemas/Cents" }
+        reason: { type: string }
+        invoice_id: { type: [string, "null"], format: uuid }
+        invoice_number: { type: [string, "null"] }
+        payment_id: { type: [string, "null"], format: uuid }
+        receipt_number: { type: [string, "null"] }
+        created_at: { type: string, format: date-time }
+        created_by_name: { type: string }
+    StatementEntry:
+      type: object
+      required: [date, kind, description, reference, debit_cents, credit_cents, balance_cents]
+      properties:
+        date: { type: string, format: date }
+        kind: { type: string, enum: [invoice, payment, charge, credit] }
+        description: { type: string }
+        reference: { type: string }
+        debit_cents: { $ref: "#/components/schemas/Cents" }
+        credit_cents: { $ref: "#/components/schemas/Cents" }
+        balance_cents: { $ref: "#/components/schemas/Cents" }
+    AccountSummary:
+      type: object
+      description: Balance is positive when the student owes and negative when in credit. Pending payments are not counted.
+      required: [balance_cents, invoiced_cents, charges_cents, paid_cents, credits_cents, pending_cents, overdue_cents, next_due_on, next_due_cents]
+      properties:
+        balance_cents: { $ref: "#/components/schemas/Cents" }
+        invoiced_cents: { $ref: "#/components/schemas/Cents" }
+        charges_cents: { $ref: "#/components/schemas/Cents" }
+        paid_cents: { $ref: "#/components/schemas/Cents" }
+        credits_cents: { $ref: "#/components/schemas/Cents" }
+        pending_cents: { $ref: "#/components/schemas/Cents" }
+        overdue_cents: { $ref: "#/components/schemas/Cents" }
+        next_due_on: { type: [string, "null"], format: date }
+        next_due_cents: { $ref: "#/components/schemas/Cents" }
+    FinanceStudentRef:
+      type: object
+      required: [id, student_number, name, status, programme_title, intake_name]
+      properties:
+        id: { type: string, format: uuid }
+        student_number: { type: string }
+        name: { type: string }
+        status: { type: string }
+        programme_title: { type: string }
+        intake_name: { type: [string, "null"] }
+    Account:
+      type: object
+      required: [student, summary, statement, invoices, payments, adjustments]
+      properties:
+        student: { $ref: "#/components/schemas/FinanceStudentRef" }
+        summary: { $ref: "#/components/schemas/AccountSummary" }
+        statement: { type: array, items: { $ref: "#/components/schemas/StatementEntry" } }
+        invoices: { type: array, items: { $ref: "#/components/schemas/InvoiceSummary" } }
+        payments: { type: array, items: { $ref: "#/components/schemas/Payment" } }
+        adjustments: { type: array, items: { $ref: "#/components/schemas/Adjustment" } }
+    ArrearsRow:
+      type: object
+      required: [student, cohort_name, balance_cents, overdue_cents]
+      properties:
+        student: { $ref: "#/components/schemas/FinanceStudentRef" }
+        cohort_name: { type: [string, "null"] }
+        balance_cents: { $ref: "#/components/schemas/Cents" }
+        overdue_cents: { $ref: "#/components/schemas/Cents" }
+    FinanceSummary:
+      type: object
+      required: [draft_invoices, pending_payments, pending_cents, net_outstanding_cents]
+      properties:
+        draft_invoices: { type: integer }
+        pending_payments: { type: integer }
+        pending_cents: { $ref: "#/components/schemas/Cents" }
+        net_outstanding_cents: { $ref: "#/components/schemas/Cents" }
+    StudentFees:
+      type: object
+      required: [summary, statement, invoices, payments, structure, payment_instructions]
+      properties:
+        summary: { $ref: "#/components/schemas/AccountSummary" }
+        statement: { type: array, items: { $ref: "#/components/schemas/StatementEntry" } }
+        invoices:
+          type: array
+          items:
+            allOf:
+              - { $ref: "#/components/schemas/InvoiceSummary" }
+              - type: object
+                required: [lines, instalments]
+                properties:
+                  lines: { type: array, items: { $ref: "#/components/schemas/InvoiceLine" } }
+                  instalments: { type: array, items: { $ref: "#/components/schemas/InvoiceInstalment" } }
+        payments: { type: array, items: { $ref: "#/components/schemas/Payment" } }
+        structure: { oneOf: [{ $ref: "#/components/schemas/FeeStructure" }, { type: "null" }] }
+        payment_instructions: { type: string, description: How to pay, as the college wrote it; empty when not set. }
     Error:
       description: Error body returned by every endpoint on failure.
       type: object

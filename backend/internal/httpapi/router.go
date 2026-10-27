@@ -16,6 +16,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
+	"github.com/MboyaDan/dakota-college/backend/internal/finance"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
@@ -53,6 +54,8 @@ type Deps struct {
 	Portal *portal.Service
 	// Results is marks, approval, release and transcripts.
 	Results *results.Service
+	// Finance is fee structures, invoices, payments and statements.
+	Finance *finance.Service
 	Notify  *notify.Service
 }
 
@@ -343,6 +346,47 @@ func NewRouter(d Deps) (*Router, error) {
 		studentOnly(http.MethodGet, "/student/results", rh.studentResults)
 		studentOnly(http.MethodGet, "/student/results/slip", rh.slip)
 		studentOnly(http.MethodPost, "/student/transcripts/:id/link", rh.studentTranscriptLink)
+	}
+
+	if d.Finance != nil && d.Auth != nil {
+		fh := financeHandlers{svc: d.Finance}
+		add(http.MethodGet, "/staff/finance/summary", false, finance.PermView, fh.summary)
+		add(http.MethodGet, "/staff/finance/fee-structures", false, finance.PermView, fh.listStructures)
+		add(http.MethodPost, "/staff/finance/fee-structures", false, finance.PermInvoice, fh.createStructure)
+		add(http.MethodGet, "/staff/finance/fee-structures/:id", false, finance.PermView, fh.getStructure)
+		add(http.MethodPut, "/staff/finance/fee-structures/:id", false, finance.PermInvoice, fh.updateStructure)
+		add(http.MethodDelete, "/staff/finance/fee-structures/:id", false, finance.PermInvoice, fh.deleteStructure)
+
+		add(http.MethodGet, "/staff/finance/invoices", false, finance.PermView, fh.listInvoices)
+		add(http.MethodPost, "/staff/finance/invoices/issue", false, finance.PermInvoice, fh.issueInvoices)
+		add(http.MethodGet, "/staff/finance/invoices/:id", false, finance.PermView, fh.getInvoice)
+		add(http.MethodPut, "/staff/finance/invoices/:id", false, finance.PermInvoice, fh.updateInvoice)
+		add(http.MethodPost, "/staff/finance/invoices/:id/fill", false, finance.PermInvoice, fh.fillInvoice)
+		add(http.MethodPost, "/staff/finance/invoices/:id/issue", false, finance.PermInvoice, fh.issueInvoice)
+		add(http.MethodPost, "/staff/finance/invoices/:id/void", false, finance.PermInvoice, fh.voidInvoice)
+		add(http.MethodGet, "/staff/finance/invoices/:id/pdf", false, finance.PermView, fh.invoicePDF)
+		add(http.MethodPost, "/staff/finance/billing", false, finance.PermInvoice, fh.bill)
+
+		add(http.MethodGet, "/staff/finance/payments", false, finance.PermView, fh.listPayments)
+		add(http.MethodPost, "/staff/finance/payments", false, finance.PermRecord, fh.recordPayment)
+		add(http.MethodGet, "/staff/finance/payments/:id", false, finance.PermView, fh.getPayment)
+		add(http.MethodPost, "/staff/finance/payments/:id/confirm", false, finance.PermConfirm, fh.confirmPayment)
+		add(http.MethodPost, "/staff/finance/payments/:id/reject", false, finance.PermConfirm, fh.rejectPayment)
+		add(http.MethodGet, "/staff/finance/payments/:id/receipt", false, finance.PermView, fh.receipt)
+
+		add(http.MethodGet, "/staff/finance/arrears", false, finance.PermView, fh.arrears)
+		add(http.MethodGet, "/staff/finance/students/:id", false, finance.PermView, fh.account)
+		add(http.MethodGet, "/staff/finance/students/:id/statement", false, finance.PermView, fh.statement)
+		add(http.MethodPost, "/staff/finance/students/:id/invoices", false, finance.PermInvoice, fh.createInvoice)
+		add(http.MethodPost, "/staff/finance/students/:id/adjustments", false, finance.PermAdjust, fh.adjust)
+
+		own := func(method, path string, h gin.HandlerFunc) {
+			mount(Route{Method: method, Path: path, Kind: "student"}, defaultBodyLimit, h)
+		}
+		own(http.MethodGet, "/student/fees", fh.myFees)
+		own(http.MethodGet, "/student/fees/statement", fh.myStatement)
+		own(http.MethodGet, "/student/fees/invoices/:id", fh.myInvoice)
+		own(http.MethodGet, "/student/fees/payments/:id/receipt", fh.myReceipt)
 	}
 
 	if d.Content != nil && d.Enquiries != nil {

@@ -58,7 +58,8 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 
 	counts := map[string]int{}
 	for _, table := range []string{"schools", "programmes", "programme_intakes", "fee_items", "faqs", "users", "user_roles", "accreditations", "pages", "news_posts", "events", "applicants", "applications",
-		"academic_terms", "units", "programme_units", "unit_offerings", "trainer_assignments", "students", "unit_registrations", "school_assignments", "cohorts"} {
+		"academic_terms", "units", "programme_units", "unit_offerings", "trainer_assignments", "students", "unit_registrations", "school_assignments", "cohorts",
+		"fee_structures", "fee_structure_instalments", "invoices", "payments", "receipts"} {
 		var n int
 		if err := pool.QueryRow(ctx, "SELECT count(*) FROM "+table).Scan(&n); err != nil {
 			t.Fatal(err)
@@ -72,6 +73,15 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 		// each with an application walked to enrolled, in one cohort and two offerings.
 		"applicants": 5, "applications": 5, "academic_terms": 1, "units": 3, "programme_units": 3, "unit_offerings": 2,
 		"trainer_assignments": 1, "students": 4, "unit_registrations": 8, "school_assignments": 2, "cohorts": 1,
+		// Stage 14a: one fee structure in two instalments, four draft first
+		// invoices and one pending M-Pesa payment (no receipt until confirmed).
+		"fee_structures": 1, "fee_structure_instalments": 2, "invoices": 4, "payments": 1, "receipts": 0,
+	}
+	// Every first invoice has the sample structure's lines, and none is issued.
+	var unfilled, issued int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM invoice_lines l WHERE l.invoice_id = i.id)),
+		count(*) FILTER (WHERE status <> 'draft') FROM invoices i`).Scan(&unfilled, &issued); err != nil || unfilled != 0 || issued != 0 {
+		t.Errorf("sample invoices: %d without lines, %d not drafts (%v)", unfilled, issued, err)
 	}
 	for table, n := range want {
 		if counts[table] != n {
@@ -143,7 +153,7 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !contains(perms, "system.admin") || len(perms) != 27 {
+	if !contains(perms, "system.admin") || len(perms) != 28 {
 		t.Fatalf("super admin permissions = %v", perms)
 	}
 }

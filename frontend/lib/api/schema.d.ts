@@ -2517,6 +2517,463 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/finance/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Drafts and payments waiting, and the college's net outstanding balance (finance.view) */
+        get: operations["financeSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/fee-structures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every fee structure (finance.view) */
+        get: operations["listFeeStructures"];
+        put?: never;
+        /**
+         * Start the fee structure of a programme, for one intake or every intake (finance.invoice)
+         * @description With from_published, it starts from the fees published on the programme page; warnings name lines to check.
+         */
+        post: operations["createFeeStructure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/fee-structures/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A fee structure with its lines and instalments (finance.view) */
+        get: operations["getFeeStructure"];
+        /** Replace a structure's lines and instalments (finance.invoice); existing invoices do not change */
+        put: operations["updateFeeStructure"];
+        post?: never;
+        /** Remove a fee structure (finance.invoice); invoices keep their lines */
+        delete: operations["deleteFeeStructure"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoices, newest first, 50 a page (finance.view) */
+        get: operations["listInvoices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/invoices/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue several drafts, all or none (finance.invoice) */
+        post: operations["issueInvoices"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/invoices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An invoice with its lines and instalments (finance.view) */
+        get: operations["getInvoice"];
+        /** Replace a draft's note, lines and instalments (finance.invoice); 409 not_draft once issued */
+        put: operations["updateInvoice"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/invoices/{id}/fill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace a draft's lines with the student's fee structure (finance.invoice) */
+        post: operations["fillInvoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/invoices/{id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a draft (finance.invoice)
+         * @description Numbers it DTC/INV/YYYY/NNNNN (gapless) and fixes each instalment's amount and due date. It never changes again.
+         */
+        post: operations["issueInvoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/invoices/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set aside a draft that is not needed, with a reason (finance.invoice) */
+        post: operations["voidInvoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/invoices/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An issued invoice as a PDF (finance.view) */
+        get: operations["invoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/billing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draft term invoices for every active student of a class (finance.invoice)
+         * @description Students who already have an invoice for the term are skipped, so running it twice bills nobody twice.
+         */
+        post: operations["billCohort"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payments, newest first, 50 a page (finance.view) */
+        get: operations["listPayments"];
+        put?: never;
+        /**
+         * Record money received (finance.payment.record)
+         * @description Bank, M-Pesa and sponsor payments are pending until confirmed and do not count (AC-11).
+         *     Cash recorded by someone who also holds finance.payment.confirm is confirmed and receipted
+         *     at once. A retry with the same Idempotency-Key gets the first answer (header
+         *     Idempotent-Replayed); the same key with other details answers 422 idempotency_key_reused.
+         */
+        post: operations["recordPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/payments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A payment (finance.view) */
+        get: operations["getPayment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/payments/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a pending payment against the statement and issue its receipt (finance.payment.confirm)
+         * @description The receipt is numbered DTC/RCT/YYYY/NNNNN (gapless). 409 already_decided if it was confirmed or rejected before.
+         */
+        post: operations["confirmPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/payments/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a pending payment that is not on the statement, with a reason (finance.payment.confirm) */
+        post: operations["rejectPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/payments/{id}/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The receipt of a confirmed payment as a PDF (finance.view) */
+        get: operations["paymentReceipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/arrears": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Students who owe money, most overdue first (finance.view) */
+        get: operations["financeArrears"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/students/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A student's account (finance.view)
+         * @description Invoices, payments, adjustments, and the statement and balance derived from them (AC-10).
+         */
+        get: operations["studentAccount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/students/{id}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A student's fee statement as a PDF (finance.view) */
+        get: operations["studentStatementPdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/students/{id}/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open an empty draft for a student, for a term or for anything else (finance.invoice) */
+        post: operations["createInvoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/students/{id}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a compensating charge or credit with a reason (finance.adjust)
+         * @description Never edits what it corrects; it may point at the issued invoice or confirmed payment it corrects. Takes an Idempotency-Key.
+         */
+        post: operations["adjustAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Your fees, invoices, payments, statement and fee structure
+         * @description Only issued invoices; payments waiting for confirmation are listed but not counted.
+         */
+        get: operations["myFees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/fees/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your fee statement as a PDF */
+        get: operations["myFeeStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/fees/invoices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of your issued invoices as a PDF */
+        get: operations["myInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/fees/payments/{id}/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The receipt of one of your confirmed payments as a PDF */
+        get: operations["myReceipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/notification-templates": {
         parameters: {
             query?: never;
@@ -3938,6 +4395,229 @@ export interface components {
                 };
             }[];
         };
+        /**
+         * Format: int64
+         * @description An amount in integer cents of KES (never a float).
+         */
+        Cents: number;
+        InvoiceLine: {
+            label: string;
+            /** @enum {string} */
+            category: "tuition" | "registration" | "assessment" | "caution" | "other";
+            amount_cents: components["schemas"]["Cents"];
+        };
+        StructureLine: {
+            label: string;
+            /** @enum {string} */
+            category: "tuition" | "registration" | "assessment" | "caution" | "other";
+            /**
+             * @description once: on the first invoice, at enrolment; per_term: on every invoice.
+             * @enum {string}
+             */
+            charge: "once" | "per_term";
+            amount_cents: components["schemas"]["Cents"];
+        };
+        Instalment: {
+            percent: number;
+            /** @description Days after the invoice is issued. */
+            due_days: number;
+        };
+        InvoiceInstalment: {
+            seq: number;
+            percent: number;
+            due_days: number;
+            /**
+             * Format: int64
+             * @description Set when issued.
+             */
+            amount_cents: number | null;
+            /**
+             * Format: date
+             * @description Set when issued.
+             */
+            due_on: string | null;
+        };
+        FeeStructureSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            programme_id: string;
+            programme_title: string;
+            /**
+             * Format: uuid
+             * @description Null means every intake of the programme.
+             */
+            intake_id: string | null;
+            intake_name: string | null;
+            once_cents: components["schemas"]["Cents"];
+            per_term_cents: components["schemas"]["Cents"];
+            is_sample: boolean;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        FeeStructure: components["schemas"]["FeeStructureSummary"] & {
+            note: string;
+            updated_by_name: string | null;
+            lines: components["schemas"]["StructureLine"][];
+            instalments: components["schemas"]["Instalment"][];
+            warnings?: string[];
+        };
+        InvoiceSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            student_id: string;
+            student_number?: string;
+            student_name?: string;
+            /** @enum {string} */
+            kind: "enrolment" | "term" | "other";
+            /** @enum {string} */
+            status: "draft" | "issued" | "void";
+            number: string | null;
+            term_name: string | null;
+            total_cents: components["schemas"]["Cents"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            issued_at: string | null;
+        };
+        Invoice: components["schemas"]["InvoiceSummary"] & {
+            programme_title: string;
+            note: string;
+            void_reason: string;
+            created_by_name: string;
+            issued_by_name: string | null;
+            lines: components["schemas"]["InvoiceLine"][];
+            instalments: components["schemas"]["InvoiceInstalment"][];
+            /** @description A fee structure exists to fill this draft from. */
+            has_structure: boolean;
+        };
+        PaymentInput: {
+            /** Format: uuid */
+            student_id: string;
+            /** @enum {string} */
+            method: "cash" | "bank" | "mpesa" | "sponsor";
+            amount_cents: components["schemas"]["Cents"];
+            /** Format: date */
+            paid_on: string;
+            /** @description M-Pesa transaction code (required for M-Pesa) or bank slip or transfer reference (required for bank). */
+            reference?: string;
+            /** @description Required for sponsor payments. */
+            payer_name?: string;
+            note?: string;
+        };
+        Payment: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            student_id: string;
+            student_number?: string;
+            student_name?: string;
+            /** @enum {string} */
+            method: "cash" | "bank" | "mpesa" | "sponsor";
+            amount_cents: components["schemas"]["Cents"];
+            /** Format: date */
+            paid_on: string;
+            reference: string;
+            payer_name: string;
+            note?: string;
+            /** @enum {string} */
+            status: "pending" | "confirmed" | "rejected";
+            /** @enum {string|null} */
+            confirmed_via?: "finance" | "provider" | null;
+            /** Format: date-time */
+            recorded_at: string;
+            recorded_by_name?: string;
+            /** Format: date-time */
+            decided_at: string | null;
+            decided_by_name?: string | null;
+            decision_note?: string;
+            /** Format: uuid */
+            receipt_id: string | null;
+            receipt_number: string | null;
+        };
+        Adjustment: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "charge" | "credit";
+            amount_cents: components["schemas"]["Cents"];
+            reason: string;
+            /** Format: uuid */
+            invoice_id: string | null;
+            invoice_number: string | null;
+            /** Format: uuid */
+            payment_id: string | null;
+            receipt_number: string | null;
+            /** Format: date-time */
+            created_at: string;
+            created_by_name: string;
+        };
+        StatementEntry: {
+            /** Format: date */
+            date: string;
+            /** @enum {string} */
+            kind: "invoice" | "payment" | "charge" | "credit";
+            description: string;
+            reference: string;
+            debit_cents: components["schemas"]["Cents"];
+            credit_cents: components["schemas"]["Cents"];
+            balance_cents: components["schemas"]["Cents"];
+        };
+        /** @description Balance is positive when the student owes and negative when in credit. Pending payments are not counted. */
+        AccountSummary: {
+            balance_cents: components["schemas"]["Cents"];
+            invoiced_cents: components["schemas"]["Cents"];
+            charges_cents: components["schemas"]["Cents"];
+            paid_cents: components["schemas"]["Cents"];
+            credits_cents: components["schemas"]["Cents"];
+            pending_cents: components["schemas"]["Cents"];
+            overdue_cents: components["schemas"]["Cents"];
+            /** Format: date */
+            next_due_on: string | null;
+            next_due_cents: components["schemas"]["Cents"];
+        };
+        FinanceStudentRef: {
+            /** Format: uuid */
+            id: string;
+            student_number: string;
+            name: string;
+            status: string;
+            programme_title: string;
+            intake_name: string | null;
+        };
+        Account: {
+            student: components["schemas"]["FinanceStudentRef"];
+            summary: components["schemas"]["AccountSummary"];
+            statement: components["schemas"]["StatementEntry"][];
+            invoices: components["schemas"]["InvoiceSummary"][];
+            payments: components["schemas"]["Payment"][];
+            adjustments: components["schemas"]["Adjustment"][];
+        };
+        ArrearsRow: {
+            student: components["schemas"]["FinanceStudentRef"];
+            cohort_name: string | null;
+            balance_cents: components["schemas"]["Cents"];
+            overdue_cents: components["schemas"]["Cents"];
+        };
+        FinanceSummary: {
+            draft_invoices: number;
+            pending_payments: number;
+            pending_cents: components["schemas"]["Cents"];
+            net_outstanding_cents: components["schemas"]["Cents"];
+        };
+        StudentFees: {
+            summary: components["schemas"]["AccountSummary"];
+            statement: components["schemas"]["StatementEntry"][];
+            invoices: (components["schemas"]["InvoiceSummary"] & {
+                lines: components["schemas"]["InvoiceLine"][];
+                instalments: components["schemas"]["InvoiceInstalment"][];
+            })[];
+            payments: components["schemas"]["Payment"][];
+            structure: components["schemas"]["FeeStructure"] | null;
+            /** @description How to pay */
+            payment_instructions: string;
+        };
         /** @description Error body returned by every endpoint on failure. */
         Error: {
             error: {
@@ -3986,6 +4666,8 @@ export interface components {
     parameters: {
         Kind: "schools" | "programmes" | "news" | "events" | "faq-categories" | "faqs" | "banners" | "gallery" | "statistics" | "accreditations" | "pages";
         ID: string;
+        /** @description A new key for each action the user takes, and the same key when retrying it (NN-04). */
+        IdempotencyKey: string;
     };
     requestBodies: never;
     headers: {
@@ -8399,6 +9081,880 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FileLink"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    financeSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceSummary"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    listFeeStructures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["FeeStructureSummary"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createFeeStructure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    programme_id: string;
+                    /** Format: uuid */
+                    intake_id?: string | null;
+                    from_published?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructure"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getFeeStructure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructure"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    updateFeeStructure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                    lines: components["schemas"]["StructureLine"][];
+                    instalments?: components["schemas"]["Instalment"][];
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructure"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    deleteFeeStructure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    listInvoices: {
+        parameters: {
+            query?: {
+                status?: "draft" | "issued" | "void";
+                term_id?: string;
+                cohort_id?: string;
+                /** @description Invoice number */
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["InvoiceSummary"][];
+                        total: number;
+                        page_size: number;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    issueInvoices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    ids: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Issued, with their numbers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        issued: number;
+                        numbers: string[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    updateInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                    lines?: components["schemas"]["InvoiceLine"][];
+                    instalments?: components["schemas"]["Instalment"][];
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    fillInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    issueInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    voidInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    invoicePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The PDF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    billCohort: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    cohort_id: string;
+                    /** Format: uuid */
+                    term_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created: number;
+                        skipped: number;
+                        invoice_ids: string[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    listPayments: {
+        parameters: {
+            query?: {
+                status?: "pending" | "confirmed" | "rejected";
+                method?: "cash" | "bank" | "mpesa" | "sponsor";
+                /** @description Reference */
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Payment"][];
+                        total: number;
+                        page_size: number;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    recordPayment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A new key for each action the user takes, and the same key when retrying it (NN-04). */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentInput"];
+            };
+        };
+        responses: {
+            /** @description Recorded, or the stored answer to a retry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payment"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    confirmPayment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A new key for each action the user takes, and the same key when retrying it (NN-04). */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payment"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    rejectPayment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A new key for each action the user takes, and the same key when retrying it (NN-04). */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payment"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    paymentReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The PDF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    financeArrears: {
+        parameters: {
+            query?: {
+                cohort_id?: string;
+                /** @description 1 lists only students with an amount overdue. */
+                overdue?: "1";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ArrearsRow"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    studentAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    studentStatementPdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The PDF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    createInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "term" | "other";
+                    /** Format: uuid */
+                    term_id?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    adjustAccount: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A new key for each action the user takes, and the same key when retrying it (NN-04). */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "charge" | "credit";
+                    /** Format: int64 */
+                    amount_cents: number;
+                    reason: string;
+                    /** Format: uuid */
+                    invoice_id?: string | null;
+                    /** Format: uuid */
+                    payment_id?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Recorded, or the stored answer to a retry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Adjustment"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    myFees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentFees"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    myFeeStatement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The PDF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    myInvoicePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The PDF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    myReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The PDF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
                 };
             };
             401: components["responses"]["Unauthenticated"];

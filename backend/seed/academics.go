@@ -200,5 +200,5 @@ func seedAcademics(ctx context.Context, tx pgx.Tx, q *dbq.Queries, hash string, 
 		}
 		sum.Students++
 	}
-	return nil
+	return seedFinance(ctx, tx, q, programme)
 }

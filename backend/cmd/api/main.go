@@ -31,6 +31,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/db"
 	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
+	"github.com/MboyaDan/dakota-college/backend/internal/finance"
 	"github.com/MboyaDan/dakota-college/backend/internal/httpapi"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
@@ -135,6 +136,7 @@ func run() error {
 		Results: results.NewService(results.Options{
 			Pool: pool, Logger: logger, Storage: store, PrivateBucket: cfg.S3.PrivateBucket,
 		}),
+		Finance: finance.NewService(finance.Options{Pool: pool, Logger: logger}),
 		Portal: portal.NewService(portal.Options{
 			Pool: pool, Academics: academicsSvc, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
 		}),
