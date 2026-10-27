@@ -17,6 +17,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
 	"github.com/MboyaDan/dakota-college/backend/internal/finance"
+	"github.com/MboyaDan/dakota-college/backend/internal/kcb"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/mpesa"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
@@ -58,7 +59,9 @@ type Deps struct {
 	// Finance is fee structures, invoices, payments and statements.
 	Finance *finance.Service
 	// Mpesa is the college paybill (C2B); nil when M-Pesa is not enabled.
-	Mpesa  *mpesa.Service
+	Mpesa *mpesa.Service
+	// Kcb is KCB Buni payment notifications; nil when not enabled.
+	Kcb    *kcb.Service
 	Notify *notify.Service
 }
 
@@ -407,6 +410,19 @@ func NewRouter(d Deps) (*Router, error) {
 		add(http.MethodPost, "/staff/finance/mpesa/register-urls", false, mpesa.PermSetup, mh.register)
 		add(http.MethodPost, "/staff/finance/mpesa/simulate", false, mpesa.PermSetup, mh.simulate)
 		add(http.MethodPost, "/staff/finance/mpesa/reprocess", false, mpesa.PermSetup, mh.reprocess)
+	}
+
+	if d.Kcb != nil && d.Auth != nil {
+		kh := kcbHandlers{svc: d.Kcb}
+		// KCB's notifications: public, but answered only on the secret path.
+		addWithLimit(callbackBodyLimit, http.MethodPost, "/payments/kcb/:secret/notification", true, "", kh.notification)
+
+		add(http.MethodGet, "/staff/finance/kcb", false, finance.PermView, kh.status)
+		add(http.MethodGet, "/staff/finance/kcb/transactions", false, finance.PermView, kh.list)
+		add(http.MethodPost, "/staff/finance/kcb/transactions/:id/assign", false, finance.PermConfirm, kh.assign)
+		add(http.MethodPost, "/staff/finance/kcb/transactions/:id/refund", false, finance.PermConfirm, kh.refund)
+		add(http.MethodGet, "/staff/finance/kcb/reconciliation", false, finance.PermView, kh.reconcile)
+		add(http.MethodPost, "/staff/finance/kcb/reprocess", false, mpesa.PermSetup, kh.reprocess)
 	}
 
 	if d.Content != nil && d.Enquiries != nil {

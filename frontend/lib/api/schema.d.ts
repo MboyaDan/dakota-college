@@ -3175,6 +3175,131 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/kcb/{secret}/notification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * KCB Buni instant payment notification (public; answered only on the secret path)
+         * @description Stored as received with its Signature header, then recorded once per transactionReference.
+         *     Until the signature can be verified (D-175), a match becomes a pending bank payment for
+         *     Finance to confirm. statusCode 1 means it was stored but could not be read. 404 for any
+         *     other secret or address; 429 after repeated refusals.
+         */
+        post: operations["kcbNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/kcb": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KCB notification setup and activity, with the secret hidden (finance.view) */
+        get: operations["kcbStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/kcb/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** KCB notifications received, newest first, 50 a page (finance.view) */
+        get: operations["kcbTransactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/kcb/transactions/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Credit an unmatched KCB payment to a student after finding it on the statement (finance.payment.confirm) */
+        post: operations["kcbAssign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/kcb/transactions/{id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an unmatched KCB payment to be returned (finance.payment.confirm) */
+        post: operations["kcbRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/kcb/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One day's KCB notifications, to compare with the KCB statement (finance.view) */
+        get: operations["kcbReconciliation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/kcb/reprocess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record stored notifications that were not processed (finance.mpesa.setup) */
+        post: operations["kcbReprocess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/notification-templates": {
         parameters: {
             query?: never;
@@ -4887,6 +5012,42 @@ export interface components {
             manual_count: number;
             manual_cents: components["schemas"]["Cents"];
             manual_pending: number;
+        };
+        KcbAnswer: {
+            transactionID: string;
+            statusCode: string;
+            statusMessage: string;
+        };
+        KcbStatus: {
+            credit_account: string;
+            till: string;
+            /** @description Path */
+            notification_url: string;
+            ip_allow_list: boolean;
+            /** @description False until KCB supplies how to verify the Signature header (D-175). */
+            signature_verified: boolean;
+            /** Format: date-time */
+            last_notification_at: string | null;
+            unmatched: number;
+        };
+        KcbTransaction: components["schemas"]["MpesaTransaction"] & {
+            narration: string;
+            verified: boolean;
+            /** @enum {string|null} */
+            payment_status: "pending" | "confirmed" | "rejected" | null;
+        };
+        KcbReconciliation: {
+            /** Format: date */
+            day: string;
+            lines: {
+                status: string;
+                count: number;
+                total_cents: components["schemas"]["Cents"];
+            }[];
+            received_count: number;
+            received_cents: components["schemas"]["Cents"];
+            credited_cents: components["schemas"]["Cents"];
+            unmatched_cents: components["schemas"]["Cents"];
         };
         /** @description Error body returned by every endpoint on failure. */
         Error: {
@@ -10534,6 +10695,207 @@ export interface operations {
         };
     };
     mpesaReprocess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How many were recorded now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        processed: number;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    kcbNotification: {
+        parameters: {
+            query?: never;
+            header?: {
+                Signature?: string;
+            };
+            path: {
+                secret: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Acknowledged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KcbAnswer"];
+                };
+            };
+            404: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+            500: components["responses"]["Error"];
+        };
+    };
+    kcbStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KcbStatus"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    kcbTransactions: {
+        parameters: {
+            query?: {
+                status?: "matched" | "unmatched" | "assigned" | "refund" | "rejected";
+                day?: string;
+                /** @description Transaction reference */
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["KcbTransaction"][];
+                        total: number;
+                        page_size: number;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    kcbAssign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    student_id: string;
+                    note: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Assigned. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    kcbRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Marked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    kcbReconciliation: {
+        parameters: {
+            query: {
+                day: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KcbReconciliation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    kcbReprocess: {
         parameters: {
             query?: never;
             header?: never;

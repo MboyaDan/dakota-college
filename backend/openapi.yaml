@@ -65,6 +65,11 @@ tags:
       M-Pesa C2B on the college paybill (Stage 15a). Only when MPESA_ENABLED; every value comes
       from the environment. Safaricom calls the two public callback routes, which answer only on
       the secret path. Payers use their student number as the account number.
+  - name: kcb
+    description: |
+      KCB Buni instant payment notifications for the college account (Stage 15b). Only when
+      KCB_IPN_ENABLED; every value comes from the environment. Until KCB's Signature header can be
+      verified, notifications create pending bank payments for Finance to confirm (D-175).
   - name: notifications
     description: |
       Editable text of emails and text messages sent to applicants (notifications.manage). Text
@@ -4051,6 +4056,136 @@ paths:
               schema: { type: object, required: [processed], properties: { processed: { type: integer } } }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Error" }
+  /api/v1/payments/kcb/{secret}/notification:
+    post:
+      tags: [kcb]
+      operationId: kcbNotification
+      summary: KCB Buni instant payment notification (public; answered only on the secret path)
+      description: |
+        Stored as received with its Signature header, then recorded once per transactionReference.
+        Until the signature can be verified (D-175), a match becomes a pending bank payment for
+        Finance to confirm. statusCode 1 means it was stored but could not be read. 404 for any
+        other secret or address; 429 after repeated refusals.
+      security: []
+      parameters:
+        - { name: secret, in: path, required: true, schema: { type: string } }
+        - { name: Signature, in: header, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        "200":
+          description: Acknowledged.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/KcbAnswer" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/kcb:
+    get:
+      tags: [kcb]
+      operationId: kcbStatus
+      summary: KCB notification setup and activity, with the secret hidden (finance.view)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/KcbStatus" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/kcb/transactions:
+    get:
+      tags: [kcb]
+      operationId: kcbTransactions
+      summary: KCB notifications received, newest first, 50 a page (finance.view)
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [matched, unmatched, assigned, refund, rejected] } }
+        - { name: day, in: query, schema: { type: string, format: date } }
+        - { name: q, in: query, description: Transaction reference, customer reference or name., schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items, total, page_size], properties: { items: { type: array, items: { $ref: "#/components/schemas/KcbTransaction" } }, total: { type: integer }, page_size: { type: integer } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/kcb/transactions/{id}/assign:
+    post:
+      tags: [kcb]
+      operationId: kcbAssign
+      summary: Credit an unmatched KCB payment to a student after finding it on the statement (finance.payment.confirm)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [student_id, note], properties: { student_id: { type: string, format: uuid }, note: { type: string, minLength: 5, maxLength: 1000 } } }
+      responses:
+        "204": { description: Assigned. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/kcb/transactions/{id}/refund:
+    post:
+      tags: [kcb]
+      operationId: kcbRefund
+      summary: Mark an unmatched KCB payment to be returned (finance.payment.confirm)
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [note], properties: { note: { type: string, minLength: 5, maxLength: 1000 } } }
+      responses:
+        "204": { description: Marked. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/kcb/reconciliation:
+    get:
+      tags: [kcb]
+      operationId: kcbReconciliation
+      summary: One day's KCB notifications, to compare with the KCB statement (finance.view)
+      parameters:
+        - { name: day, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/KcbReconciliation" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/kcb/reprocess:
+    post:
+      tags: [kcb]
+      operationId: kcbReprocess
+      summary: Record stored notifications that were not processed (finance.mpesa.setup)
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200":
+          description: How many were recorded now.
+          content:
+            application/json:
+              schema: { type: object, required: [processed], properties: { processed: { type: integer } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
   /api/v1/staff/notification-templates:
     get:
       tags: [notifications]
@@ -5876,6 +6011,51 @@ components:
         manual_count: { type: integer, description: M-Pesa payments recorded by hand for the day that Safaricom has not reported. }
         manual_cents: { $ref: "#/components/schemas/Cents" }
         manual_pending: { type: integer }
+    KcbAnswer:
+      type: object
+      required: [transactionID, statusCode, statusMessage]
+      properties:
+        transactionID: { type: string }
+        statusCode: { type: string }
+        statusMessage: { type: string }
+    KcbStatus:
+      type: object
+      required: [credit_account, till, notification_url, ip_allow_list, signature_verified, last_notification_at, unmatched]
+      properties:
+        credit_account: { type: string }
+        till: { type: string }
+        notification_url: { type: string, description: Path, with the secret shortened. }
+        ip_allow_list: { type: boolean }
+        signature_verified: { type: boolean, description: False until KCB supplies how to verify the Signature header (D-175). }
+        last_notification_at: { type: [string, "null"], format: date-time }
+        unmatched: { type: integer }
+    KcbTransaction:
+      allOf:
+        - { $ref: "#/components/schemas/MpesaTransaction" }
+        - type: object
+          required: [narration, verified, payment_status]
+          properties:
+            narration: { type: string }
+            verified: { type: boolean }
+            payment_status: { type: [string, "null"], enum: [pending, confirmed, rejected, null] }
+    KcbReconciliation:
+      type: object
+      required: [day, lines, received_count, received_cents, credited_cents, unmatched_cents]
+      properties:
+        day: { type: string, format: date }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [status, count, total_cents]
+            properties:
+              status: { type: string }
+              count: { type: integer }
+              total_cents: { $ref: "#/components/schemas/Cents" }
+        received_count: { type: integer }
+        received_cents: { $ref: "#/components/schemas/Cents" }
+        credited_cents: { $ref: "#/components/schemas/Cents" }
+        unmatched_cents: { $ref: "#/components/schemas/Cents" }
     Error:
       description: Error body returned by every endpoint on failure.
       type: object
