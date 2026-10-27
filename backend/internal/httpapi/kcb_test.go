@@ -14,7 +14,7 @@ import (
 
 // Test values only (never real ones).
 const (
-	testKcbSecret  = "test-kcb-ipn-secret-0123456789abcdef0123"
+	testKcbSecret  = "test-kcb-ipn-secret-xxxxxxxxxxxxxxxxxxxxxxxx" // obviously fake, low entropy: not a secret
 	testKcbAccount = "TESTACCOUNT001"
 )
 
