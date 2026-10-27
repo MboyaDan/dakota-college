@@ -15,6 +15,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/audit"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
+	"github.com/MboyaDan/dakota-college/backend/internal/finance"
 )
 
 // The student's own pages. user is always the signed-in account.
@@ -473,8 +474,10 @@ type Dashboard struct {
 	ChangeRequestPending bool  `json:"change_request_pending"`
 	// RegistrationOpen counts classes open to register for and not yet registered.
 	RegistrationOpen int `json:"registration_open"`
-	// FeeBalanceCents is null until finance is set up (Stage 14).
+	// FeeBalanceCents is null while nothing has been billed or paid;
+	// positive owes, negative is credit (Stage 14).
 	FeeBalanceCents *int64 `json:"fee_balance_cents"`
+	FeeOverdueCents int64  `json:"fee_overdue_cents"`
 }
 
 func (s *Service) Dashboard(ctx context.Context, user uuid.UUID) (*Dashboard, error) {
@@ -509,6 +512,13 @@ func (s *Service) Dashboard(ctx context.Context, user uuid.UUID) (*Dashboard, er
 				d.RegistrationOpen++
 			}
 		}
+	}
+	balance, overdue, billed, err := finance.BalanceOf(ctx, q, st.ID, s.now())
+	if err != nil {
+		return nil, err
+	}
+	if billed {
+		d.FeeBalanceCents, d.FeeOverdueCents = &balance, overdue
 	}
 	return d, nil
 }

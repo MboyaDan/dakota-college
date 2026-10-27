@@ -287,6 +287,30 @@ func (s *Service) Adjust(ctx context.Context, p *auth.Principal, key string, stu
 	})
 }
 
+// BalanceOf is a student's balance and what is overdue, for the portal
+// home page. ok is false while nothing has been billed or paid.
+func BalanceOf(ctx context.Context, q *dbq.Queries, student uuid.UUID, now time.Time) (balance, overdue int64, ok bool, err error) {
+	b, err := q.StudentBalance(ctx, student)
+	if err != nil {
+		return 0, 0, false, err
+	}
+	if b.InvoicedCents+b.ChargesCents+b.PaidCents+b.CreditsCents == 0 {
+		return 0, 0, false, nil
+	}
+	dues, err := q.StudentDueInstalments(ctx, student)
+	if err != nil {
+		return 0, 0, false, err
+	}
+	schedule := make([]Due, 0, len(dues))
+	for _, d := range dues {
+		if d.DueOn != nil && d.AmountCents != nil {
+			schedule = append(schedule, Due{On: *d.DueOn, Amount: *d.AmountCents})
+		}
+	}
+	overdue, _, _ = Schedule(schedule, b.ChargesCents, b.PaidCents+b.CreditsCents, dateOf(now))
+	return b.InvoicedCents + b.ChargesCents - b.PaidCents - b.CreditsCents, overdue, true, nil
+}
+
 type ArrearsRow struct {
 	Student      StudentRef `json:"student"`
 	CohortName   *string    `json:"cohort_name"`

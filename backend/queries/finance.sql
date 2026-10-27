@@ -329,3 +329,10 @@ SELECT
    + (SELECT coalesce(sum(amount_cents), 0) FROM adjustments WHERE kind = 'charge')
    - (SELECT coalesce(sum(amount_cents), 0) FROM payments WHERE status = 'confirmed')
    - (SELECT coalesce(sum(amount_cents), 0) FROM adjustments WHERE kind = 'credit'))::bigint AS net_outstanding_cents;
+
+-- name: FinanceProgrammes :many
+-- Programmes and their intakes, for choosing what a fee structure is for.
+SELECT p.id, p.title, p.is_sample, pi.id AS intake_id, pi.name AS intake_name, pi.starts_on AS intake_starts_on
+FROM programmes p
+LEFT JOIN programme_intakes pi ON pi.programme_id = p.id
+ORDER BY p.title, pi.starts_on;

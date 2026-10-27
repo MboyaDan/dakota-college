@@ -2534,6 +2534,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/finance/programmes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every programme and its intakes, to choose what a fee structure is for (finance.view) */
+        get: operations["financeProgrammes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/finance/fee-structures": {
         parameters: {
             query?: never;
@@ -3990,8 +4007,12 @@ export interface components {
             change_request_pending: boolean;
             /** @description Classes open to register for that you have not registered for. */
             registration_open: number;
-            /** @description Null until finance is set up (Stage 14). */
+            /**
+             * Format: int64
+             * @description Null while nothing has been billed or paid; positive owes, negative is credit. Pending payments do not count.
+             */
             fee_balance_cents: number | null;
+            fee_overdue_cents: components["schemas"]["Cents"];
         };
         AssessmentScheme: {
             /** @enum {string} */
@@ -9104,6 +9125,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FinanceSummary"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    financeProgrammes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            /** Format: uuid */
+                            id: string;
+                            title: string;
+                            is_sample: boolean;
+                            intakes: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** Format: date */
+                                starts_on: string;
+                            }[];
+                        }[];
+                    };
                 };
             };
             401: components["responses"]["Unauthenticated"];
