@@ -67,11 +67,11 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 	}
 	want := map[string]int{
 		"schools": 5, "programmes": 8, "programme_intakes": 16, "fee_items": 24,
-		"faqs": 5, "users": 14, "user_roles": 13, "accreditations": 1, "pages": 7, "news_posts": 2, "events": 2,
+		"faqs": 5, "users": 15, "user_roles": 14, "accreditations": 1, "pages": 7, "news_posts": 2, "events": 2,
 		// Stage 11b: four test students (student001 was already a test user),
 		// each with an application walked to enrolled, in one cohort and two offerings.
 		"applicants": 5, "applications": 5, "academic_terms": 1, "units": 3, "programme_units": 3, "unit_offerings": 2,
-		"trainer_assignments": 1, "students": 4, "unit_registrations": 8, "school_assignments": 1, "cohorts": 1,
+		"trainer_assignments": 1, "students": 4, "unit_registrations": 8, "school_assignments": 2, "cohorts": 1,
 	}
 	for table, n := range want {
 		if counts[table] != n {

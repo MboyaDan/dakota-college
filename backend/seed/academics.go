@@ -14,8 +14,9 @@ import (
 // Sample academics (Stage 11b, 12b): a current term with registration open
 // around today, a notice to everyone, three ICT units on the ICT
 // diploma, two offerings (one taught by the test trainer), four enrolled
-// test students in the diploma's cohort, and the medical Head of School
-// assigned to their school. Idempotent like the rest of the seed.
+// test students in the diploma's cohort, and a Head of School for medical
+// and one for ICT (who approves the sample classes' results, Stage 13b).
+// Idempotent like the rest of the seed.
 
 const (
 	sampleTermName   = "Current term (Sample)"
@@ -23,6 +24,8 @@ const (
 	sampleStudents   = 4
 	sampleHeadEmail  = "head.medical@example.invalid"
 	sampleHeadSchool = "medical-and-health-sciences"
+	sampleICTHead    = "head.ict@example.invalid"
+	sampleICTSchool  = "ict"
 	sampleTrainer    = "trainer@example.invalid"
 )
 
@@ -46,10 +49,12 @@ func seedAcademics(ctx context.Context, tx pgx.Tx, q *dbq.Queries, hash string, 
 		return nil
 	}
 
-	if err := exec(`INSERT INTO school_assignments (user_id, school_id)
-		SELECT u.id, s.id FROM users u, schools s WHERE u.email = $1 AND s.slug = $2
-		ON CONFLICT DO NOTHING`, sampleHeadEmail, sampleHeadSchool); err != nil {
-		return err
+	for _, a := range [][2]string{{sampleHeadEmail, sampleHeadSchool}, {sampleICTHead, sampleICTSchool}} {
+		if err := exec(`INSERT INTO school_assignments (user_id, school_id)
+			SELECT u.id, s.id FROM users u, schools s WHERE u.email = $1 AND s.slug = $2
+			ON CONFLICT DO NOTHING`, a[0], a[1]); err != nil {
+			return err
+		}
 	}
 
 	// A term running now: from a month ago to two months ahead.

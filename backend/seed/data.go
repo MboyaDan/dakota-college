@@ -108,6 +108,7 @@ var userSeeds = []userSeed{
 	{"admissions@example.invalid", "Test Admissions Officer 001", "staff", "admissions_officer"},
 	{"finance@example.invalid", "Test Finance Officer 001", "staff", "finance_officer"},
 	{"head.medical@example.invalid", "Test Head of School 001", "staff", "head_of_school"},
+	{"head.ict@example.invalid", "Test Head of School 002", "staff", "head_of_school"},
 	{"trainer@example.invalid", "Test Trainer 001", "staff", "trainer"},
 	{"editor@example.invalid", "Test Content Editor 001", "staff", "content_editor"},
 	{"student001@example.invalid", "Test Student 001", "student", "student"},
