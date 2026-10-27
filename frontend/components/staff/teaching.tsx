@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Loading, SkeletonText } from "@/components/ui/skeleton";
@@ -13,6 +14,7 @@ import type { components } from "@/lib/api/schema";
 import { describeEntry, sortTimetable, weekdays } from "@/lib/staff/academics";
 import { formatDate } from "@/lib/staff/datetime";
 import { ClassNotices } from "./notices";
+import { useSession } from "./session";
 
 // A trainer's own classes (academics.teach, AC-08): only what they teach.
 
@@ -140,6 +142,7 @@ export function MyTeaching() {
 }
 
 export function MyClass({ id }: { id: string }) {
+  const { can } = useSession();
   const [offering, setOffering] = useState<Offering | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,6 +181,11 @@ export function MyClass({ id }: { id: string }) {
             ? ` · with ${offering.trainers.map((t) => t.full_name).join(", ")}`
             : ""}
         </p>
+        {can("academics.marks.enter") ? (
+          <LinkButton href={`/staff/teaching/${offering.id}/results`} className="mt-2 self-start">
+            Enter results
+          </LinkButton>
+        ) : null}
       </div>
       <section aria-labelledby="my-timetable-title" className="flex flex-col gap-2">
         <h2 id="my-timetable-title" className="text-xl font-semibold">

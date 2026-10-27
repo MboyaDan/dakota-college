@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 13a, Results API. Done, awaiting review.
-- **Next stage:** 13b, Results screens.
-- **Branch:** `stage-13a-results-api` (from `main` after #32)
+- **Current stage:** 13b, Results screens. Done, awaiting review.
+- **Next stage:** 14, Finance core (likely split into 14a API and 14b screens).
+- **Branch:** `stage-13b-results-screens` (from `main` after #33)
 
 ## Stage status
 
@@ -34,8 +34,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 11b | Student records and academics screens | Merged (#30) |
 | 12a | Student portal API | Merged (#31) |
 | 12b | Student portal screens | Merged (#32) |
-| 13a | Results API | Done, awaiting review |
-| 13b | Results screens | Not started |
+| 13a | Results API | Merged (#33) |
+| 13b | Results screens | Done, awaiting review |
 | 14 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -49,6 +49,17 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 13b: Results screens (2026-10-27)
+
+- Trainer: "Enter results" on each class; marks or outcomes per student, save, send for approval, correct with a reason after approval (D-153, D-154).
+- Head of School: "Results to approve" queue and review, approve or return with a reason. Registrar: "Results to release" queue, release with confirmation; overview cards count both.
+- Assessment tab in Units and terms: marks (parts, weights with a running total, pass mark, grades) or competency.
+- Student record: released results, official transcripts (audited links), issue a transcript; Student requests: issue a requested transcript and close the request.
+- Student portal: Results page (cards by term), provisional slip PDF, official transcripts.
+- Dev seed: ICT Head of School (D-155).
+- Verified: Go tests with PostgreSQL and `-race` (all packages, seed counts updated); 117 unit tests; 147 Playwright tests passed locally, including the full results flow at 360 px (AC-09 in the browser, D-156) and axe on every new screen. Screenshots checked by eye at 360 px and 1280 px; fixed a list made invalid by `role="group"`, misaligned mark fields, and a results table too wide for phones.
+- Note: the sign-in limit (in memory) blocks a second full e2e run within 15 minutes from one machine; restart the local API between runs.
 
 ### Stage 13a: Results API (2026-10-26)
 

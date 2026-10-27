@@ -11,6 +11,7 @@ const nav = [
   { href: "/student", label: "Home" },
   { href: "/student/timetable", label: "Timetable" },
   { href: "/student/units", label: "Units" },
+  { href: "/student/results", label: "Results" },
   { href: "/student/notices", label: "Notices" },
   { href: "/student/requests", label: "Requests" },
   { href: "/student/profile", label: "Profile" },

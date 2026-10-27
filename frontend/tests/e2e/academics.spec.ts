@@ -70,7 +70,9 @@ test("the registrar keeps a student record and runs a class", async ({ page }, t
 
   await expect(page.getByRole("heading", { level: 1, name: /Test Student/ })).toBeVisible();
   await expect(page.getByText(number).first()).toBeVisible();
-  await expect(page.getByRole("cell", { name: /ICT 101/ })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Units registered" }).getByRole("cell", { name: /ICT 101/ }),
+  ).toBeVisible();
   await checkPage(page);
 
   // A contact, with a mistake first.
