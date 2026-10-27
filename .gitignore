@@ -35,3 +35,6 @@ coverage/
 *.zip
 *.log
 go.sandbox.mod
+
+# Bank and provider documents shared under their own terms (not ours to publish).
+docs/kcb/
