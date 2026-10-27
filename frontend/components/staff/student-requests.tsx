@@ -52,6 +52,7 @@ function StudentLink({ id, name, number }: { id: string; name: string; number: s
 function Services() {
   const { can } = useSession();
   const update = can("students.update");
+  const issue = can("academics.results.release");
   const [status, setStatus] = useState("open");
   const [items, setItems] = useState<ServiceRequest[] | null>(null);
   useEffect(() => {
@@ -97,6 +98,7 @@ function Services() {
               <ServiceCard
                 r={r}
                 update={update}
+                issue={issue}
                 onSaved={async () => {
                   const { data } = await api.GET("/api/v1/staff/service-requests", {
                     params: {
@@ -117,10 +119,12 @@ function Services() {
 function ServiceCard({
   r,
   update,
+  issue,
   onSaved,
 }: {
   r: ServiceRequest;
   update: boolean;
+  issue: boolean;
   onSaved: () => Promise<void>;
 }) {
   const { busy, errors, run } = useAction();
@@ -145,6 +149,35 @@ function ServiceCard({
         <p className="border-l-4 border-gold pl-3 whitespace-pre-line">
           <strong>Reply:</strong> {r.response}
         </p>
+      ) : null}
+      {issue && r.kind === "transcript" && !closed ? (
+        <div className="flex flex-col gap-1 rounded-control bg-ivory p-3">
+          <p>
+            Issuing the official transcript marks this request done, with a reply telling the student to
+            download it from Results in their portal.
+          </p>
+          <Button
+            variant="secondary"
+            className="self-start"
+            loading={busy}
+            onClick={async () => {
+              if (
+                await run(
+                  () =>
+                    api.POST("/api/v1/staff/students/{id}/transcripts", {
+                      params: { path: { id: r.student_id } },
+                      body: { service_request_id: r.id },
+                    }),
+                  "Transcript issued and request done",
+                )
+              ) {
+                await onSaved();
+              }
+            }}
+          >
+            Issue the transcript<span className="sr-only"> for {r.student_name}</span>
+          </Button>
+        </div>
       ) : null}
       {update && !closed ? (
         <form

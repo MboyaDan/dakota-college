@@ -20,6 +20,8 @@ export function StaffShell({ children }: { children: ReactNode }) {
     { href: "/staff/students", label: "Students", show: can("students.view") },
     { href: "/staff/student-requests", label: "Student requests", show: can("students.view") },
     { href: "/staff/teaching", label: "My teaching", show: can("academics.teach") },
+    { href: "/staff/result-approvals", label: "Results to approve", show: can("academics.results.approve") },
+    { href: "/staff/result-releases", label: "Results to release", show: can("academics.results.release") },
     { href: "/staff/offerings", label: "Classes", show: can("academics.manage") },
     { href: "/staff/academics", label: "Units and terms", show: can("academics.manage") },
     { href: "/staff/notices", label: "Notices", show: can("academics.manage") },

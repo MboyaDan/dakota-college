@@ -11,6 +11,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { formatDate } from "@/lib/staff/datetime";
+import { ProgrammeAssessment } from "./assessment";
 import { useSession } from "./session";
 import { useAction } from "./use-action";
 
@@ -39,8 +40,8 @@ export function AcademicsCatalogue() {
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-semibold">Units and terms</h1>
         <p className="max-w-prose text-ink-muted">
-          The terms of the year, the units the college teaches, which units make up each programme, and
-          cohorts.
+          The terms of the year, the units the college teaches, which units make up each programme, how each
+          programme is assessed, and cohorts.
         </p>
       </div>
       <Tabs
@@ -49,6 +50,7 @@ export function AcademicsCatalogue() {
           { id: "terms", label: "Terms", content: <Terms /> },
           { id: "units", label: "Units", content: <Units /> },
           { id: "programme-units", label: "Programme units", content: <ProgrammeUnits /> },
+          { id: "assessment", label: "Assessment", content: <Assessment /> },
           { id: "cohorts", label: "Cohorts", content: <Cohorts /> },
         ]}
       />
@@ -541,6 +543,12 @@ function ProgrammeUnits() {
       ) : null}
     </div>
   );
+}
+
+// ---------- assessment ----------
+
+function Assessment() {
+  return <ProgrammeAssessment programmes={useOptions("programmes")} />;
 }
 
 // ---------- cohorts ----------

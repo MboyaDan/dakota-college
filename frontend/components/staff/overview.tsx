@@ -12,6 +12,8 @@ import { useSession } from "./session";
 export function Overview() {
   const { user, can } = useSession();
   const [waiting, setWaiting] = useState<number | null>(null);
+  const [toApprove, setToApprove] = useState<number | null>(null);
+  const [toRelease, setToRelease] = useState<number | null>(null);
   const [enquiries, setEnquiries] = useState<{ new: number; mine: number } | null>(null);
   const [applications, setApplications] = useState<{
     new: number;
@@ -25,6 +27,16 @@ export function Overview() {
     if (can("admissions.view")) {
       void api.GET("/api/v1/staff/applications/counts").then(({ data }) => {
         if (data) setApplications(data);
+      });
+    }
+    if (can("academics.results.approve")) {
+      void api.GET("/api/v1/staff/result-approvals").then(({ data }) => {
+        if (data) setToApprove(data.items.length);
+      });
+    }
+    if (can("academics.results.release")) {
+      void api.GET("/api/v1/staff/result-releases").then(({ data }) => {
+        if (data) setToRelease(data.items.length);
       });
     }
     if (can("enquiries.view")) {
@@ -43,6 +55,32 @@ export function Overview() {
           <p>Your classes, when they meet, and who is registered.</p>
           <LinkButton href="/staff/teaching" className="self-start">
             See my classes
+          </LinkButton>
+        </Card>
+      ) : null}
+      {can("academics.results.approve") ? (
+        <Card>
+          <h2 className="text-xl font-semibold">Results to approve</h2>
+          <p>
+            {toApprove === null
+              ? "Checking…"
+              : `${plural(toApprove, "class's results wait", "classes' results wait")} for your approval.`}
+          </p>
+          <LinkButton href="/staff/result-approvals" className="self-start">
+            Review results
+          </LinkButton>
+        </Card>
+      ) : null}
+      {can("academics.results.release") ? (
+        <Card>
+          <h2 className="text-xl font-semibold">Results to release</h2>
+          <p>
+            {toRelease === null
+              ? "Checking…"
+              : `${plural(toRelease, "class's approved results are", "classes' approved results are")} ready to release.`}
+          </p>
+          <LinkButton href="/staff/result-releases" className="self-start">
+            Release results
           </LinkButton>
         </Card>
       ) : null}

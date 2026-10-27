@@ -18,6 +18,7 @@ import type { components } from "@/lib/api/schema";
 import { relationships, studentStatus, studentStatuses, type StudentStatus } from "@/lib/staff/academics";
 import { formatDate, formatNairobi } from "@/lib/staff/datetime";
 import { useSession } from "./session";
+import { StudentResultsPanel } from "./results";
 import { useAction } from "./use-action";
 
 type Page = components["schemas"]["StudentPage"];
@@ -432,6 +433,8 @@ export function StudentRecord({ id }: { id: string }) {
               ]}
             />
           </section>
+
+          <StudentResultsPanel studentId={student.id} />
 
           <section aria-labelledby="guardians-title" className="flex flex-col gap-3">
             <h2 id="guardians-title" className="text-xl font-semibold">
