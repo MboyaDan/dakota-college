@@ -115,3 +115,57 @@ func TestFromLookupReportsAllErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestMpesaConfig(t *testing.T) {
+	base := func(extra map[string]string) map[string]string {
+		m := map[string]string{
+			"APP_ENV": "staging", "DATABASE_URL": "postgres://u:p@localhost:5432/db", "SESSION_COOKIE_SECURE": "true",
+			"APP_BASE_URL": "https://staging.college.example", "ALLOWED_ORIGINS": "https://staging.college.example",
+			"MPESA_ENABLED": "true", "MPESA_CONSUMER_KEY": "k", "MPESA_CONSUMER_SECRET": "s", "MPESA_SHORTCODE": "600999",
+			"MPESA_CALLBACK_BASE_URL": "https://api.college.example", "MPESA_CALLBACK_SECRET": strings.Repeat("a", 40),
+		}
+		for k, v := range extra {
+			m[k] = v
+		}
+		return m
+	}
+
+	off, err := FromLookup(lookupFrom(map[string]string{"APP_ENV": "development", "DATABASE_URL": "postgres://x"}))
+	if err != nil || off.Mpesa.Enabled {
+		t.Fatalf("M-Pesa must be off by default: %+v %v", off.Mpesa, err)
+	}
+
+	cfg, err := FromLookup(lookupFrom(base(nil)))
+	if err != nil {
+		t.Fatalf("valid M-Pesa config refused: %v", err)
+	}
+	m := cfg.Mpesa
+	if m.Environment != "sandbox" || m.APIBaseURL != "https://sandbox.safaricom.co.ke" || m.ResponseType != "Completed" ||
+		m.RegisterPath != "/mpesa/c2b/v2/registerurl" {
+		t.Errorf("defaults = %+v", m)
+	}
+	if cfg, _ := FromLookup(lookupFrom(base(map[string]string{"MPESA_ENV": "production"}))); cfg.Mpesa.APIBaseURL != "https://api.safaricom.co.ke" {
+		t.Errorf("production host = %q", cfg.Mpesa.APIBaseURL)
+	}
+
+	for name, extra := range map[string]map[string]string{
+		"no keys":            {"MPESA_CONSUMER_KEY": ""},
+		"short shortcode":    {"MPESA_SHORTCODE": "123"},
+		"letters":            {"MPESA_SHORTCODE": "60099X"},
+		"short secret":       {"MPESA_CALLBACK_SECRET": "short"},
+		"secret with slash":  {"MPESA_CALLBACK_SECRET": strings.Repeat("a", 40) + "/x"},
+		"http callback":      {"MPESA_CALLBACK_BASE_URL": "http://api.college.example"},
+		"mpesa in callback":  {"MPESA_CALLBACK_BASE_URL": "https://mpesa.college.example"},
+		"safaricom in path":  {"MPESA_CALLBACK_BASE_URL": "https://api.college.example/Safaricom"},
+		"bad env":            {"MPESA_ENV": "live"},
+		"bad response type":  {"MPESA_C2B_RESPONSE_TYPE": "Accept"},
+		"bad allow list":     {"MPESA_ALLOWED_IPS": "196.201.214.0/24,not-an-ip"},
+		"http api base":      {"MPESA_API_BASE_URL": "http://sandbox.safaricom.co.ke"},
+		"sandbox in prod":    {"APP_ENV": "production"},
+		"not a bool enabled": {"MPESA_ENABLED": "yes please"},
+	} {
+		if _, err := FromLookup(lookupFrom(base(extra))); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}

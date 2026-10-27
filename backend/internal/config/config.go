@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/mail"
 	"net/url"
 	"os"
@@ -47,6 +48,39 @@ type Config struct {
 	// ClamAVAddr is a clamd host:port for scanning uploads. Empty means no
 	// scanner: files are stored as "not_scanned" (D-19).
 	ClamAVAddr string
+	// Mpesa is Safaricom Daraja C2B (Stage 15a). Off unless MPESA_ENABLED.
+	Mpesa MpesaConfig
+}
+
+// MpesaConfig is everything about the college's M-Pesa paybill. Nothing is
+// built in: every value comes from the environment, so the college can
+// change shortcode, keys or URLs without a code change.
+type MpesaConfig struct {
+	Enabled bool
+	// Environment is sandbox or production; it picks the default API host.
+	Environment    string
+	APIBaseURL     string
+	ConsumerKey    string
+	ConsumerSecret string
+	// ShortCode is the paybill (or till) number payments go to.
+	ShortCode string
+	// ResponseType is what Safaricom does when our validation URL does not
+	// answer: Completed (accept the payment) or Cancelled.
+	ResponseType string
+	// CallbackBaseURL is the API's public HTTPS address Safaricom calls.
+	CallbackBaseURL string
+	// CallbackSecret is part of the callback path, so only Safaricom (who is
+	// told the URL) can reach it. At least 32 characters.
+	CallbackSecret string
+	// AllowedIPs, if set, are the only addresses callbacks are accepted from.
+	AllowedIPs   []string
+	RegisterPath string
+	SimulatePath string
+}
+
+var mpesaHosts = map[string]string{
+	"sandbox":    "https://sandbox.safaricom.co.ke",
+	"production": "https://api.safaricom.co.ke",
 }
 
 // S3Config is S3-compatible object storage: MinIO locally, Supabase Storage
@@ -189,6 +223,25 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 
 	cfg.ClamAVAddr = get("CLAMAV_ADDR", "")
 
+	if cfg.Mpesa.Enabled, err = strconv.ParseBool(get("MPESA_ENABLED", "false")); err != nil {
+		errs = append(errs, errors.New("MPESA_ENABLED must be true or false"))
+	}
+	if cfg.Mpesa.Enabled {
+		m := &cfg.Mpesa
+		m.Environment = get("MPESA_ENV", "sandbox")
+		m.APIBaseURL = strings.TrimRight(get("MPESA_API_BASE_URL", mpesaHosts[m.Environment]), "/")
+		m.ConsumerKey = get("MPESA_CONSUMER_KEY", "")
+		m.ConsumerSecret = get("MPESA_CONSUMER_SECRET", "")
+		m.ShortCode = get("MPESA_SHORTCODE", "")
+		m.ResponseType = get("MPESA_C2B_RESPONSE_TYPE", "Completed")
+		m.CallbackBaseURL = strings.TrimRight(get("MPESA_CALLBACK_BASE_URL", ""), "/")
+		m.CallbackSecret = get("MPESA_CALLBACK_SECRET", "")
+		m.AllowedIPs = splitList(get("MPESA_ALLOWED_IPS", ""))
+		m.RegisterPath = get("MPESA_REGISTER_URL_PATH", "/mpesa/c2b/v2/registerurl")
+		m.SimulatePath = get("MPESA_SIMULATE_PATH", "/mpesa/c2b/v2/simulate")
+		errs = append(errs, m.check(cfg.Env)...)
+	}
+
 	// Production must not run with development-only settings.
 	if cfg.Env == EnvProduction || cfg.Env == EnvStaging {
 		if !cfg.Session.CookieSecure {
@@ -205,6 +258,64 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 	}
 
 	return cfg, errors.Join(errs...)
+}
+
+func (m MpesaConfig) check(env Env) []error {
+	var errs []error
+	if _, ok := mpesaHosts[m.Environment]; !ok {
+		errs = append(errs, fmt.Errorf("MPESA_ENV %q is not sandbox or production", m.Environment))
+	}
+	if env == EnvProduction && m.Environment != "production" {
+		errs = append(errs, errors.New("MPESA_ENV must be production when APP_ENV=production"))
+	}
+	if u, err := url.Parse(m.APIBaseURL); err != nil || u.Scheme != "https" || u.Host == "" {
+		errs = append(errs, errors.New("MPESA_API_BASE_URL must be an https URL"))
+	}
+	if m.ConsumerKey == "" || m.ConsumerSecret == "" {
+		errs = append(errs, errors.New("MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET are required when MPESA_ENABLED=true"))
+	}
+	if !isDigits(m.ShortCode, 5, 8) {
+		errs = append(errs, errors.New("MPESA_SHORTCODE must be the 5 to 8 digit paybill or till number"))
+	}
+	if m.ResponseType != "Completed" && m.ResponseType != "Cancelled" {
+		errs = append(errs, errors.New("MPESA_C2B_RESPONSE_TYPE must be Completed or Cancelled"))
+	}
+	u, err := url.Parse(m.CallbackBaseURL)
+	switch {
+	case err != nil || u.Host == "" || (u.Scheme != "https" && env != EnvDevelopment && env != EnvTest):
+		errs = append(errs, errors.New("MPESA_CALLBACK_BASE_URL must be the API's public https address"))
+	case strings.Contains(strings.ToLower(m.CallbackBaseURL), "mpesa") || strings.Contains(strings.ToLower(m.CallbackBaseURL), "safaricom"):
+		// Safaricom refuses callback URLs containing these words.
+		errs = append(errs, errors.New(`MPESA_CALLBACK_BASE_URL must not contain "mpesa" or "safaricom"`))
+	}
+	if len(m.CallbackSecret) < 32 || strings.ContainsAny(m.CallbackSecret, "/?#% ") {
+		errs = append(errs, errors.New("MPESA_CALLBACK_SECRET must be at least 32 characters, letters, digits, - or _"))
+	}
+	for _, ip := range m.AllowedIPs {
+		if !validIPOrCIDR(ip) {
+			errs = append(errs, fmt.Errorf("MPESA_ALLOWED_IPS: %q is not an IP address or CIDR", ip))
+		}
+	}
+	return errs
+}
+
+func isDigits(s string, min, max int) bool {
+	if len(s) < min || len(s) > max {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func validIPOrCIDR(s string) bool {
+	if _, _, err := net.ParseCIDR(s); err == nil {
+		return true
+	}
+	return net.ParseIP(s) != nil
 }
 
 // IsProduction reports whether the API runs against production data.
