@@ -3250,6 +3250,40 @@ paths:
               schema: { $ref: "#/components/schemas/FinanceSummary" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/programmes:
+    get:
+      tags: [finance]
+      operationId: financeProgrammes
+      summary: Every programme and its intakes, to choose what a fee structure is for (finance.view)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, title, is_sample, intakes]
+                      properties:
+                        id: { type: string, format: uuid }
+                        title: { type: string }
+                        is_sample: { type: boolean }
+                        intakes:
+                          type: array
+                          items:
+                            type: object
+                            required: [id, name, starts_on]
+                            properties:
+                              id: { type: string, format: uuid }
+                              name: { type: string }
+                              starts_on: { type: string, format: date }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
   /api/v1/staff/finance/fee-structures:
     get:
       tags: [finance]
@@ -4916,7 +4950,7 @@ components:
         current: { $ref: "#/components/schemas/Student/properties/registrations" }
     StudentDashboard:
       type: object
-      required: [name, student_number, status, programme_title, cohort_name, timetable, notices, open_requests, change_request_pending, registration_open, fee_balance_cents]
+      required: [name, student_number, status, programme_title, cohort_name, timetable, notices, open_requests, change_request_pending, registration_open, fee_balance_cents, fee_overdue_cents]
       properties:
         name: { type: string }
         student_number: { type: string }
@@ -4928,7 +4962,8 @@ components:
         open_requests: { type: integer }
         change_request_pending: { type: boolean }
         registration_open: { type: integer, description: Classes open to register for that you have not registered for. }
-        fee_balance_cents: { type: [integer, "null"], description: Null until finance is set up (Stage 14). }
+        fee_balance_cents: { type: [integer, "null"], format: int64, description: "Null while nothing has been billed or paid; positive owes, negative is credit. Pending payments do not count." }
+        fee_overdue_cents: { $ref: "#/components/schemas/Cents" }
     AssessmentScheme:
       type: object
       required: [kind, components, pass_mark, grade_bands]

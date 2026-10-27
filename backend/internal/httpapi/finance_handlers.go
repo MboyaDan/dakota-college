@@ -115,6 +115,15 @@ func (h financeHandlers) summary(c *gin.Context) {
 
 // ---------- fee structures ----------
 
+func (h financeHandlers) programmes(c *gin.Context) {
+	items, err := h.svc.Programmes(c.Request.Context())
+	if err != nil {
+		internalError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
 func (h financeHandlers) listStructures(c *gin.Context) {
 	items, err := h.svc.ListStructures(c.Request.Context())
 	if err != nil {

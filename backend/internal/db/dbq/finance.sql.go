@@ -326,6 +326,50 @@ func (q *Queries) FinanceCohort(ctx context.Context, id uuid.UUID) (FinanceCohor
 	return i, err
 }
 
+const financeProgrammes = `-- name: FinanceProgrammes :many
+SELECT p.id, p.title, p.is_sample, pi.id AS intake_id, pi.name AS intake_name, pi.starts_on AS intake_starts_on
+FROM programmes p
+LEFT JOIN programme_intakes pi ON pi.programme_id = p.id
+ORDER BY p.title, pi.starts_on
+`
+
+type FinanceProgrammesRow struct {
+	ID             uuid.UUID
+	Title          string
+	IsSample       bool
+	IntakeID       *uuid.UUID
+	IntakeName     *string
+	IntakeStartsOn *time.Time
+}
+
+// Programmes and their intakes, for choosing what a fee structure is for.
+func (q *Queries) FinanceProgrammes(ctx context.Context) ([]FinanceProgrammesRow, error) {
+	rows, err := q.db.Query(ctx, financeProgrammes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FinanceProgrammesRow{}
+	for rows.Next() {
+		var i FinanceProgrammesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.IsSample,
+			&i.IntakeID,
+			&i.IntakeName,
+			&i.IntakeStartsOn,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const financeStudent = `-- name: FinanceStudent :one
 
 

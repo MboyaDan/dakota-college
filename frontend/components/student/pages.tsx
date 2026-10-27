@@ -14,6 +14,8 @@ import { useAction } from "@/components/staff/use-action";
 import { api, errorMessage } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { describeEntry, relationships, sortTimetable, studentStatus, weekdays } from "@/lib/staff/academics";
+import { describeBalance } from "@/lib/finance";
+import { formatKes } from "@/lib/money";
 import { formatDate, formatNairobi } from "@/lib/staff/datetime";
 import { requestKinds, requestStatus } from "@/lib/student/requests";
 
@@ -205,13 +207,28 @@ export function StudentHome() {
               )}
             </section>
 
-            <Card>
+            <Card className="flex flex-col gap-2">
               <h2 className="text-xl font-semibold">Fees</h2>
-              <p>
-                {d.fee_balance_cents === null
-                  ? "Your fee statement will appear here once the college's finance office starts using the portal. Ask the finance office for your balance."
-                  : `Balance: KES ${(d.fee_balance_cents / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`}
-              </p>
+              {d.fee_balance_cents === null ? (
+                <p>
+                  Nothing has been billed to you yet. Your invoices appear under Fees once they are issued.
+                </p>
+              ) : (
+                <>
+                  <p className="text-lg font-semibold tabular-nums">{describeBalance(d.fee_balance_cents)}</p>
+                  {d.fee_overdue_cents > 0 ? (
+                    <p className="font-semibold text-danger tabular-nums">
+                      Overdue now: {formatKes(d.fee_overdue_cents)}
+                    </p>
+                  ) : null}
+                </>
+              )}
+              <Link
+                href="/student/fees"
+                className="min-h-touch content-center self-start text-royal underline"
+              >
+                Fees and statement
+              </Link>
             </Card>
           </Page>
         );

@@ -162,6 +162,14 @@ func TestFinanceFlow(t *testing.T) {
 	fin := h.financeOfficer()
 	alice, bob := a.students[0], a.students[1]
 	aliceSession := h.studentLogin(alice)
+	var home struct {
+		FeeBalanceCents *int64 `json:"fee_balance_cents"`
+		FeeOverdueCents int64  `json:"fee_overdue_cents"`
+	}
+	h.api(aliceSession, http.MethodGet, "/student/dashboard", nil, http.StatusOK, &home)
+	if home.FeeBalanceCents != nil {
+		t.Fatalf("balance before any billing: %d", *home.FeeBalanceCents)
+	}
 
 	// Billing needs a fee structure first.
 	if got := h.code(fin, http.MethodPost, "/staff/finance/billing", map[string]any{"cohort_id": a.cohort, "term_id": a.term}); got != "422 validation_failed" {
@@ -326,6 +334,10 @@ func TestFinanceFlow(t *testing.T) {
 		len(fees.Statement) != 5 || fees.Structure == nil || len(fees.Structure.Lines) != 2 {
 		t.Fatalf("student's fees: %+v", fees)
 	}
+	h.api(aliceSession, http.MethodGet, "/student/dashboard", nil, http.StatusOK, &home)
+	if home.FeeBalanceCents == nil || *home.FeeBalanceCents != 1_800_000 || home.FeeOverdueCents != fees.Summary.OverdueCents {
+		t.Fatalf("dashboard fees: %+v, want balance 1800000 and overdue %d", home, fees.Summary.OverdueCents)
+	}
 
 	// Documents: own receipt, invoice and statement; nobody else's.
 	pdf := func(s *session, path string, want int) {
@@ -437,6 +449,16 @@ func TestFinancePermissions(t *testing.T) {
 		t.Fatalf("registrar: %s", got)
 	}
 	h.api(principal, http.MethodGet, "/staff/finance/summary", nil, http.StatusOK, nil)
+	var programmes struct {
+		Items []struct {
+			ID      uuid.UUID
+			Intakes []struct{ ID uuid.UUID }
+		}
+	}
+	h.api(fin, http.MethodGet, "/staff/finance/programmes", nil, http.StatusOK, &programmes)
+	if len(programmes.Items) != 1 || programmes.Items[0].ID != a.programme || len(programmes.Items[0].Intakes) != 1 {
+		t.Fatalf("programmes for fee structures: %+v", programmes.Items)
+	}
 	h.api(principal, http.MethodGet, "/staff/finance/students/"+a.students[0].String(), nil, http.StatusOK, nil)
 	h.keyed(principal, http.MethodPost, "/staff/finance/payments", newKey(), map[string]any{"student_id": a.students[0], "method": "cash", "amount_cents": 100, "paid_on": time.Now().Format(time.DateOnly)}).
 		expect(t, http.StatusForbidden, "forbidden")

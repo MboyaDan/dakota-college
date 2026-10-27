@@ -246,6 +246,40 @@ func (s *Service) DeleteStructure(ctx context.Context, id uuid.UUID, req audit.R
 	})
 }
 
+type IntakeOption struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	StartsOn string    `json:"starts_on"`
+}
+
+type ProgrammeOption struct {
+	ID       uuid.UUID      `json:"id"`
+	Title    string         `json:"title"`
+	IsSample bool           `json:"is_sample"`
+	Intakes  []IntakeOption `json:"intakes"`
+}
+
+// Programmes lists every programme and its intakes, to choose what a fee
+// structure is for. Finance staff have no content access, so they get
+// their own list.
+func (s *Service) Programmes(ctx context.Context) ([]ProgrammeOption, error) {
+	rows, err := dbq.New(s.pool).FinanceProgrammes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := []ProgrammeOption{}
+	for _, r := range rows {
+		if len(out) == 0 || out[len(out)-1].ID != r.ID {
+			out = append(out, ProgrammeOption{ID: r.ID, Title: r.Title, IsSample: r.IsSample, Intakes: []IntakeOption{}})
+		}
+		if r.IntakeID != nil && r.IntakeName != nil && r.IntakeStartsOn != nil {
+			p := &out[len(out)-1]
+			p.Intakes = append(p.Intakes, IntakeOption{ID: *r.IntakeID, Name: *r.IntakeName, StartsOn: r.IntakeStartsOn.Format(time.DateOnly)})
+		}
+	}
+	return out, nil
+}
+
 // structureFor is the structure that bills a student: their intake's own,
 // else their programme's structure for every intake.
 func structureFor(ctx context.Context, q *dbq.Queries, programme uuid.UUID, intake *uuid.UUID) (uuid.UUID, bool, error) {

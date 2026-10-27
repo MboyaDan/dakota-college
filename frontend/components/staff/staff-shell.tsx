@@ -25,6 +25,10 @@ export function StaffShell({ children }: { children: ReactNode }) {
     { href: "/staff/offerings", label: "Classes", show: can("academics.manage") },
     { href: "/staff/academics", label: "Units and terms", show: can("academics.manage") },
     { href: "/staff/notices", label: "Notices", show: can("academics.manage") },
+    { href: "/staff/finance", label: "Finance", show: can("finance.view") },
+    { href: "/staff/finance/payments", label: "Payments", show: can("finance.view") },
+    { href: "/staff/finance/invoices", label: "Invoices", show: can("finance.view") },
+    { href: "/staff/finance/structures", label: "Fee structures", show: can("finance.view") },
     { href: "/staff/enquiries", label: "Enquiries", show: can("enquiries.view") },
     { href: "/staff/approvals", label: "Waiting for approval", show: can("content.publish") },
     ...kindOrder.map((k) => ({
@@ -36,7 +40,13 @@ export function StaffShell({ children }: { children: ReactNode }) {
     { href: "/staff/messages", label: "Messages to applicants", show: can("notifications.manage") },
     { href: "/staff/staff-schools", label: "Staff schools", show: can("users.manage") },
   ];
-  const isCurrent = (href: string) => (href === "/staff" ? pathname === "/staff" : pathname.startsWith(href));
+  // The longest matching link is the current one, so /staff/finance/payments
+  // marks "Payments" and not "Finance" too.
+  const matches = (href: string) => (href === "/staff" ? pathname === "/staff" : pathname.startsWith(href));
+  const current = nav
+    .filter((n) => n.show && matches(n.href))
+    .reduce<string | null>((best, n) => (best && best.length >= n.href.length ? best : n.href), null);
+  const isCurrent = (href: string) => href === current;
 
   return (
     <div className="flex min-h-full flex-col bg-ivory">

@@ -351,6 +351,7 @@ func NewRouter(d Deps) (*Router, error) {
 	if d.Finance != nil && d.Auth != nil {
 		fh := financeHandlers{svc: d.Finance}
 		add(http.MethodGet, "/staff/finance/summary", false, finance.PermView, fh.summary)
+		add(http.MethodGet, "/staff/finance/programmes", false, finance.PermView, fh.programmes)
 		add(http.MethodGet, "/staff/finance/fee-structures", false, finance.PermView, fh.listStructures)
 		add(http.MethodPost, "/staff/finance/fee-structures", false, finance.PermInvoice, fh.createStructure)
 		add(http.MethodGet, "/staff/finance/fee-structures/:id", false, finance.PermView, fh.getStructure)

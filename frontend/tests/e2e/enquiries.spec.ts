@@ -37,7 +37,7 @@ test("a fee enquiry reaches the finance inbox and is handled there", async ({ pa
   await page.getByRole("link", { name: "Enquiries", exact: true }).first().click();
 
   // Finance staff open on their own office.
-  await expect(page.getByRole("link", { name: "Finance", exact: true })).toHaveAttribute(
+  await expect(page.getByRole("main").getByRole("link", { name: "Finance", exact: true })).toHaveAttribute(
     "aria-current",
     "page",
   );

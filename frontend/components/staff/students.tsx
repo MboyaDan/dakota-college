@@ -401,6 +401,14 @@ export function StudentRecord({ id }: { id: string }) {
             >
               Application as submitted
             </Link>
+            {can("finance.view") ? (
+              <Link
+                href={`/staff/finance/students/${student.id}`}
+                className="min-h-touch content-center self-start text-royal underline"
+              >
+                Fees account
+              </Link>
+            ) : null}
           </Card>
 
           <section aria-labelledby="units-title" className="flex flex-col gap-3">
