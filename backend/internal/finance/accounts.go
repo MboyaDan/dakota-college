@@ -364,6 +364,9 @@ type StudentFees struct {
 	Structure *Structure `json:"structure"`
 	// How to pay, as the college wrote it; empty when not set (DQ-09).
 	PaymentInstructions string `json:"payment_instructions"`
+	// The paybill and account number to pay with, when M-Pesa is enabled.
+	MpesaPaybill  *string `json:"mpesa_paybill"`
+	AccountNumber string  `json:"account_number"`
 }
 
 func (s *Service) ownStudent(ctx context.Context, q *dbq.Queries, user uuid.UUID) (dbq.FinanceStudentRow, error) {
@@ -387,7 +390,11 @@ func (s *Service) MyFees(ctx context.Context, user uuid.UUID) (*StudentFees, err
 		if err != nil {
 			return err
 		}
-		out = &StudentFees{Summary: acc.Summary, Statement: acc.Statement, Payments: acc.Payments, Invoices: []StudentInvoice{}}
+		out = &StudentFees{Summary: acc.Summary, Statement: acc.Statement, Payments: acc.Payments, Invoices: []StudentInvoice{},
+			AccountNumber: st.StudentNumber}
+		if s.paybill != "" {
+			out.MpesaPaybill = &s.paybill
+		}
 		for _, inv := range acc.Invoices {
 			si := StudentInvoice{InvoiceSummary: inv}
 			if si.Lines, si.Instalments, err = invoiceParts(ctx, q, inv.ID); err != nil {

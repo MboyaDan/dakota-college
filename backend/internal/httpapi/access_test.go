@@ -36,6 +36,9 @@ func TestEveryRouteIsProtected(t *testing.T) {
 		"POST /api/v1/applicant/sign-in-link": true, "POST /api/v1/applicant/resume": true,
 		"POST /api/v1/applicant/sign-in": true,
 		"POST /api/v1/student/sign-in":   true, "POST /api/v1/student/password-reset": true,
+		// Safaricom's callbacks: public, but they answer only on the secret
+		// path (TestMpesaCallbacksNeedTheSecret).
+		"POST /api/v1/payments/c2b/:secret/validation": true, "POST /api/v1/payments/c2b/:secret/confirmation": true,
 	}
 	// Routes any signed-in account may use. Every other protected route
 	// names a permission or a kind of account.

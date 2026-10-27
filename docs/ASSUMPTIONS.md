@@ -28,7 +28,7 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | DQ-06 | Application fee | No fee. Optional later (Could). | Open |
 | DQ-07 | Assessment model | Configurable per programme; marks and grade bands by default (D-150). The default weights and bands are placeholders (A-35). | Confirmed (owner, 2026-10-26) |
 | DQ-08 | Student number format | `DTC/YYYY/NNNN`, gapless per year, editable setting. | Open |
-| DQ-09 | How fees are collected today | Cash, bank and manual M-Pesa recorded as pending confirmation. | Open |
+| DQ-09 | How fees are collected today | M-Pesa paybill (C2B) and bank (KCB, via Buni, Stage 15b); cash and manual records still possible. Paybill number and bank details are configuration, supplied by the college. | Confirmed (owner, 2026-10-27); values pending |
 | DQ-10 | Accommodation, transport, meals | Not modelled in v1. | Open |
 | DQ-11 | Leadership profiles and consent | Section hidden until supplied. | Open |
 | DQ-12 | Real photos with consent | Neutral placeholders, clearly marked. | Open |
@@ -76,3 +76,5 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-37 | Instalments are due a number of days after the invoice is issued (not on fixed calendar dates), and extra charges are due at once. | Default, Stage 14a; owner may change |
 | A-38 | Overpayments stay on the account as credit for the next invoice. Refunds are not handled in the system yet; Finance records a refund paid out as a charge adjustment with the reason. | Default, Stage 14a; owner may change |
 | A-39 | Fees charged per year are not modelled separately: Finance bills them once at enrolment or adds them to a term invoice by hand. | Default, Stage 14a; owner may change |
+| A-40 | Daraja C2B callbacks carry no signature (community guides; check on the Daraja portal before go-live). If Safaricom offers signed callbacks or fixed source addresses, set `MPESA_ALLOWED_IPS` and add the check. | Default, Stage 15a; verify |
+| A-41 | The paybill is used only for fees, so every payment to it is meant for a student account. | Default, Stage 15a; owner may change |

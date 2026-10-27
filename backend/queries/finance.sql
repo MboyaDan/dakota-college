@@ -220,25 +220,25 @@ RETURNING id;
 -- name: GetPayment :one
 SELECT pm.id, pm.student_id, pm.method, pm.amount_cents, pm.paid_on, pm.reference, pm.payer_name, pm.note, pm.status,
        pm.confirmed_via, pm.recorded_at, pm.decided_at, pm.decision_note,
-       ru.full_name AS recorded_by_name, du.full_name AS decided_by_name,
+       coalesce(ru.full_name, 'M-Pesa (automatic)')::text AS recorded_by_name, du.full_name AS decided_by_name,
        r.id AS receipt_id, r.number AS receipt_number, r.issued_at AS receipt_issued_at,
        s.student_number, s.first_name, s.middle_name, s.last_name, p.title AS programme_title
 FROM payments pm
 JOIN students s ON s.id = pm.student_id
 JOIN programmes p ON p.id = s.programme_id
-JOIN users ru ON ru.id = pm.recorded_by
+LEFT JOIN users ru ON ru.id = pm.recorded_by
 LEFT JOIN users du ON du.id = pm.decided_by
 LEFT JOIN receipts r ON r.payment_id = pm.id
 WHERE pm.id = @id;
 
 -- name: ListPayments :many
 SELECT pm.id, pm.student_id, pm.method, pm.amount_cents, pm.paid_on, pm.reference, pm.payer_name, pm.status, pm.recorded_at,
-       ru.full_name AS recorded_by_name, r.number AS receipt_number,
+       coalesce(ru.full_name, 'M-Pesa (automatic)')::text AS recorded_by_name, r.number AS receipt_number,
        s.student_number, s.first_name, s.middle_name, s.last_name,
        count(*) OVER ()::bigint AS total_count
 FROM payments pm
 JOIN students s ON s.id = pm.student_id
-JOIN users ru ON ru.id = pm.recorded_by
+LEFT JOIN users ru ON ru.id = pm.recorded_by
 LEFT JOIN receipts r ON r.payment_id = pm.id
 WHERE (sqlc.narg(status)::text IS NULL OR pm.status = sqlc.narg(status)::text)
   AND (sqlc.narg(method)::text IS NULL OR pm.method = sqlc.narg(method)::text)

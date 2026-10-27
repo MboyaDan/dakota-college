@@ -60,6 +60,11 @@ tags:
       integer cents of KES. Balances are derived from records: issued invoice lines and charges,
       less confirmed payments and credits. Issued invoices, decided payments, receipts and
       adjustments never change. Finance access is college-wide.
+  - name: mpesa
+    description: |
+      M-Pesa C2B on the college paybill (Stage 15a). Only when MPESA_ENABLED; every value comes
+      from the environment. Safaricom calls the two public callback routes, which answer only on
+      the secret path. Payers use their student number as the account number.
   - name: notifications
     description: |
       Editable text of emails and text messages sent to applicants (notifications.manage). Text
@@ -3859,6 +3864,193 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+  /api/v1/payments/c2b/{secret}/validation:
+    post:
+      tags: [mpesa]
+      operationId: mpesaValidation
+      summary: Safaricom's C2B validation call (public; answered only on the secret path)
+      description: Stored as received and always accepted; a payment that matches no student waits for Finance (D-171). 404 for any other secret or address.
+      security: []
+      parameters:
+        - { name: secret, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        "200":
+          description: Accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MpesaAnswer" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/payments/c2b/{secret}/confirmation:
+    post:
+      tags: [mpesa]
+      operationId: mpesaConfirmation
+      summary: Safaricom's C2B confirmation of a completed payment (public; answered only on the secret path)
+      description: |
+        Stored as received, then recorded once per M-Pesa code. For the college shortcode with a
+        student's number as the account number, the payment is confirmed and receipted (AC-11);
+        otherwise it waits for Finance. 404 for any other secret or address.
+      security: []
+      parameters:
+        - { name: secret, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        "200":
+          description: Received.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MpesaAnswer" }
+        "404": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/mpesa:
+    get:
+      tags: [mpesa]
+      operationId: mpesaStatus
+      summary: M-Pesa setup and activity, with the callback secret hidden (finance.view)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MpesaStatus" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/mpesa/transactions:
+    get:
+      tags: [mpesa]
+      operationId: mpesaTransactions
+      summary: M-Pesa payments received, newest first, 50 a page (finance.view)
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [matched, unmatched, assigned, refund, rejected] } }
+        - { name: day, in: query, description: A day in Nairobi time., schema: { type: string, format: date } }
+        - { name: q, in: query, description: M-Pesa code, account number or payer name., schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { type: object, required: [items, total, page_size], properties: { items: { type: array, items: { $ref: "#/components/schemas/MpesaTransaction" } }, total: { type: integer }, page_size: { type: integer } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/mpesa/transactions/{id}/assign:
+    post:
+      tags: [mpesa]
+      operationId: mpesaAssign
+      summary: Credit an unmatched M-Pesa payment to a student, with a note (finance.payment.confirm)
+      description: It becomes a confirmed, receipted payment. A transaction is settled once, so a repeat answers 409 already_settled.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [student_id, note], properties: { student_id: { type: string, format: uuid }, note: { type: string, minLength: 5, maxLength: 1000 } } }
+      responses:
+        "204": { description: Assigned. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/mpesa/transactions/{id}/refund:
+    post:
+      tags: [mpesa]
+      operationId: mpesaRefund
+      summary: Mark an unmatched M-Pesa payment to be returned to the payer (finance.payment.confirm)
+      description: The refund itself is made from the M-Pesa portal.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [note], properties: { note: { type: string, minLength: 5, maxLength: 1000 } } }
+      responses:
+        "204": { description: Marked. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/mpesa/reconciliation:
+    get:
+      tags: [mpesa]
+      operationId: mpesaReconciliation
+      summary: One day's M-Pesa money, to compare with the M-Pesa statement (finance.view)
+      parameters:
+        - { name: day, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MpesaReconciliation" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/mpesa/register-urls:
+    post:
+      tags: [mpesa]
+      operationId: mpesaRegisterUrls
+      summary: Tell Safaricom where to send C2B calls for the college shortcode (finance.mpesa.setup)
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200":
+          description: Safaricom's answer.
+          content:
+            application/json:
+              schema: { type: object, required: [message], properties: { message: { type: string } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/mpesa/simulate:
+    post:
+      tags: [mpesa]
+      operationId: mpesaSimulate
+      summary: Ask the Daraja sandbox to send a test payment (finance.mpesa.setup; sandbox only)
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [amount_cents, msisdn, account], properties: { amount_cents: { type: integer, format: int64 }, msisdn: { type: string }, account: { type: string } } }
+      responses:
+        "200":
+          description: Safaricom's answer.
+          content:
+            application/json:
+              schema: { type: object, required: [message], properties: { message: { type: string } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/finance/mpesa/reprocess:
+    post:
+      tags: [mpesa]
+      operationId: mpesaReprocess
+      summary: Record stored confirmations that were not processed (finance.mpesa.setup)
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200":
+          description: How many were recorded now.
+          content:
+            application/json:
+              schema: { type: object, required: [processed], properties: { processed: { type: integer } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
   /api/v1/staff/notification-templates:
     get:
       tags: [notifications]
@@ -5604,7 +5796,7 @@ components:
         net_outstanding_cents: { $ref: "#/components/schemas/Cents" }
     StudentFees:
       type: object
-      required: [summary, statement, invoices, payments, structure, payment_instructions]
+      required: [summary, statement, invoices, payments, structure, payment_instructions, mpesa_paybill, account_number]
       properties:
         summary: { $ref: "#/components/schemas/AccountSummary" }
         statement: { type: array, items: { $ref: "#/components/schemas/StatementEntry" } }
@@ -5621,6 +5813,69 @@ components:
         payments: { type: array, items: { $ref: "#/components/schemas/Payment" } }
         structure: { oneOf: [{ $ref: "#/components/schemas/FeeStructure" }, { type: "null" }] }
         payment_instructions: { type: string, description: How to pay, as the college wrote it; empty when not set. }
+        mpesa_paybill: { type: [string, "null"], description: The paybill to pay with when M-Pesa is enabled. }
+        account_number: { type: string, description: The account number to use (the student number). }
+    MpesaAnswer:
+      type: object
+      required: [ResultCode, ResultDesc]
+      properties:
+        ResultCode: { type: string }
+        ResultDesc: { type: string }
+    MpesaStatus:
+      type: object
+      required: [environment, short_code, response_type, confirmation_url, validation_url, ip_allow_list, last_callback_at, unmatched]
+      properties:
+        environment: { type: string, enum: [sandbox, production] }
+        short_code: { type: string }
+        response_type: { type: string }
+        confirmation_url: { type: string, description: With the secret shortened. }
+        validation_url: { type: string }
+        ip_allow_list: { type: boolean }
+        last_callback_at: { type: [string, "null"], format: date-time }
+        unmatched: { type: integer }
+    MpesaTransaction:
+      type: object
+      required: [id, trans_id, trans_type, trans_time, amount_cents, account_number, phone, payer_name, status, reason, note, student_id, student_number, student_name, payment_id, receipt_number, handled_at, handled_by_name]
+      properties:
+        id: { type: string, format: uuid }
+        trans_id: { type: string }
+        trans_type: { type: string }
+        trans_time: { type: string, format: date-time }
+        amount_cents: { $ref: "#/components/schemas/Cents" }
+        account_number: { type: string }
+        phone: { type: string, description: As Safaricom sent it (it may be masked). }
+        payer_name: { type: string }
+        status: { type: string, enum: [matched, unmatched, assigned, refund, rejected] }
+        reason: { type: string }
+        note: { type: string }
+        student_id: { type: [string, "null"], format: uuid }
+        student_number: { type: [string, "null"] }
+        student_name: { type: [string, "null"] }
+        payment_id: { type: [string, "null"], format: uuid }
+        receipt_number: { type: [string, "null"] }
+        handled_at: { type: [string, "null"], format: date-time }
+        handled_by_name: { type: [string, "null"] }
+    MpesaReconciliation:
+      type: object
+      required: [day, lines, received_count, received_cents, credited_cents, unmatched_cents, manual_count, manual_cents, manual_pending]
+      properties:
+        day: { type: string, format: date }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [status, count, total_cents]
+            properties:
+              status: { type: string }
+              count: { type: integer }
+              total_cents: { $ref: "#/components/schemas/Cents" }
+        received_count: { type: integer }
+        received_cents: { $ref: "#/components/schemas/Cents" }
+        credited_cents: { $ref: "#/components/schemas/Cents" }
+        unmatched_cents: { $ref: "#/components/schemas/Cents" }
+        manual_count: { type: integer, description: M-Pesa payments recorded by hand for the day that Safaricom has not reported. }
+        manual_cents: { $ref: "#/components/schemas/Cents" }
+        manual_pending: { type: integer }
     Error:
       description: Error body returned by every endpoint on failure.
       type: object

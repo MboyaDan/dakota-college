@@ -2991,6 +2991,190 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/c2b/{secret}/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Safaricom's C2B validation call (public; answered only on the secret path)
+         * @description Stored as received and always accepted; a payment that matches no student waits for Finance (D-171). 404 for any other secret or address.
+         */
+        post: operations["mpesaValidation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/c2b/{secret}/confirmation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Safaricom's C2B confirmation of a completed payment (public; answered only on the secret path)
+         * @description Stored as received, then recorded once per M-Pesa code. For the college shortcode with a
+         *     student's number as the account number, the payment is confirmed and receipted (AC-11);
+         *     otherwise it waits for Finance. 404 for any other secret or address.
+         */
+        post: operations["mpesaConfirmation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/mpesa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** M-Pesa setup and activity, with the callback secret hidden (finance.view) */
+        get: operations["mpesaStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/mpesa/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** M-Pesa payments received, newest first, 50 a page (finance.view) */
+        get: operations["mpesaTransactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/mpesa/transactions/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Credit an unmatched M-Pesa payment to a student, with a note (finance.payment.confirm)
+         * @description It becomes a confirmed, receipted payment. A transaction is settled once, so a repeat answers 409 already_settled.
+         */
+        post: operations["mpesaAssign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/mpesa/transactions/{id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an unmatched M-Pesa payment to be returned to the payer (finance.payment.confirm)
+         * @description The refund itself is made from the M-Pesa portal.
+         */
+        post: operations["mpesaRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/mpesa/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One day's M-Pesa money, to compare with the M-Pesa statement (finance.view) */
+        get: operations["mpesaReconciliation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/mpesa/register-urls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tell Safaricom where to send C2B calls for the college shortcode (finance.mpesa.setup) */
+        post: operations["mpesaRegisterUrls"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/mpesa/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the Daraja sandbox to send a test payment (finance.mpesa.setup; sandbox only) */
+        post: operations["mpesaSimulate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/finance/mpesa/reprocess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record stored confirmations that were not processed (finance.mpesa.setup) */
+        post: operations["mpesaReprocess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/notification-templates": {
         parameters: {
             query?: never;
@@ -4638,6 +4822,71 @@ export interface components {
             structure: components["schemas"]["FeeStructure"] | null;
             /** @description How to pay */
             payment_instructions: string;
+            /** @description The paybill to pay with when M-Pesa is enabled. */
+            mpesa_paybill: string | null;
+            /** @description The account number to use (the student number). */
+            account_number: string;
+        };
+        MpesaAnswer: {
+            ResultCode: string;
+            ResultDesc: string;
+        };
+        MpesaStatus: {
+            /** @enum {string} */
+            environment: "sandbox" | "production";
+            short_code: string;
+            response_type: string;
+            /** @description With the secret shortened. */
+            confirmation_url: string;
+            validation_url: string;
+            ip_allow_list: boolean;
+            /** Format: date-time */
+            last_callback_at: string | null;
+            unmatched: number;
+        };
+        MpesaTransaction: {
+            /** Format: uuid */
+            id: string;
+            trans_id: string;
+            trans_type: string;
+            /** Format: date-time */
+            trans_time: string;
+            amount_cents: components["schemas"]["Cents"];
+            account_number: string;
+            /** @description As Safaricom sent it (it may be masked). */
+            phone: string;
+            payer_name: string;
+            /** @enum {string} */
+            status: "matched" | "unmatched" | "assigned" | "refund" | "rejected";
+            reason: string;
+            note: string;
+            /** Format: uuid */
+            student_id: string | null;
+            student_number: string | null;
+            student_name: string | null;
+            /** Format: uuid */
+            payment_id: string | null;
+            receipt_number: string | null;
+            /** Format: date-time */
+            handled_at: string | null;
+            handled_by_name: string | null;
+        };
+        MpesaReconciliation: {
+            /** Format: date */
+            day: string;
+            lines: {
+                status: string;
+                count: number;
+                total_cents: components["schemas"]["Cents"];
+            }[];
+            received_count: number;
+            received_cents: components["schemas"]["Cents"];
+            credited_cents: components["schemas"]["Cents"];
+            unmatched_cents: components["schemas"]["Cents"];
+            /** @description M-Pesa payments recorded by hand for the day that Safaricom has not reported. */
+            manual_count: number;
+            manual_cents: components["schemas"]["Cents"];
+            manual_pending: number;
         };
         /** @description Error body returned by every endpoint on failure. */
         Error: {
@@ -10017,6 +10266,295 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
+        };
+    };
+    mpesaValidation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                secret: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MpesaAnswer"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    mpesaConfirmation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                secret: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Received. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MpesaAnswer"];
+                };
+            };
+            404: components["responses"]["Error"];
+            500: components["responses"]["Error"];
+        };
+    };
+    mpesaStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MpesaStatus"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    mpesaTransactions: {
+        parameters: {
+            query?: {
+                status?: "matched" | "unmatched" | "assigned" | "refund" | "rejected";
+                /** @description A day in Nairobi time. */
+                day?: string;
+                /** @description M-Pesa code */
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["MpesaTransaction"][];
+                        total: number;
+                        page_size: number;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    mpesaAssign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    student_id: string;
+                    note: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Assigned. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    mpesaRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Marked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    mpesaReconciliation: {
+        parameters: {
+            query: {
+                day: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MpesaReconciliation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    mpesaRegisterUrls: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Safaricom's answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            502: components["responses"]["Error"];
+        };
+    };
+    mpesaSimulate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    amount_cents: number;
+                    msisdn: string;
+                    account: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Safaricom's answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            502: components["responses"]["Error"];
+        };
+    };
+    mpesaReprocess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How many were recorded now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        processed: number;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
         };
     };
     listNotificationTemplates: {

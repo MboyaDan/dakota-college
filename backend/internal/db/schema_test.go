@@ -157,9 +157,9 @@ func TestRolesAndPermissions(t *testing.T) {
 		t.Fatal(err)
 	}
 	// 24 until Stage 11a added academics.teach, academics.manage and
-	// schools.all; Stage 14a added finance.payment.record.
-	if roles != 10 || perms != 28 {
-		t.Fatalf("got %d roles and %d permissions, want 10 and 28", roles, perms)
+	// schools.all; Stage 14a added finance.payment.record and 15a finance.mpesa.setup.
+	if roles != 10 || perms != 29 {
+		t.Fatalf("got %d roles and %d permissions, want 10 and 29", roles, perms)
 	}
 
 	// A role in use cannot be deleted (brief 11).
