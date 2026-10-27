@@ -18,6 +18,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
 	"github.com/MboyaDan/dakota-college/backend/internal/finance"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
+	"github.com/MboyaDan/dakota-college/backend/internal/mpesa"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
 	"github.com/MboyaDan/dakota-college/backend/internal/results"
@@ -56,7 +57,9 @@ type Deps struct {
 	Results *results.Service
 	// Finance is fee structures, invoices, payments and statements.
 	Finance *finance.Service
-	Notify  *notify.Service
+	// Mpesa is the college paybill (C2B); nil when M-Pesa is not enabled.
+	Mpesa  *mpesa.Service
+	Notify *notify.Service
 }
 
 const defaultBodyLimit = 1 << 20 // 1 MB for JSON endpoints
@@ -388,6 +391,22 @@ func NewRouter(d Deps) (*Router, error) {
 		own(http.MethodGet, "/student/fees/statement", fh.myStatement)
 		own(http.MethodGet, "/student/fees/invoices/:id", fh.myInvoice)
 		own(http.MethodGet, "/student/fees/payments/:id/receipt", fh.myReceipt)
+	}
+
+	if d.Mpesa != nil && d.Auth != nil {
+		mh := mpesaHandlers{svc: d.Mpesa}
+		// Safaricom's callbacks: public, but answered only on the secret path.
+		addWithLimit(callbackBodyLimit, http.MethodPost, "/payments/c2b/:secret/validation", true, "", mh.callback("validation"))
+		addWithLimit(callbackBodyLimit, http.MethodPost, "/payments/c2b/:secret/confirmation", true, "", mh.callback("confirmation"))
+
+		add(http.MethodGet, "/staff/finance/mpesa", false, finance.PermView, mh.status)
+		add(http.MethodGet, "/staff/finance/mpesa/transactions", false, finance.PermView, mh.list)
+		add(http.MethodPost, "/staff/finance/mpesa/transactions/:id/assign", false, finance.PermConfirm, mh.assign)
+		add(http.MethodPost, "/staff/finance/mpesa/transactions/:id/refund", false, finance.PermConfirm, mh.refund)
+		add(http.MethodGet, "/staff/finance/mpesa/reconciliation", false, finance.PermView, mh.reconcile)
+		add(http.MethodPost, "/staff/finance/mpesa/register-urls", false, mpesa.PermSetup, mh.register)
+		add(http.MethodPost, "/staff/finance/mpesa/simulate", false, mpesa.PermSetup, mh.simulate)
+		add(http.MethodPost, "/staff/finance/mpesa/reprocess", false, mpesa.PermSetup, mh.reprocess)
 	}
 
 	if d.Content != nil && d.Enquiries != nil {

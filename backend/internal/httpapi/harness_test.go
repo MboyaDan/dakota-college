@@ -27,6 +27,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/finance"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
+	"github.com/MboyaDan/dakota-college/backend/internal/mpesa"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
 	"github.com/MboyaDan/dakota-college/backend/internal/results"
@@ -51,12 +52,15 @@ type harness struct {
 	scanner media.Scanner
 	// now is the clock for applicant links; tests move it forward.
 	now func() time.Time
+	// daraja is a stand-in for Safaricom; mpesaAllowed is the callback allow list.
+	daraja       *fakeDaraja
+	mpesaAllowed []string
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	pool, _ := testdb.Migrated(t)
-	h := &harness{t: t, pool: pool, mailer: &mail.Recorder{}, storage: &media.Memory{}, now: time.Now}
+	h := &harness{t: t, pool: pool, mailer: &mail.Recorder{}, storage: &media.Memory{}, now: time.Now, daraja: newFakeDaraja(t)}
 	h.rebuild()
 	return h
 }
@@ -94,7 +98,11 @@ func (h *harness) rebuild() {
 		Results: results.NewService(results.Options{
 			Pool: h.pool, Logger: logger, Storage: h.storage, PrivateBucket: "dakota-private", Now: func() time.Time { return h.now() },
 		}),
-		Finance: finance.NewService(finance.Options{Pool: h.pool, Logger: logger, Now: func() time.Time { return h.now() }}),
+		Finance: finance.NewService(finance.Options{Pool: h.pool, Logger: logger, Now: func() time.Time { return h.now() }, MpesaPaybill: testShortCode}),
+		Mpesa: mpesa.NewService(mpesa.Options{Pool: h.pool, Logger: logger, HTTPClient: h.daraja.server.Client(), Now: func() time.Time { return h.now() },
+			Config: config.MpesaConfig{Enabled: true, Environment: "sandbox", APIBaseURL: h.daraja.server.URL, ConsumerKey: testDarajaKey,
+				ConsumerSecret: testDarajaSecret, ShortCode: testShortCode, ResponseType: "Completed", CallbackBaseURL: testOrigin,
+				CallbackSecret: testCallbackSecret, AllowedIPs: h.mpesaAllowed, RegisterPath: "/mpesa/c2b/v2/registerurl", SimulatePath: "/mpesa/c2b/v2/simulate"}}),
 		Portal: portal.NewService(portal.Options{
 			Pool: h.pool, Academics: academicsSvc, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
 		}),
