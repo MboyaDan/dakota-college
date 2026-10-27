@@ -1,0 +1,6 @@
+# Findings reviewed and accepted. Each line is one exact finding
+# (commit:file:rule:line); a new secret anywhere is still caught.
+#
+# A made-up test value in the KCB tests (not a credential), replaced by an
+# obviously fake one in the next commit.
+f996f2297724a10008d9a73ef81eac3063af6e9d:backend/internal/httpapi/kcb_test.go:generic-api-key:17
