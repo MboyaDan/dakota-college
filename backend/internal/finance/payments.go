@@ -180,6 +180,12 @@ func confirm(ctx context.Context, q *dbq.Queries, id uuid.UUID, via string, by *
 	return number, nil
 }
 
+// ConfirmByFinance confirms a pending payment as a finance officer who has
+// checked it against the statement, in the caller's transaction.
+func ConfirmByFinance(ctx context.Context, q *dbq.Queries, id uuid.UUID, by uuid.UUID, note string, now time.Time) (string, error) {
+	return confirm(ctx, q, id, "finance", &by, note, now)
+}
+
 // ConfirmByProvider confirms a pending payment from the verified M-Pesa
 // flow (AC-11) and issues its receipt, in the caller's transaction. by is
 // the member of staff who assigned it, or nil when it matched by itself.

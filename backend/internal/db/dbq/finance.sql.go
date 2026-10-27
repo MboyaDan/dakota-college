@@ -643,7 +643,7 @@ func (q *Queries) GetInvoice(ctx context.Context, id uuid.UUID) (GetInvoiceRow, 
 const getPayment = `-- name: GetPayment :one
 SELECT pm.id, pm.student_id, pm.method, pm.amount_cents, pm.paid_on, pm.reference, pm.payer_name, pm.note, pm.status,
        pm.confirmed_via, pm.recorded_at, pm.decided_at, pm.decision_note,
-       coalesce(ru.full_name, 'M-Pesa (automatic)')::text AS recorded_by_name, du.full_name AS decided_by_name,
+       coalesce(ru.full_name, CASE pm.source WHEN 'kcb' THEN 'KCB notification' ELSE 'M-Pesa (automatic)' END)::text AS recorded_by_name, du.full_name AS decided_by_name,
        r.id AS receipt_id, r.number AS receipt_number, r.issued_at AS receipt_issued_at,
        s.student_number, s.first_name, s.middle_name, s.last_name, p.title AS programme_title
 FROM payments pm
@@ -1185,7 +1185,7 @@ func (q *Queries) ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]L
 
 const listPayments = `-- name: ListPayments :many
 SELECT pm.id, pm.student_id, pm.method, pm.amount_cents, pm.paid_on, pm.reference, pm.payer_name, pm.status, pm.recorded_at,
-       coalesce(ru.full_name, 'M-Pesa (automatic)')::text AS recorded_by_name, r.number AS receipt_number,
+       coalesce(ru.full_name, CASE pm.source WHEN 'kcb' THEN 'KCB notification' ELSE 'M-Pesa (automatic)' END)::text AS recorded_by_name, r.number AS receipt_number,
        s.student_number, s.first_name, s.middle_name, s.last_name,
        count(*) OVER ()::bigint AS total_count
 FROM payments pm

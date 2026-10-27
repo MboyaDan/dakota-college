@@ -31,8 +31,8 @@ WHERE method = 'mpesa' AND reference = @reference AND status <> 'rejected'
 FOR UPDATE;
 
 -- name: InsertProviderPayment :one
-INSERT INTO payments (student_id, method, amount_cents, paid_on, reference, payer_name, note, recorded_by)
-VALUES (@student_id, 'mpesa', @amount_cents, @paid_on, @reference, @payer_name, @note, sqlc.narg(recorded_by))
+INSERT INTO payments (student_id, method, amount_cents, paid_on, reference, payer_name, note, recorded_by, source)
+VALUES (@student_id, 'mpesa', @amount_cents, @paid_on, @reference, @payer_name, @note, sqlc.narg(recorded_by), 'mpesa')
 RETURNING id;
 
 -- name: ListMpesaTransactions :many

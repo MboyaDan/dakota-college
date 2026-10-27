@@ -431,6 +431,42 @@ type InvoiceLine struct {
 	SortOrder   int32
 }
 
+type KcbNotification struct {
+	ID         int64
+	RemoteIp   string
+	Signature  string
+	Body       []byte
+	ReceivedAt time.Time
+}
+
+type KcbTransaction struct {
+	ID                   uuid.UUID
+	TransactionReference string
+	RequestID            string
+	ChannelCode          string
+	SentAt               time.Time
+	SentAtRaw            string
+	AmountCents          int64
+	Currency             string
+	CustomerReference    string
+	CustomerName         string
+	CustomerMobile       string
+	Narration            string
+	CreditAccount        string
+	OrgShortCode         string
+	TillNumber           string
+	NotificationID       int64
+	Verified             bool
+	Status               string
+	Reason               string
+	StudentID            *uuid.UUID
+	PaymentID            *uuid.UUID
+	HandledBy            *uuid.UUID
+	HandledAt            *time.Time
+	Note                 string
+	CreatedAt            time.Time
+}
+
 type Mark struct {
 	ID        int64
 	SheetID   uuid.UUID
@@ -585,6 +621,7 @@ type Payment struct {
 	DecidedBy    *uuid.UUID
 	DecidedAt    *time.Time
 	DecisionNote string
+	Source       string
 }
 
 type Permission struct {
