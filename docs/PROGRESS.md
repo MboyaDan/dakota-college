@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 14a, Finance API. Done, awaiting review.
-- **Next stage:** 14b, Finance screens (staff finance portal, student Fees page).
-- **Branch:** `stage-14a-finance-api` (from `main` after #34)
+- **Current stage:** 14b, Finance screens. Done, awaiting review.
+- **Next stage:** 15, M-Pesa (decision gate DG-02: ask the owner first).
+- **Branch:** `stage-14b-finance-screens` (from `main` after #35)
 
 ## Stage status
 
@@ -36,8 +36,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 12b | Student portal screens | Merged (#32) |
 | 13a | Results API | Merged (#33) |
 | 13b | Results screens | Merged (#34) |
-| 14a | Finance API | Done, awaiting review |
-| 14b | Finance screens | Not started |
+| 14a | Finance API | Merged (#35) |
+| 14b | Finance screens | Done, awaiting review |
 | 15 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -51,6 +51,14 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 14b: Finance screens (2026-10-27)
+
+- Staff: Finance (summary, find a student, who owes), Payments (queue to confirm or reject), Invoices (bill a class, drafts, issue several), Fee structures, and each student's fee account (statement, record a payment, adjust, new invoice, PDFs). Overview card and a link from the student record (D-165, D-166, D-168).
+- Students: Fees page and a fees card on Home with balance and overdue amount (D-167).
+- API: the dashboard now carries the fee balance and overdue amount; `GET /staff/finance/programmes`.
+- Verified: Go tests with PostgreSQL and `-race` (all packages); 121 unit tests; 150 Playwright tests passed locally, including the payment flow at 360 px (M-Pesa recorded, not counted, confirmed, balance falls by the amount; rejected transfer; draft editing and voiding) and axe and overflow checks on every finance screen at both widths. Screenshots checked by eye at 360 px and 1280 px; fixed doubled "(optional)" labels, a missing space in a download link, the arrears and issued-invoice tables cut off on phones.
+- Tests now use role queries and visible-only lookups: Next.js keeps the previously visited page in the DOM, hidden. Two older specs were made independent of data left by other specs (a second "Finance" link; an extra student enrolled in ICT 101).
 
 ### Stage 14a: Finance API (2026-10-27)
 
