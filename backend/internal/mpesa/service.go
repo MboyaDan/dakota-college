@@ -12,7 +12,6 @@ package mpesa
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,7 +21,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,6 +28,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/MboyaDan/dakota-college/backend/internal/audit"
+	"github.com/MboyaDan/dakota-college/backend/internal/callbackguard"
 	"github.com/MboyaDan/dakota-college/backend/internal/config"
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
 	"github.com/MboyaDan/dakota-college/backend/internal/finance"
@@ -39,9 +38,9 @@ const PermSetup = "finance.mpesa.setup"
 
 var (
 	// ErrUnauthorised: not a callback we accept (wrong secret or address).
-	ErrUnauthorised = errors.New("callback not accepted")
+	ErrUnauthorised = callbackguard.ErrUnauthorised
 	// ErrThrottled: too many refused attempts from this address lately.
-	ErrThrottled = errors.New("too many refused callbacks")
+	ErrThrottled = callbackguard.ErrThrottled
 	ErrNotFound  = errors.New("not found")
 	// ErrDecided: the transaction is no longer waiting for Finance.
 	ErrDecided = errors.New("transaction already settled")
@@ -52,55 +51,12 @@ var (
 var nairobi = time.FixedZone("EAT", 3*60*60)
 
 type Service struct {
-	pool    *pgxpool.Pool
-	logger  *slog.Logger
-	cfg     config.MpesaConfig
-	daraja  *Daraja
-	now     func() time.Time
-	allowed []netip.Prefix
-	refused *refusals
-}
-
-// Refused callback attempts per address. After maxRefused in refusedWindow,
-// the address is refused outright until the window passes, so the secret
-// cannot be guessed by trying.
-const (
-	maxRefused    = 20
-	refusedWindow = 10 * time.Minute
-)
-
-type refusals struct {
-	mu    sync.Mutex
-	byKey map[string][]time.Time
-}
-
-// note records one refusal for the address.
-func (r *refusals) note(key string, now time.Time) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.byKey[key] = append(r.recent(key, now), now)
-}
-
-func (r *refusals) blocked(key string, now time.Time) bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return len(r.recent(key, now)) >= maxRefused
-}
-
-// recent keeps the refusals inside the window (caller holds the lock).
-func (r *refusals) recent(key string, now time.Time) []time.Time {
-	kept := r.byKey[key][:0]
-	for _, t := range r.byKey[key] {
-		if now.Sub(t) < refusedWindow {
-			kept = append(kept, t)
-		}
-	}
-	if len(kept) == 0 {
-		delete(r.byKey, key)
-		return nil
-	}
-	r.byKey[key] = kept
-	return kept
+	pool   *pgxpool.Pool
+	logger *slog.Logger
+	cfg    config.MpesaConfig
+	daraja *Daraja
+	now    func() time.Time
+	guard  *callbackguard.Guard
 }
 
 type Options struct {
@@ -125,17 +81,10 @@ func NewService(o Options) *Service {
 	if client == nil {
 		client = &http.Client{Timeout: 30 * time.Second}
 	}
-	s := &Service{pool: o.Pool, logger: o.Logger, cfg: o.Config, now: now, refused: &refusals{byKey: map[string][]time.Time{}},
+	return &Service{pool: o.Pool, logger: o.Logger, cfg: o.Config, now: now,
+		guard: callbackguard.New(o.Config.CallbackSecret, o.Config.AllowedIPs, func() time.Time { return now() }),
 		daraja: &Daraja{baseURL: o.Config.APIBaseURL, key: o.Config.ConsumerKey, secret: o.Config.ConsumerSecret,
 			registerPath: o.Config.RegisterPath, simulPath: o.Config.SimulatePath, client: client, now: now}}
-	for _, a := range o.Config.AllowedIPs {
-		if p, err := netip.ParsePrefix(a); err == nil {
-			s.allowed = append(s.allowed, p)
-		} else if ip, err := netip.ParseAddr(a); err == nil {
-			s.allowed = append(s.allowed, netip.PrefixFrom(ip, ip.BitLen()))
-		}
-	}
-	return s
 }
 
 // ShortCode is the paybill students pay to.
@@ -148,25 +97,6 @@ func (s *Service) tx(ctx context.Context, fn func(q *dbq.Queries) error) error {
 // CallbackPath is where Safaricom calls, relative to the API host.
 func CallbackPath(secret, kind string) string {
 	return "/api/v1/payments/c2b/" + secret + "/" + kind
-}
-
-// accepts checks the secret in the path and, if configured, the address.
-func (s *Service) accepts(secret string, ip *netip.Addr) bool {
-	if subtle.ConstantTimeCompare([]byte(secret), []byte(s.cfg.CallbackSecret)) != 1 {
-		return false
-	}
-	if len(s.allowed) == 0 {
-		return true
-	}
-	if ip == nil {
-		return false
-	}
-	for _, p := range s.allowed {
-		if p.Contains(ip.Unmap()) {
-			return true
-		}
-	}
-	return false
 }
 
 // Confirmation is what Safaricom sends for a completed payment.
@@ -232,17 +162,11 @@ func (c Confirmation) time() time.Time {
 // error is ErrUnauthorised when the call is not accepted; any later failure
 // is logged and the stored callback can be processed again.
 func (s *Service) Callback(ctx context.Context, kind, secret string, ip *netip.Addr, body []byte) error {
-	key := "unknown"
-	if ip != nil {
-		key = ip.Unmap().String()
-	}
-	if s.refused.blocked(key, s.now()) {
-		return ErrThrottled
-	}
-	if !s.accepts(secret, ip) {
-		s.refused.note(key, s.now())
-		s.logger.Warn("M-Pesa callback refused", slog.String("client_ip", key), slog.String("kind", kind))
-		return ErrUnauthorised
+	if key, err := s.guard.Check(secret, ip); err != nil {
+		if errors.Is(err, ErrUnauthorised) {
+			s.logger.Warn("M-Pesa callback refused", slog.String("client_ip", key), slog.String("kind", kind))
+		}
+		return err
 	}
 	if !json.Valid(body) {
 		body, _ = json.Marshal(map[string]string{"unreadable": string(body)})

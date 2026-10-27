@@ -33,6 +33,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
 	"github.com/MboyaDan/dakota-college/backend/internal/finance"
 	"github.com/MboyaDan/dakota-college/backend/internal/httpapi"
+	"github.com/MboyaDan/dakota-college/backend/internal/kcb"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/mpesa"
@@ -146,6 +147,7 @@ func run() error {
 		}),
 		Finance: finance.NewService(finance.Options{Pool: pool, Logger: logger, MpesaPaybill: paybill}),
 		Mpesa:   mpesaSvc,
+		Kcb:     kcb.NewService(kcb.Options{Pool: pool, Logger: logger, Config: cfg.KcbIPN}),
 		Portal: portal.NewService(portal.Options{
 			Pool: pool, Academics: academicsSvc, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
 		}),

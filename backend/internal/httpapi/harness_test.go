@@ -25,6 +25,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
 	"github.com/MboyaDan/dakota-college/backend/internal/enquiry"
 	"github.com/MboyaDan/dakota-college/backend/internal/finance"
+	"github.com/MboyaDan/dakota-college/backend/internal/kcb"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/mpesa"
@@ -56,6 +57,7 @@ type harness struct {
 	daraja       *fakeDaraja
 	mpesaAllowed []string
 	mpesaMax     int64
+	kcbMax       int64
 }
 
 func newHarness(t *testing.T) *harness {
@@ -100,6 +102,8 @@ func (h *harness) rebuild() {
 			Pool: h.pool, Logger: logger, Storage: h.storage, PrivateBucket: "dakota-private", Now: func() time.Time { return h.now() },
 		}),
 		Finance: finance.NewService(finance.Options{Pool: h.pool, Logger: logger, Now: func() time.Time { return h.now() }, MpesaPaybill: testShortCode}),
+		Kcb: kcb.NewService(kcb.Options{Pool: h.pool, Logger: logger, Now: func() time.Time { return h.now() },
+			Config: config.KcbIPNConfig{Enabled: true, Secret: testKcbSecret, CreditAccount: testKcbAccount, AutoCreditMaxCents: h.kcbMax}}),
 		Mpesa: mpesa.NewService(mpesa.Options{Pool: h.pool, Logger: logger, HTTPClient: h.daraja.server.Client(), Now: func() time.Time { return h.now() },
 			Config: config.MpesaConfig{Enabled: true, Environment: "sandbox", APIBaseURL: h.daraja.server.URL, ConsumerKey: testDarajaKey,
 				ConsumerSecret: testDarajaSecret, ShortCode: testShortCode, ResponseType: "Completed", CallbackBaseURL: testOrigin,

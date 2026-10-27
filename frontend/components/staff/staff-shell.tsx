@@ -28,6 +28,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
     { href: "/staff/finance", label: "Finance", show: can("finance.view") },
     { href: "/staff/finance/payments", label: "Payments", show: can("finance.view") },
     { href: "/staff/finance/mpesa", label: "M-Pesa", show: can("finance.view") },
+    { href: "/staff/finance/kcb", label: "KCB bank", show: can("finance.view") },
     { href: "/staff/finance/invoices", label: "Invoices", show: can("finance.view") },
     { href: "/staff/finance/structures", label: "Fee structures", show: can("finance.view") },
     { href: "/staff/enquiries", label: "Enquiries", show: can("enquiries.view") },

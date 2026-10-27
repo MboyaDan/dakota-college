@@ -50,6 +50,26 @@ type Config struct {
 	ClamAVAddr string
 	// Mpesa is Safaricom Daraja C2B (Stage 15a). Off unless MPESA_ENABLED.
 	Mpesa MpesaConfig
+	// KcbIPN is KCB Buni Instant Payment Notifications (Stage 15b). Off
+	// unless KCB_IPN_ENABLED.
+	KcbIPN KcbIPNConfig
+}
+
+// KcbIPNConfig is the college's KCB account as seen by Buni IPN. Nothing is
+// built in: every value comes from the environment.
+type KcbIPNConfig struct {
+	Enabled bool
+	// Secret is part of the notification path (KCB is told the full URL).
+	Secret     string
+	AllowedIPs []string
+	// CreditAccount, Till and OrgShortCode, when set, must match what KCB
+	// sends, so a notification for another account is never credited.
+	CreditAccount string
+	Till          string
+	OrgShortCode  string
+	// AutoCreditMaxCents, if above zero, is the largest notification matched
+	// to a student by itself.
+	AutoCreditMaxCents int64
 }
 
 // MpesaConfig is everything about the college's M-Pesa paybill. Nothing is
@@ -251,6 +271,41 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 		m.RegisterPath = get("MPESA_REGISTER_URL_PATH", "/mpesa/c2b/v2/registerurl")
 		m.SimulatePath = get("MPESA_SIMULATE_PATH", "/mpesa/c2b/v2/simulate")
 		errs = append(errs, m.check(cfg.Env)...)
+	}
+
+	if cfg.KcbIPN.Enabled, err = strconv.ParseBool(get("KCB_IPN_ENABLED", "false")); err != nil {
+		errs = append(errs, errors.New("KCB_IPN_ENABLED must be true or false"))
+	}
+	if cfg.KcbIPN.Enabled {
+		k := &cfg.KcbIPN
+		k.Secret = get("KCB_IPN_SECRET", "")
+		k.AllowedIPs = splitList(get("KCB_IPN_ALLOWED_IPS", ""))
+		k.CreditAccount = get("KCB_CREDIT_ACCOUNT", "")
+		k.Till = get("KCB_TILL_NUMBER", "")
+		k.OrgShortCode = get("KCB_ORG_SHORTCODE", "")
+		if v := get("KCB_AUTO_CREDIT_MAX_KES", ""); v != "" {
+			kes, err := strconv.ParseInt(v, 10, 64)
+			if err != nil || kes < 1 || kes > 10_000_000 {
+				errs = append(errs, errors.New("KCB_AUTO_CREDIT_MAX_KES must be whole shillings from 1 to 10,000,000, or empty for no limit"))
+			}
+			k.AutoCreditMaxCents = kes * 100
+		}
+		if len(k.Secret) < 32 || len(k.Secret) > 128 || strings.Trim(k.Secret, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") != "" {
+			errs = append(errs, errors.New("KCB_IPN_SECRET must be 32 to 128 letters, digits, - or _ (openssl rand -hex 32)"))
+		}
+		for _, ip := range k.AllowedIPs {
+			if !validIPOrCIDR(ip) {
+				errs = append(errs, fmt.Errorf("KCB_IPN_ALLOWED_IPS: %q is not an IP address or CIDR", ip))
+			}
+		}
+		if cfg.Env == EnvProduction {
+			if k.CreditAccount == "" {
+				errs = append(errs, errors.New("KCB_CREDIT_ACCOUNT is required when APP_ENV=production: the college account notifications must be for"))
+			}
+			if len(k.AllowedIPs) == 0 {
+				errs = append(errs, errors.New("KCB_IPN_ALLOWED_IPS is required when APP_ENV=production: the addresses KCB sends from"))
+			}
+		}
 	}
 
 	// Production must not run with development-only settings.

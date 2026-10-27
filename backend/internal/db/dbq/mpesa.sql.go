@@ -69,8 +69,8 @@ func (q *Queries) InsertMpesaTransaction(ctx context.Context, arg InsertMpesaTra
 }
 
 const insertProviderPayment = `-- name: InsertProviderPayment :one
-INSERT INTO payments (student_id, method, amount_cents, paid_on, reference, payer_name, note, recorded_by)
-VALUES ($1, 'mpesa', $2, $3, $4, $5, $6, $7)
+INSERT INTO payments (student_id, method, amount_cents, paid_on, reference, payer_name, note, recorded_by, source)
+VALUES ($1, 'mpesa', $2, $3, $4, $5, $6, $7, 'mpesa')
 RETURNING id
 `
 

@@ -2,7 +2,9 @@ package finance
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -220,4 +222,23 @@ var nairobi = time.FixedZone("EAT", 3*60*60)
 func dateOf(t time.Time) time.Time {
 	y, m, d := t.In(nairobi).Date()
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+}
+
+var amountText = regexp.MustCompile(`^(\d{1,10})(?:\.(\d{1,2}))?$`)
+
+// ParseAmount reads "1234", "1234.5" or "1234.50" (as a provider sends it)
+// into cents, on the digits, never through floating point. ok is false for
+// anything else or for zero.
+func ParseAmount(text string) (cents int64, ok bool) {
+	m := amountText.FindStringSubmatch(strings.TrimSpace(text))
+	if m == nil {
+		return 0, false
+	}
+	whole, _ := strconv.ParseInt(m[1], 10, 64)
+	frac := int64(0)
+	if m[2] != "" {
+		frac, _ = strconv.ParseInt((m[2] + "0")[:2], 10, 64)
+	}
+	cents = whole*100 + frac
+	return cents, cents > 0
 }

@@ -26,7 +26,7 @@ import { useAction } from "./use-action";
 type Transaction = components["schemas"]["MpesaTransaction"];
 type TxStatus = Transaction["status"];
 
-const txStatus: Record<TxStatus, { label: string; tone: Status }> = {
+export const txStatus: Record<TxStatus, { label: string; tone: Status }> = {
   matched: { label: "Credited", tone: "success" },
   assigned: { label: "Assigned by Finance", tone: "success" },
   unmatched: { label: "Waiting for Finance", tone: "warning" },
@@ -34,7 +34,7 @@ const txStatus: Record<TxStatus, { label: string; tone: Status }> = {
   rejected: { label: "Not for this paybill", tone: "danger" },
 };
 
-function FindStudent({ onPick }: { onPick: (id: string, label: string) => void }) {
+export function FindStudent({ onPick }: { onPick: (id: string, label: string) => void }) {
   const fieldId = useId();
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
@@ -87,7 +87,16 @@ function FindStudent({ onPick }: { onPick: (id: string, label: string) => void }
   );
 }
 
-function Settle({ t, onDone }: { t: Transaction; onDone: () => void }) {
+/** Assign an unmatched provider payment to a student, or mark it to be returned. */
+export function Settle({
+  t,
+  provider,
+  onDone,
+}: {
+  t: Pick<Transaction, "id" | "trans_id">;
+  provider: "mpesa" | "kcb";
+  onDone: () => void;
+}) {
   const [mode, setMode] = useState<"assign" | "refund" | null>(null);
   const [student, setStudent] = useState<{ id: string; label: string } | null>(null);
   const [note, setNote] = useState("");
@@ -120,22 +129,22 @@ function Settle({ t, onDone }: { t: Transaction; onDone: () => void }) {
           setErrors({ note: "Write at least 5 characters." });
           return;
         }
+        const assign = { ...path, body: { student_id: student?.id ?? "", note } };
+        const refund = { ...path, body: { note } };
         const ok =
           mode === "assign"
             ? await run(
                 () =>
-                  api.POST("/api/v1/staff/finance/mpesa/transactions/{id}/assign", {
-                    ...path,
-                    body: { student_id: student!.id, note },
-                  }),
+                  provider === "mpesa"
+                    ? api.POST("/api/v1/staff/finance/mpesa/transactions/{id}/assign", assign)
+                    : api.POST("/api/v1/staff/finance/kcb/transactions/{id}/assign", assign),
                 "Assigned and receipted",
               )
             : await run(
                 () =>
-                  api.POST("/api/v1/staff/finance/mpesa/transactions/{id}/refund", {
-                    ...path,
-                    body: { note },
-                  }),
+                  provider === "mpesa"
+                    ? api.POST("/api/v1/staff/finance/mpesa/transactions/{id}/refund", refund)
+                    : api.POST("/api/v1/staff/finance/kcb/transactions/{id}/refund", refund),
                 "Marked to be returned",
               );
         if (ok) onDone();
@@ -169,8 +178,12 @@ function Settle({ t, onDone }: { t: Transaction; onDone: () => void }) {
         maxLength={1000}
         hint={
           mode === "assign"
-            ? "For example: the parent phoned with the M-Pesa code."
-            : "Return it from the M-Pesa portal; this only records the decision."
+            ? provider === "mpesa"
+              ? "For example: the parent phoned with the M-Pesa code."
+              : "For example: found on the KCB statement; the sponsor gave the student's name."
+            : provider === "mpesa"
+              ? "Return it from the M-Pesa portal; this only records the decision."
+              : "Return it through the bank; this only records the decision."
         }
         value={note}
         error={errors.note}
@@ -188,7 +201,20 @@ function Settle({ t, onDone }: { t: Transaction; onDone: () => void }) {
   );
 }
 
-function TransactionItem({ t, children }: { t: Transaction; children?: React.ReactNode }) {
+export function TransactionItem({
+  t,
+  children,
+  statusLabel,
+  referenceLabel = "account number",
+}: {
+  t: Transaction;
+  children?: React.ReactNode;
+  /** Replaces the status label (KCB: credited as pending). */
+  statusLabel?: { label: string; tone: Status };
+  /** What the payer's reference is called ("account number" for M-Pesa). */
+  referenceLabel?: string;
+}) {
+  const shown = statusLabel ?? txStatus[t.status];
   return (
     <li className="flex flex-col gap-3 p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -197,7 +223,7 @@ function TransactionItem({ t, children }: { t: Transaction; children?: React.Rea
             {formatKes(t.amount_cents)} · <span className="font-mono">{t.trans_id}</span>
           </span>
           <span className="text-sm text-ink-muted">
-            {formatNairobi(t.trans_time)} · account number{" "}
+            {formatNairobi(t.trans_time)} · {referenceLabel}{" "}
             <span className="font-mono">{t.account_number || "(none)"}</span>
             {t.payer_name ? ` · ${t.payer_name}` : ""}
           </span>
@@ -214,7 +240,7 @@ function TransactionItem({ t, children }: { t: Transaction; children?: React.Rea
           ) : null}
         </div>
         <div className="flex flex-col items-start gap-1 sm:items-end">
-          <StatusTag status={txStatus[t.status].tone}>{txStatus[t.status].label}</StatusTag>
+          <StatusTag status={shown.tone}>{shown.label}</StatusTag>
           {t.receipt_number ? <span className="font-mono text-sm">{t.receipt_number}</span> : null}
         </div>
       </div>
@@ -466,7 +492,7 @@ export function MpesaPage() {
           <ul className="flex flex-col divide-y divide-stone rounded-card border border-stone bg-white">
             {waiting.data.items.map((t) => (
               <TransactionItem key={t.id} t={t}>
-                {can("finance.payment.confirm") ? <Settle t={t} onDone={reload} /> : null}
+                {can("finance.payment.confirm") ? <Settle t={t} provider="mpesa" onDone={reload} /> : null}
               </TransactionItem>
             ))}
           </ul>

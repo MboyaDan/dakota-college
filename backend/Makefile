@@ -63,5 +63,5 @@ sqlc: ## Regenerate Go code from queries/ (commit the result)
 docker-build: ## Build the production API image
 	docker build -t dakota-api:local .
 
-mpesa-proxy: ## Forward only M-Pesa sandbox callbacks to the local API (then: ngrok http 127.0.0.1:8181)
+mpesa-proxy: ## Forward only M-Pesa and KCB sandbox callbacks to the local API (then: ngrok http 127.0.0.1:8181)
 	go run ./cmd/callbackproxy

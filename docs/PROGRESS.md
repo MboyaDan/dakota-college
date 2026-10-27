@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 15a.2, M-Pesa hardening and sandbox tunnel. Done, awaiting review.
-- **Next stage:** 15b, KCB Buni IPN (needs the Buni sandbox documentation and credentials), or 16 Notifications and reports if 15b waits.
-- **Branch:** `stage-15a2-mpesa-hardening` (from `main` after #37)
+- **Current stage:** 15b, KCB Buni notifications. Done, awaiting review.
+- **Next stage:** 16, Notifications and reports (KCB signature check slots in when KCB sends the key).
+- **Branch:** `stage-15b-kcb-ipn` (from `main` after #38)
 
 ## Stage status
 
@@ -39,8 +39,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 14a | Finance API | Merged (#35) |
 | 14b | Finance screens | Merged (#36) |
 | 15a | M-Pesa C2B | Merged (#37) |
-| 15a.2 | M-Pesa hardening and sandbox tunnel | Done, awaiting review |
-| 15b | KCB Buni IPN | Waiting for Buni docs and credentials |
+| 15a.2 | M-Pesa hardening and sandbox tunnel | Merged (#38) |
+| 15b | KCB Buni notifications | Done, awaiting review (signature check waits for KCB) |
 | 16 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -54,6 +54,15 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 15b: KCB Buni notifications (2026-10-27)
+
+- Built from KCB's IPN specification (kept locally in `docs/kcb/`, not committed). The owner's Buni sandbox keys obtain a UAT token.
+- Owner chose to build everything except the signature check: KCB notifications create pending bank payments that Finance confirms; unmatched ones wait to be assigned or returned (D-174 to D-176; A-42, A-43).
+- Migration 00019: stored notifications with their Signature header (append-only), one row per KCB transaction (guarded), payment `source`.
+- API: secret-path notification endpoint with KCB's acknowledgement; status, transactions, assign, refund, day check, reprocess. Shared callback guard with M-Pesa. Screens: KCB bank page; M-Pesa and KCB share the assign and return form.
+- Verified: all Go packages with PostgreSQL and `-race`; 121 unit tests; 156 Playwright tests passed locally with M-Pesa and KCB enabled; a KCB-shaped notification sent through the ngrok tunnel and the callback proxy reached the API and became a pending payment. Screenshot checked at 360 px.
+- Waiting for KCB: the key and method to verify `Signature`, and the meaning of their 13-digit timestamp sample. Then send the endpoint to buni@kcbgroup.com for review.
 
 ### Stage 15a.2: M-Pesa hardening and sandbox tunnel (2026-10-27)
 
