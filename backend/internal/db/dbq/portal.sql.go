@@ -418,7 +418,7 @@ func (q *Queries) LockProfileChangeRequest(ctx context.Context, id uuid.UUID) (L
 }
 
 const lockServiceRequest = `-- name: LockServiceRequest :one
-SELECT r.id, r.kind, r.status, p.school_id, s.email, s.first_name
+SELECT r.id, r.student_id, r.kind, r.status, p.school_id, s.email, s.first_name
 FROM service_requests r
 JOIN students s ON s.id = r.student_id
 JOIN programmes p ON p.id = s.programme_id
@@ -428,6 +428,7 @@ FOR UPDATE OF r
 
 type LockServiceRequestRow struct {
 	ID        uuid.UUID
+	StudentID uuid.UUID
 	Kind      string
 	Status    string
 	SchoolID  uuid.UUID
@@ -440,6 +441,7 @@ func (q *Queries) LockServiceRequest(ctx context.Context, id uuid.UUID) (LockSer
 	var i LockServiceRequestRow
 	err := row.Scan(
 		&i.ID,
+		&i.StudentID,
 		&i.Kind,
 		&i.Status,
 		&i.SchoolID,

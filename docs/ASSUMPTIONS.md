@@ -26,7 +26,7 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | DQ-04 | TVETA, CDACC, KNEC numbers | Owner asked for editable dummy values. The dev seed creates one record labelled "SAMPLE, not a real registration number". Publishing an accreditation item still needs a verification date (NN-01). Hidden in production until real, verified values are entered. | Confirmed (owner, 2026-10-22) |
 | DQ-05 | Intake months and deadlines | Intakes are admin data; none shown until entered. Dev seed has sample intakes. | Confirmed (owner, 2026-10-22) |
 | DQ-06 | Application fee | No fee. Optional later (Could). | Open |
-| DQ-07 | Assessment model | Configurable per programme; marks and grade bands by default. | Open |
+| DQ-07 | Assessment model | Configurable per programme; marks and grade bands by default (D-150). The default weights and bands are placeholders (A-35). | Confirmed (owner, 2026-10-26) |
 | DQ-08 | Student number format | `DTC/YYYY/NNNN`, gapless per year, editable setting. | Open |
 | DQ-09 | How fees are collected today | Cash, bank and manual M-Pesa recorded as pending confirmation. | Open |
 | DQ-10 | Accommodation, transport, meals | Not modelled in v1. | Open |
@@ -71,3 +71,5 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-32 | Students change phone and contacts themselves; name, date of birth and ID number only through a request the registrar approves. | Confirmed (owner, 2026-10-26) |
 | A-33 | Notices are posted by the registrar's office and Heads of School (within their schools) and by trainers to their own classes. | Confirmed (owner, 2026-10-26) |
 | A-34 | A student may have at most five service requests open at once; the request types are letter, transcript, deferment, change of course and other. | Default, Stage 12a; owner may change |
+| A-35 | Until the college sets each programme's assessment, results use CAT 30% and final exam 70%, pass mark 40, grades A 70+, B 60+, C 50+, D 40+, E below 40. These are placeholders to replace with the college's real scheme. | Default, Stage 13a; college to confirm before real results |
+| A-36 | A unit shared by programmes with different schemes uses the scheme of the first programme (by title) listing it. | Default, Stage 13a; owner may change |

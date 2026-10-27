@@ -98,6 +98,8 @@ type writer struct {
 	reference string
 	page      int
 	sample    bool
+	// footerName names the document in the footer; empty means an offer letter.
+	footerName string
 }
 
 // OfferLetter renders the letter as a PDF.
@@ -120,21 +122,10 @@ func OfferLetter(o Offer) ([]byte, error) {
 		return nil, err
 	}
 
-	// The supplied logo has an ivory background; the letterhead band is the
-	// same ivory, so the logo sits on its own colour.
-	pdf.SetFillColor(ivory[0], ivory[1], ivory[2])
-	pdf.RectFromUpperLeftWithStyle(0, 0, pageW, 112, "F")
-	logo, err := gopdf.ImageHolderByBytes(logoPNG)
-	if err != nil {
+	if err := w.letterhead(); err != nil {
 		return nil, err
 	}
-	// 2400 x 792 px, shown 190 pt wide.
-	if err := pdf.ImageByHolder(logo, margin, 24, &gopdf.Rect{W: 190, H: 190 * 792 / 2400}); err != nil {
-		return nil, err
-	}
-	pdf.SetStrokeColor(gold[0], gold[1], gold[2])
-	pdf.SetLineWidth(1.5)
-	pdf.Line(margin, 112, pageW-margin, 112)
+	var err error
 
 	y := 134.0
 	if err := w.text("regular", 10, muted, pageW-margin, y, o.Date.Format("2 January 2006"), gopdf.Right); err != nil {
@@ -203,12 +194,15 @@ func OfferLetter(o Offer) ([]byte, error) {
 func (w *writer) newPage() error {
 	w.pdf.AddPage()
 	w.page++
-	footer := fmt.Sprintf("Dakota Training College  ·  Offer letter %s  ·  Page %d", w.reference, w.page)
-	if err := w.text("regular", 8, muted, margin, pageH-40, footer, gopdf.Left); err != nil {
+	if err := w.text("regular", 8, muted, margin, pageH-40, w.footerLabel(), gopdf.Left); err != nil {
 		return err
 	}
 	if w.sample {
-		return w.text("semibold", 9, [3]uint8{0xB4, 0x23, 0x18}, pageW-margin, pageH-40, "SAMPLE: NOT A REAL OFFER", gopdf.Right)
+		label := "SAMPLE: NOT A REAL OFFER"
+		if w.footerName != "" {
+			label = "SAMPLE: NOT A REAL DOCUMENT"
+		}
+		return w.text("semibold", 9, [3]uint8{0xB4, 0x23, 0x18}, pageW-margin, pageH-40, label, gopdf.Right)
 	}
 	return nil
 }
@@ -349,4 +343,25 @@ func (w *writer) fees(y float64, fees []Fee, date time.Time) (float64, error) {
 	note := fmt.Sprintf("These are the fees published for this programme on %s. Your invoice at enrolment confirms what you pay.",
 		date.Format("2 January 2006"))
 	return w.paragraphs(y+4, note)
+}
+
+// letterhead draws the ivory band with the supplied logo and a gold rule.
+func (w *writer) letterhead() error {
+	pdf := w.pdf
+	// The supplied logo has an ivory background; the letterhead band is the
+	// same ivory, so the logo sits on its own colour.
+	pdf.SetFillColor(ivory[0], ivory[1], ivory[2])
+	pdf.RectFromUpperLeftWithStyle(0, 0, pageW, 112, "F")
+	logo, err := gopdf.ImageHolderByBytes(logoPNG)
+	if err != nil {
+		return err
+	}
+	// 2400 x 792 px, shown 190 pt wide.
+	if err := pdf.ImageByHolder(logo, margin, 24, &gopdf.Rect{W: 190, H: 190 * 792 / 2400}); err != nil {
+		return err
+	}
+	pdf.SetStrokeColor(gold[0], gold[1], gold[2])
+	pdf.SetLineWidth(1.5)
+	pdf.Line(margin, 112, pageW-margin, 112)
+	return nil
 }

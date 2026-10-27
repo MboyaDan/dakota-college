@@ -47,3 +47,21 @@ func TestOfferLetter(t *testing.T) {
 		t.Fatalf("letter is %d bytes; fonts should be subset", len(pdf))
 	}
 }
+
+func TestResultsDocument(t *testing.T) {
+	for _, official := range []bool{true, false} {
+		pdf, err := ResultsDocument(Results{Official: official, Number: "DTC/TR/2026/0001", Date: time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC),
+			Name: "Test Student 001", StudentNumber: "DTC/SAMPLE/0001", Programme: "Diploma (Sample)",
+			Terms: []ResultTerm{{Name: "Term 1", Rows: []ResultRow{{"ICT 101", "Basics", "73", "A"}, {"ICT 102", "More", "", "Competent"}}}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.HasPrefix(pdf, []byte("%PDF-")) || len(pageObject.FindAll(pdf, -1)) != 1 {
+			t.Fatalf("official=%v: not a one-page PDF", official)
+		}
+	}
+	// No released results still makes a document that says so.
+	if _, err := ResultsDocument(Results{Date: time.Now(), Name: "X", StudentNumber: "Y", Programme: "Z"}); err != nil {
+		t.Fatal(err)
+	}
+}

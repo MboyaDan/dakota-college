@@ -189,7 +189,7 @@ ORDER BY r.created_at DESC
 LIMIT 100;
 
 -- name: LockServiceRequest :one
-SELECT r.id, r.kind, r.status, p.school_id, s.email, s.first_name
+SELECT r.id, r.student_id, r.kind, r.status, p.school_id, s.email, s.first_name
 FROM service_requests r
 JOIN students s ON s.id = r.student_id
 JOIN programmes p ON p.id = s.programme_id

@@ -153,6 +153,16 @@ type ApplicationTransition struct {
 	ToStatus   string
 }
 
+type AssessmentScheme struct {
+	ProgrammeID uuid.UUID
+	Kind        string
+	Components  []byte
+	PassMark    int16
+	GradeBands  []byte
+	UpdatedBy   *uuid.UUID
+	UpdatedAt   time.Time
+}
+
 type AuditLog struct {
 	ID          int64
 	OccurredAt  time.Time
@@ -358,6 +368,18 @@ type Invoice struct {
 	UpdatedAt time.Time
 }
 
+type Mark struct {
+	ID        int64
+	SheetID   uuid.UUID
+	StudentID uuid.UUID
+	Component string
+	Score     *int16
+	Outcome   *string
+	Reason    string
+	EnteredBy uuid.UUID
+	EnteredAt time.Time
+}
+
 type NewsPost struct {
 	ID             uuid.UUID
 	Slug           string
@@ -531,6 +553,34 @@ type ProgrammeUnit struct {
 	SortOrder   int32
 }
 
+type ResultRelease struct {
+	ID         uuid.UUID
+	SheetID    uuid.UUID
+	Version    int32
+	Results    []byte
+	ReleasedBy uuid.UUID
+	ReleasedAt time.Time
+}
+
+type ResultSheet struct {
+	ID         uuid.UUID
+	OfferingID uuid.UUID
+	Status     string
+	Scheme     []byte
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+type ResultSheetEvent struct {
+	ID         int64
+	SheetID    uuid.UUID
+	FromStatus string
+	ToStatus   string
+	Reason     string
+	ActorID    uuid.UUID
+	CreatedAt  time.Time
+}
+
 type Role struct {
 	ID          uuid.UUID
 	Key         string
@@ -680,6 +730,16 @@ type TrainerAssignment struct {
 	UserID     uuid.UUID
 	AssignedBy *uuid.UUID
 	CreatedAt  time.Time
+}
+
+type Transcript struct {
+	ID               uuid.UUID
+	Number           string
+	StudentID        uuid.UUID
+	FileID           uuid.UUID
+	ServiceRequestID *uuid.UUID
+	IssuedBy         uuid.UUID
+	IssuedAt         time.Time
 }
 
 type Unit struct {

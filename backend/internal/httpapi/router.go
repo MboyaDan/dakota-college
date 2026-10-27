@@ -19,6 +19,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
+	"github.com/MboyaDan/dakota-college/backend/internal/results"
 )
 
 // Pinger checks that a dependency is reachable. *pgxpool.Pool satisfies it.
@@ -50,7 +51,9 @@ type Deps struct {
 	Academics *academics.Service
 	// Portal is the student portal and the staff side of what students ask for.
 	Portal *portal.Service
-	Notify *notify.Service
+	// Results is marks, approval, release and transcripts.
+	Results *results.Service
+	Notify  *notify.Service
 }
 
 const defaultBodyLimit = 1 << 20 // 1 MB for JSON endpoints
@@ -311,6 +314,35 @@ func NewRouter(d Deps) (*Router, error) {
 		add(http.MethodGet, "/staff/profile-requests", false, academics.PermStudentsView, ph.listChangeRequests)
 		add(http.MethodPost, "/staff/profile-requests/:id/approve", false, academics.PermStudentsUpdate, ph.decideChange(true))
 		add(http.MethodPost, "/staff/profile-requests/:id/decline", false, academics.PermStudentsUpdate, ph.decideChange(false))
+	}
+
+	if d.Results != nil && d.Academics != nil && d.Auth != nil {
+		rh := resultsHandlers{svc: d.Results, academics: d.Academics}
+		mount(Route{Method: http.MethodGet, Path: "/staff/programmes/:id/assessment", Kind: "staff"}, defaultBodyLimit, rh.scheme)
+		add(http.MethodPut, "/staff/programmes/:id/assessment", false, academics.PermManage, rh.setScheme)
+
+		add(http.MethodGet, "/staff/teaching/:id/results", false, results.PermEnter, rh.trainerSheet)
+		addWithLimit(4<<20, http.MethodPut, "/staff/teaching/:id/results/marks", false, results.PermEnter, rh.enterMarks)
+		add(http.MethodPost, "/staff/teaching/:id/results/submit", false, results.PermEnter, rh.submit)
+
+		add(http.MethodGet, "/staff/result-approvals", false, results.PermApprove, rh.list("submitted", "submitted", "approved", "released", "draft"))
+		add(http.MethodGet, "/staff/result-approvals/:id", false, results.PermApprove, rh.get)
+		add(http.MethodPost, "/staff/result-approvals/:id/approve", false, results.PermApprove, rh.decide(rh.approve))
+		add(http.MethodPost, "/staff/result-approvals/:id/return", false, results.PermApprove, rh.decide(rh.ret))
+		add(http.MethodGet, "/staff/result-releases", false, results.PermRelease, rh.list("approved", "approved", "released"))
+		add(http.MethodGet, "/staff/result-releases/:id", false, results.PermRelease, rh.get)
+		add(http.MethodPost, "/staff/result-releases/:id/release", false, results.PermRelease, rh.decide(rh.release))
+
+		add(http.MethodGet, "/staff/students/:id/results", false, academics.PermStudentsView, rh.staffStudentResults)
+		add(http.MethodPost, "/staff/students/:id/transcripts", false, results.PermRelease, rh.issueTranscript)
+		add(http.MethodPost, "/staff/students/:id/transcripts/:item/link", false, academics.PermStudentsView, rh.staffTranscriptLink)
+
+		studentOnly := func(method, path string, h gin.HandlerFunc) {
+			mount(Route{Method: method, Path: path, Kind: "student"}, defaultBodyLimit, h)
+		}
+		studentOnly(http.MethodGet, "/student/results", rh.studentResults)
+		studentOnly(http.MethodGet, "/student/results/slip", rh.slip)
+		studentOnly(http.MethodPost, "/student/transcripts/:id/link", rh.studentTranscriptLink)
 	}
 
 	if d.Content != nil && d.Enquiries != nil {
