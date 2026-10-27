@@ -151,24 +151,40 @@ func (in *PaymentInput) check(today time.Time) (time.Time, error) {
 // receipt confirms a pending payment and numbers its receipt
 // DTC/RCT/YYYY/NNNNN, in the caller's transaction.
 func (s *Service) receipt(ctx context.Context, q *dbq.Queries, p *auth.Principal, id uuid.UUID, note string, req audit.Request) error {
-	via := "finance"
-	if n, err := q.DecidePayment(ctx, dbq.DecidePaymentParams{ID: id, Status: "confirmed", ConfirmedVia: &via, DecidedBy: &p.UserID, DecisionNote: note}); err != nil || n != 1 {
-		if err == nil {
-			err = ErrDecided
-		}
-		return err
-	}
-	year := s.now().In(nairobi).Year()
-	n, err := q.NextCounterValue(ctx, dbq.NextCounterValueParams{Name: "receipt", Period: int32(year)})
+	number, err := confirm(ctx, q, id, "finance", &p.UserID, note, s.now())
 	if err != nil {
-		return err
-	}
-	number := fmt.Sprintf("DTC/RCT/%d/%05d", year, n)
-	if _, err := q.InsertReceipt(ctx, dbq.InsertReceiptParams{Number: number, PaymentID: id, IssuedBy: &p.UserID}); err != nil {
 		return err
 	}
 	return audit.Write(ctx, q, req, audit.Entry{Action: "finance.payment_confirmed", EntityType: "payment", EntityID: id.String(),
 		Details: map[string]any{"receipt": number}})
+}
+
+// confirm marks a pending payment confirmed and issues its receipt, in the
+// caller's transaction, and returns the receipt number.
+func confirm(ctx context.Context, q *dbq.Queries, id uuid.UUID, via string, by *uuid.UUID, note string, now time.Time) (string, error) {
+	if n, err := q.DecidePayment(ctx, dbq.DecidePaymentParams{ID: id, Status: "confirmed", ConfirmedVia: &via, DecidedBy: by, DecisionNote: note}); err != nil || n != 1 {
+		if err == nil {
+			err = ErrDecided
+		}
+		return "", err
+	}
+	year := now.In(nairobi).Year()
+	n, err := q.NextCounterValue(ctx, dbq.NextCounterValueParams{Name: "receipt", Period: int32(year)})
+	if err != nil {
+		return "", err
+	}
+	number := fmt.Sprintf("DTC/RCT/%d/%05d", year, n)
+	if _, err := q.InsertReceipt(ctx, dbq.InsertReceiptParams{Number: number, PaymentID: id, IssuedBy: by}); err != nil {
+		return "", err
+	}
+	return number, nil
+}
+
+// ConfirmByProvider confirms a pending payment from the verified M-Pesa
+// flow (AC-11) and issues its receipt, in the caller's transaction. by is
+// the member of staff who assigned it, or nil when it matched by itself.
+func ConfirmByProvider(ctx context.Context, q *dbq.Queries, id uuid.UUID, by *uuid.UUID, note string, now time.Time) (string, error) {
+	return confirm(ctx, q, id, "provider", by, note, now)
 }
 
 // RecordPayment records money received for a student.
@@ -193,7 +209,7 @@ func (s *Service) RecordPayment(ctx context.Context, p *auth.Principal, key stri
 			}
 		}
 		id, err := q.InsertPayment(ctx, dbq.InsertPaymentParams{StudentID: in.StudentID, Method: in.Method, AmountCents: in.AmountCents, PaidOn: paid,
-			Reference: in.Reference, PayerName: in.PayerName, Note: in.Note, RecordedBy: p.UserID})
+			Reference: in.Reference, PayerName: in.PayerName, Note: in.Note, RecordedBy: &p.UserID})
 		if isUniqueViolation(err) {
 			return nil, content.Problems{{Field: "reference", Message: "This M-Pesa code is already recorded. Search payments for it before recording it again."}}.Err()
 		}

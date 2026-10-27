@@ -48,15 +48,19 @@ var (
 )
 
 type Service struct {
-	pool   *pgxpool.Pool
-	logger *slog.Logger
-	now    func() time.Time
+	pool    *pgxpool.Pool
+	logger  *slog.Logger
+	now     func() time.Time
+	paybill string
 }
 
 type Options struct {
 	Pool   *pgxpool.Pool
 	Logger *slog.Logger
 	Now    func() time.Time
+	// MpesaPaybill is the configured paybill, shown to students; empty when
+	// M-Pesa is not enabled.
+	MpesaPaybill string
 }
 
 func NewService(o Options) *Service {
@@ -64,7 +68,7 @@ func NewService(o Options) *Service {
 	if now == nil {
 		now = time.Now
 	}
-	return &Service{pool: o.Pool, logger: o.Logger, now: now}
+	return &Service{pool: o.Pool, logger: o.Logger, now: now, paybill: o.MpesaPaybill}
 }
 
 func (s *Service) tx(ctx context.Context, fn func(q *dbq.Queries) error) error {
