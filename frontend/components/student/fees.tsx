@@ -69,16 +69,35 @@ export function StudentFees() {
           <>
             <Standing s={f.summary} />
 
-            {f.payment_instructions ? (
+            {f.payment_instructions || f.mpesa_paybill ? (
               <section aria-labelledby="how-title" className="flex flex-col gap-2">
                 <h2 id="how-title" className="text-xl font-semibold">
                   How to pay
                 </h2>
-                <p className="whitespace-pre-line">{f.payment_instructions}</p>
-                <p className="text-sm text-ink-muted">
-                  Use your student number as the reference. A payment shows here once the finance office
-                  records it.
-                </p>
+                {f.mpesa_paybill ? (
+                  <Card className="flex flex-col gap-1">
+                    <p className="font-semibold">M-Pesa</p>
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                      <dt className="text-ink-muted">Paybill</dt>
+                      <dd className="font-mono font-semibold">{f.mpesa_paybill}</dd>
+                      <dt className="text-ink-muted">Account number</dt>
+                      <dd className="font-mono font-semibold whitespace-nowrap">{f.account_number}</dd>
+                    </dl>
+                    <p className="text-sm text-ink-muted">
+                      Use your student number exactly as shown. The payment shows here, with its receipt,
+                      within a few minutes.
+                    </p>
+                  </Card>
+                ) : null}
+                {f.payment_instructions ? (
+                  <p className="whitespace-pre-line">{f.payment_instructions}</p>
+                ) : null}
+                {f.payment_instructions && !f.mpesa_paybill ? (
+                  <p className="text-sm text-ink-muted">
+                    Use your student number as the reference. A payment shows here once the finance office
+                    records it.
+                  </p>
+                ) : null}
               </section>
             ) : null}
 
@@ -168,9 +187,10 @@ export function StudentFees() {
                         <a
                           href={`/api/v1/student/fees/payments/${p.id}/receipt`}
                           download
-                          className={download}
+                          className="min-h-touch content-center self-start text-royal underline"
                         >
-                          Download receipt <span className="ml-1 font-mono">{p.receipt_number}</span>
+                          Download receipt{" "}
+                          <span className="font-mono whitespace-nowrap">{p.receipt_number}</span>
                         </a>
                       ) : (
                         <span className="text-sm">The receipt is issued once it is confirmed.</span>
