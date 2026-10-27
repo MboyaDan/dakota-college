@@ -73,3 +73,6 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-34 | A student may have at most five service requests open at once; the request types are letter, transcript, deferment, change of course and other. | Default, Stage 12a; owner may change |
 | A-35 | Until the college sets each programme's assessment, results use CAT 30% and final exam 70%, pass mark 40, grades A 70+, B 60+, C 50+, D 40+, E below 40. These are placeholders to replace with the college's real scheme. | Default, Stage 13a; college to confirm before real results |
 | A-36 | A unit shared by programmes with different schemes uses the scheme of the first programme (by title) listing it. | Default, Stage 13a; owner may change |
+| A-37 | Instalments are due a number of days after the invoice is issued (not on fixed calendar dates), and extra charges are due at once. | Default, Stage 14a; owner may change |
+| A-38 | Overpayments stay on the account as credit for the next invoice. Refunds are not handled in the system yet; Finance records a refund paid out as a charge adjustment with the reason. | Default, Stage 14a; owner may change |
+| A-39 | Fees charged per year are not modelled separately: Finance bills them once at enrolment or adds them to a term invoice by hand. | Default, Stage 14a; owner may change |

@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 13b, Results screens. Done, awaiting review.
-- **Next stage:** 14, Finance core (likely split into 14a API and 14b screens).
-- **Branch:** `stage-13b-results-screens` (from `main` after #33)
+- **Current stage:** 14a, Finance API. Done, awaiting review.
+- **Next stage:** 14b, Finance screens (staff finance portal, student Fees page).
+- **Branch:** `stage-14a-finance-api` (from `main` after #34)
 
 ## Stage status
 
@@ -35,8 +35,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 12a | Student portal API | Merged (#31) |
 | 12b | Student portal screens | Merged (#32) |
 | 13a | Results API | Merged (#33) |
-| 13b | Results screens | Done, awaiting review |
-| 14 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 13b | Results screens | Merged (#34) |
+| 14a | Finance API | Done, awaiting review |
+| 14b | Finance screens | Not started |
+| 15 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -49,6 +51,14 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 14a: Finance API (2026-10-27)
+
+- Stage 14 split into 14a (API) and 14b (screens). Owner chose Finance-owned fee structures, any confirmer may confirm, cash receipted at once, and billing a whole class (D-157 to D-164; defaults A-37 to A-39).
+- Migration 00017: fee structures with lines and instalment plans; invoice lines and instalments; payments, receipts and adjustments; permission `finance.payment.record`; setting `finance.payment_instructions` (empty). Triggers refuse changes to issued invoices, decided payments, receipts and adjustments, and any deletion.
+- API: fee structures (optionally from the published fees); drafts, fill from structure, issue one or many (gapless `DTC/INV/YYYY/NNNNN`), void drafts; bill a class for a term; record, confirm and reject payments with Idempotency-Key (gapless receipts `DTC/RCT/YYYY/NNNNN`); adjustments; account with statement and balance; arrears; summary; receipt, invoice and statement PDFs; the student's own fees and PDFs. Enrolment now fills the first invoice from the structure when one exists.
+- Dev seed: a sample fee structure for the sample ICT diploma, the test students' first invoices filled (still drafts), and one pending sample M-Pesa payment.
+- Verified: Go tests against PostgreSQL with `-race`, all packages (AC-10 reconciliation over 60 random operations; AC-11 manual path; database guards; permissions; concurrency; enrolment fill; OpenAPI matches routes; migrations up, down, up). Live against the migrated dev API: issued an invoice, confirmed the sample payment, downloaded the three PDFs and checked them by eye.
 
 ### Stage 13b: Results screens (2026-10-27)
 
