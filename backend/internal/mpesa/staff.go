@@ -46,7 +46,7 @@ func (s *Service) Status(ctx context.Context) (*Status, error) {
 		return nil, err
 	}
 	out := &Status{Environment: s.cfg.Environment, ShortCode: s.cfg.ShortCode, ResponseType: s.cfg.ResponseType,
-		IPAllowList: len(s.allowed) > 0, Unmatched: a.Unmatched}
+		IPAllowList: s.guard.HasAllowList(), Unmatched: a.Unmatched}
 	out.ConfirmationURL, out.ValidationURL = s.urls(true)
 	if a.LastCallbackEpoch > 0 {
 		t := time.Unix(a.LastCallbackEpoch, 0)

@@ -176,3 +176,31 @@ func TestMpesaConfig(t *testing.T) {
 		}
 	}
 }
+
+func TestKcbIPNConfig(t *testing.T) {
+	base := func(extra map[string]string) map[string]string {
+		m := map[string]string{"APP_ENV": "development", "DATABASE_URL": "postgres://x",
+			"KCB_IPN_ENABLED": "true", "KCB_IPN_SECRET": strings.Repeat("b", 64)}
+		for k, v := range extra {
+			m[k] = v
+		}
+		return m
+	}
+	cfg, err := FromLookup(lookupFrom(base(map[string]string{"KCB_CREDIT_ACCOUNT": "1234567890", "KCB_AUTO_CREDIT_MAX_KES": "50000"})))
+	if err != nil || !cfg.KcbIPN.Enabled || cfg.KcbIPN.CreditAccount != "1234567890" || cfg.KcbIPN.AutoCreditMaxCents != 5_000_000 {
+		t.Fatalf("valid config: %+v %v", cfg.KcbIPN, err)
+	}
+	prod := map[string]string{"APP_ENV": "production", "SESSION_COOKIE_SECURE": "true", "APP_BASE_URL": "https://college.example",
+		"ALLOWED_ORIGINS": "https://college.example"}
+	for name, extra := range map[string]map[string]string{
+		"short secret":      {"KCB_IPN_SECRET": "short"},
+		"secret with slash": {"KCB_IPN_SECRET": strings.Repeat("b", 40) + "/"},
+		"bad allow list":    {"KCB_IPN_ALLOWED_IPS": "nope"},
+		"bad limit":         {"KCB_AUTO_CREDIT_MAX_KES": "0"},
+		"prod no account":   prod,
+	} {
+		if _, err := FromLookup(lookupFrom(base(extra))); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}
