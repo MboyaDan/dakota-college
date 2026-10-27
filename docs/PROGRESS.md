@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 14b, Finance screens. Done, awaiting review.
-- **Next stage:** 15, M-Pesa (decision gate DG-02: ask the owner first).
-- **Branch:** `stage-14b-finance-screens` (from `main` after #35)
+- **Current stage:** 15a, M-Pesa C2B. Done, awaiting review.
+- **Next stage:** 15b, KCB Buni IPN (needs the Buni sandbox documentation and credentials), or 16 Notifications and reports if 15b waits.
+- **Branch:** `stage-15a-mpesa-c2b` (from `main` after #36)
 
 ## Stage status
 
@@ -37,8 +37,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 13a | Results API | Merged (#33) |
 | 13b | Results screens | Merged (#34) |
 | 14a | Finance API | Merged (#35) |
-| 14b | Finance screens | Done, awaiting review |
-| 15 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 14b | Finance screens | Merged (#36) |
+| 15a | M-Pesa C2B | Done, awaiting review |
+| 15b | KCB Buni IPN | Waiting for Buni docs and credentials |
+| 16 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -51,6 +53,16 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 15a: M-Pesa C2B (2026-10-27)
+
+- DG-02 cleared by the owner: paybill C2B; KCB Buni (bank) is 15b. Owner chose count matched payments at once, an unmatched queue, and the student number as the account number (D-169 to D-172; A-40, A-41; DQ-09 confirmed, values pending).
+- Configuration only through `MPESA_*` environment variables (see `backend/.env.example`), checked at start-up.
+- Migration 00018: stored callbacks (append-only), one row per M-Pesa transaction (unique code, guarded), payments without a recorder when confirmed by the provider, permission `finance.mpesa.setup`.
+- API: secret-path callbacks (validation, confirmation); status, transactions, assign, refund, daily reconciliation; register URLs, sandbox simulation, reprocess. Students' Fees shows the paybill and their account number.
+- Screens: M-Pesa page (setup status, waiting payments with assign or return, day reconciliation, payments received, setup for Super Admin).
+- Verified: Go tests with PostgreSQL and `-race`, all packages, including a fake Daraja server for registration and simulation; 121 unit tests; 153 Playwright tests passed locally with M-Pesa enabled using fake keys. Screenshots checked at 360 px and 1280 px.
+- Not verified: anything against the real Daraja sandbox or production (no credentials here).
 
 ### Stage 14b: Finance screens (2026-10-27)
 
