@@ -39,6 +39,18 @@ type Accreditation struct {
 	UpdatedAt    time.Time
 }
 
+type Adjustment struct {
+	ID          uuid.UUID
+	StudentID   uuid.UUID
+	Kind        string
+	AmountCents int64
+	Reason      string
+	InvoiceID   *uuid.UUID
+	PaymentID   *uuid.UUID
+	CreatedBy   uuid.UUID
+	CreatedAt   time.Time
+}
+
 type Applicant struct {
 	ID                   uuid.UUID
 	UserID               *uuid.UUID
@@ -305,6 +317,34 @@ type FeeItem struct {
 	UpdatedAt   time.Time
 }
 
+type FeeStructure struct {
+	ID          uuid.UUID
+	ProgrammeID uuid.UUID
+	IntakeID    *uuid.UUID
+	Note        string
+	IsSample    bool
+	UpdatedBy   *uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type FeeStructureInstalment struct {
+	StructureID uuid.UUID
+	Seq         int16
+	Percent     int16
+	DueDays     int16
+}
+
+type FeeStructureLine struct {
+	ID          int64
+	StructureID uuid.UUID
+	Label       string
+	Category    string
+	Charge      string
+	AmountCents int64
+	SortOrder   int32
+}
+
 type File struct {
 	ID               uuid.UUID
 	Bucket           string
@@ -357,15 +397,38 @@ type IdempotencyRecord struct {
 }
 
 type Invoice struct {
-	ID        uuid.UUID
-	StudentID uuid.UUID
-	IntakeID  *uuid.UUID
-	Number    *string
-	Status    string
-	Note      string
-	CreatedBy uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID         uuid.UUID
+	StudentID  uuid.UUID
+	IntakeID   *uuid.UUID
+	Number     *string
+	Status     string
+	Note       string
+	CreatedBy  uuid.UUID
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Kind       string
+	TermID     *uuid.UUID
+	IssuedAt   *time.Time
+	IssuedBy   *uuid.UUID
+	VoidReason string
+}
+
+type InvoiceInstalment struct {
+	InvoiceID   uuid.UUID
+	Seq         int16
+	Percent     int16
+	DueDays     int16
+	AmountCents *int64
+	DueOn       *time.Time
+}
+
+type InvoiceLine struct {
+	ID          int64
+	InvoiceID   uuid.UUID
+	Label       string
+	Category    string
+	AmountCents int64
+	SortOrder   int32
 }
 
 type Mark struct {
@@ -477,6 +540,24 @@ type PasswordReset struct {
 	RequestedIp *netip.Addr
 }
 
+type Payment struct {
+	ID           uuid.UUID
+	StudentID    uuid.UUID
+	Method       string
+	AmountCents  int64
+	PaidOn       time.Time
+	Reference    string
+	PayerName    string
+	Note         string
+	Status       string
+	ConfirmedVia *string
+	RecordedBy   uuid.UUID
+	RecordedAt   time.Time
+	DecidedBy    *uuid.UUID
+	DecidedAt    *time.Time
+	DecisionNote string
+}
+
 type Permission struct {
 	Key         string
 	Module      string
@@ -551,6 +632,14 @@ type ProgrammeUnit struct {
 	Stage       int16
 	IsCore      bool
 	SortOrder   int32
+}
+
+type Receipt struct {
+	ID        uuid.UUID
+	Number    string
+	PaymentID uuid.UUID
+	IssuedAt  time.Time
+	IssuedBy  *uuid.UUID
 }
 
 type ResultRelease struct {
