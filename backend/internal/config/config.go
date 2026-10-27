@@ -73,9 +73,13 @@ type MpesaConfig struct {
 	// told the URL) can reach it. At least 32 characters.
 	CallbackSecret string
 	// AllowedIPs, if set, are the only addresses callbacks are accepted from.
-	AllowedIPs   []string
-	RegisterPath string
-	SimulatePath string
+	// Required in production.
+	AllowedIPs []string
+	// AutoCreditMaxCents, if above zero, is the largest payment credited to
+	// a student by itself; larger ones wait for Finance to check them.
+	AutoCreditMaxCents int64
+	RegisterPath       string
+	SimulatePath       string
 }
 
 var mpesaHosts = map[string]string{
@@ -237,6 +241,13 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 		m.CallbackBaseURL = strings.TrimRight(get("MPESA_CALLBACK_BASE_URL", ""), "/")
 		m.CallbackSecret = get("MPESA_CALLBACK_SECRET", "")
 		m.AllowedIPs = splitList(get("MPESA_ALLOWED_IPS", ""))
+		if v := get("MPESA_AUTO_CREDIT_MAX_KES", ""); v != "" {
+			kes, err := strconv.ParseInt(v, 10, 64)
+			if err != nil || kes < 1 || kes > 10_000_000 {
+				errs = append(errs, errors.New("MPESA_AUTO_CREDIT_MAX_KES must be whole shillings from 1 to 10,000,000, or empty for no limit"))
+			}
+			m.AutoCreditMaxCents = kes * 100
+		}
 		m.RegisterPath = get("MPESA_REGISTER_URL_PATH", "/mpesa/c2b/v2/registerurl")
 		m.SimulatePath = get("MPESA_SIMULATE_PATH", "/mpesa/c2b/v2/simulate")
 		errs = append(errs, m.check(cfg.Env)...)
@@ -290,6 +301,9 @@ func (m MpesaConfig) check(env Env) []error {
 	}
 	if len(m.CallbackSecret) < 32 || strings.ContainsAny(m.CallbackSecret, "/?#% ") {
 		errs = append(errs, errors.New("MPESA_CALLBACK_SECRET must be at least 32 characters, letters, digits, - or _"))
+	}
+	if env == EnvProduction && len(m.AllowedIPs) == 0 {
+		errs = append(errs, errors.New("MPESA_ALLOWED_IPS is required when APP_ENV=production: list the addresses Safaricom calls from"))
 	}
 	for _, ip := range m.AllowedIPs {
 		if !validIPOrCIDR(ip) {

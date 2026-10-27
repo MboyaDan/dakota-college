@@ -144,6 +144,11 @@ func TestMpesaConfig(t *testing.T) {
 		m.RegisterPath != "/mpesa/c2b/v2/registerurl" {
 		t.Errorf("defaults = %+v", m)
 	}
+	prod, err := FromLookup(lookupFrom(base(map[string]string{"APP_ENV": "production", "MPESA_ENV": "production",
+		"MPESA_ALLOWED_IPS": "196.201.214.0/24", "MPESA_AUTO_CREDIT_MAX_KES": "200000"})))
+	if err != nil || prod.Mpesa.AutoCreditMaxCents != 20_000_000 {
+		t.Errorf("production with an allow list: %v, limit %d", err, prod.Mpesa.AutoCreditMaxCents)
+	}
 	if cfg, _ := FromLookup(lookupFrom(base(map[string]string{"MPESA_ENV": "production"}))); cfg.Mpesa.APIBaseURL != "https://api.safaricom.co.ke" {
 		t.Errorf("production host = %q", cfg.Mpesa.APIBaseURL)
 	}
@@ -162,6 +167,8 @@ func TestMpesaConfig(t *testing.T) {
 		"bad allow list":     {"MPESA_ALLOWED_IPS": "196.201.214.0/24,not-an-ip"},
 		"http api base":      {"MPESA_API_BASE_URL": "http://sandbox.safaricom.co.ke"},
 		"sandbox in prod":    {"APP_ENV": "production"},
+		"prod without IPs":   {"APP_ENV": "production", "MPESA_ENV": "production"},
+		"bad credit limit":   {"MPESA_AUTO_CREDIT_MAX_KES": "12.50"},
 		"not a bool enabled": {"MPESA_ENABLED": "yes please"},
 	} {
 		if _, err := FromLookup(lookupFrom(base(extra))); err == nil {
