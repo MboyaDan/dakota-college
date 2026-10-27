@@ -6,7 +6,7 @@ export
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down logs ps run build test test-db lint fmt docker-build migrate-status migrate-up migrate-down seed setup-admin sqlc
+.PHONY: help up down logs ps run build test test-db lint fmt docker-build migrate-status migrate-up migrate-down seed setup-admin sqlc mpesa-proxy
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -62,3 +62,6 @@ sqlc: ## Regenerate Go code from queries/ (commit the result)
 
 docker-build: ## Build the production API image
 	docker build -t dakota-api:local .
+
+mpesa-proxy: ## Forward only M-Pesa sandbox callbacks to the local API (then: ngrok http 127.0.0.1:8181)
+	go run ./cmd/callbackproxy
