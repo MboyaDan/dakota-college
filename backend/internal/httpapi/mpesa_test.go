@@ -1,9 +1,11 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
@@ -414,5 +417,75 @@ func TestMpesaAmountsAreExact(t *testing.T) {
 	h.confirmation(testCallbackSecret, bad, "-5", number, nil)
 	if n := h.count(`SELECT count(*) FROM payments WHERE reference = $1`, bad); n != 0 {
 		t.Fatal("a negative amount was credited")
+	}
+}
+
+// Guessing the secret does not work: after 20 refusals in ten minutes an
+// address is refused outright, even with the right secret.
+func TestMpesaRefusalsAreThrottled(t *testing.T) {
+	h := newHarness(t)
+	a := h.academy()
+	number := numberOf(h, a.students[0])
+	for i := range 20 {
+		if got := h.confirmation(fmt.Sprintf("guess-%02d-0123456789abcdef0123456789", i), code(), "100", number, nil); got != http.StatusNotFound {
+			t.Fatalf("guess %d: %d", i, got)
+		}
+	}
+	if got := h.confirmation(testCallbackSecret, code(), "100", number, nil); got != http.StatusTooManyRequests {
+		t.Fatalf("after 20 refusals: %d", got)
+	}
+	if n := h.count(`SELECT count(*) FROM mpesa_callbacks`); n != 0 {
+		t.Fatalf("%d callbacks stored from a blocked address", n)
+	}
+	// Ten minutes later the address may try again.
+	h.now = func() time.Time { return time.Now().Add(11 * time.Minute) }
+	if got := h.confirmation(testCallbackSecret, code(), "100", number, nil); got != http.StatusOK {
+		t.Fatalf("after the window: %d", got)
+	}
+}
+
+// Above the configured ceiling, a payment waits for Finance even when it
+// matches a student, so a forged large credit cannot slip through.
+func TestMpesaLargePaymentsWaitForFinance(t *testing.T) {
+	h := newHarness(t)
+	h.mpesaMax = 100_000 // KES 1,000.00
+	h.rebuild()
+	a := h.academy()
+	number := numberOf(h, a.students[0])
+	small, large := code(), code()
+	h.confirmation(testCallbackSecret, small, "1000", number, nil)
+	h.confirmation(testCallbackSecret, large, "1000.01", number, nil)
+	var got string
+	if err := h.pool.QueryRow(context.Background(), `SELECT string_agg(trans_id || '=' || status, ',' ORDER BY trans_id) FROM mpesa_transactions`).Scan(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got != small+"=matched,"+large+"=unmatched" {
+		t.Fatalf("outcomes: %s", got)
+	}
+}
+
+// The callback secret never reaches the access log.
+func TestCallbackSecretIsNotLogged(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+	r := gin.New()
+	r.Use(accessLog(logger))
+	r.POST("/api/v1/payments/c2b/:secret/confirmation", func(c *gin.Context) { c.Status(http.StatusNotFound) })
+	r.GET("/api/v1/files/:token", func(c *gin.Context) { c.Status(http.StatusOK) })
+	r.GET("/api/v1/staff/students/:id", func(c *gin.Context) { c.Status(http.StatusOK) })
+	for _, p := range []string{"/api/v1/payments/c2b/" + testCallbackSecret + "/confirmation", "/api/v1/files/secret-file-token"} {
+		method := http.MethodGet
+		if strings.Contains(p, "c2b") {
+			method = http.MethodPost
+		}
+		r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(method, p, nil))
+	}
+	r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/api/v1/staff/students/abc", nil))
+	logged := buf.String()
+	if strings.Contains(logged, testCallbackSecret) || strings.Contains(logged, "secret-file-token") {
+		t.Fatalf("a secret reached the log:\n%s", logged)
+	}
+	if !strings.Contains(logged, "/api/v1/payments/c2b/:secret/confirmation") || !strings.Contains(logged, "/api/v1/staff/students/abc") {
+		t.Fatalf("log lost the useful paths:\n%s", logged)
 	}
 }

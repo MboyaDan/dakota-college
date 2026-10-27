@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 15a, M-Pesa C2B. Done, awaiting review.
+- **Current stage:** 15a.2, M-Pesa hardening and sandbox tunnel. Done, awaiting review.
 - **Next stage:** 15b, KCB Buni IPN (needs the Buni sandbox documentation and credentials), or 16 Notifications and reports if 15b waits.
-- **Branch:** `stage-15a-mpesa-c2b` (from `main` after #36)
+- **Branch:** `stage-15a2-mpesa-hardening` (from `main` after #37)
 
 ## Stage status
 
@@ -38,7 +38,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 13b | Results screens | Merged (#34) |
 | 14a | Finance API | Merged (#35) |
 | 14b | Finance screens | Merged (#36) |
-| 15a | M-Pesa C2B | Done, awaiting review |
+| 15a | M-Pesa C2B | Merged (#37) |
+| 15a.2 | M-Pesa hardening and sandbox tunnel | Done, awaiting review |
 | 15b | KCB Buni IPN | Waiting for Buni docs and credentials |
 | 16 to 21 | See `CLAUDE.md` section 3 | Not started |
 
@@ -53,6 +54,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 15a.2: M-Pesa hardening and sandbox tunnel (2026-10-27)
+
+- Owner supplied Daraja sandbox keys, shortcode and passkey, and Buni sandbox keys (kept only in the git-ignored `.env`).
+- Hardening (D-173): secrets kept out of access logs; refused callbacks throttled per address; IP allow list required in production; optional ceiling on automatic credit; callback-only proxy for tunnels.
+- Live sandbox: OAuth token from Daraja works with the owner's keys. Registering C2B URLs fails on Safaricom's side with 500.003.1001 "Service is currently unreachable" for every shortcode tried (174379, 600999, 600000) on both v1 and v2, twice; not yet retried after that. A Safaricom-shaped confirmation sent through the public ngrok URL reached the API through the proxy and was credited and receipted; the proxy refused every other path.
+- Verified: all Go packages with PostgreSQL and `-race`, including tests for throttling, the credit ceiling and log redaction.
 
 ### Stage 15a: M-Pesa C2B (2026-10-27)
 

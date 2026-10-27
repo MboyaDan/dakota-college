@@ -55,6 +55,7 @@ type harness struct {
 	// daraja is a stand-in for Safaricom; mpesaAllowed is the callback allow list.
 	daraja       *fakeDaraja
 	mpesaAllowed []string
+	mpesaMax     int64
 }
 
 func newHarness(t *testing.T) *harness {
@@ -102,7 +103,7 @@ func (h *harness) rebuild() {
 		Mpesa: mpesa.NewService(mpesa.Options{Pool: h.pool, Logger: logger, HTTPClient: h.daraja.server.Client(), Now: func() time.Time { return h.now() },
 			Config: config.MpesaConfig{Enabled: true, Environment: "sandbox", APIBaseURL: h.daraja.server.URL, ConsumerKey: testDarajaKey,
 				ConsumerSecret: testDarajaSecret, ShortCode: testShortCode, ResponseType: "Completed", CallbackBaseURL: testOrigin,
-				CallbackSecret: testCallbackSecret, AllowedIPs: h.mpesaAllowed, RegisterPath: "/mpesa/c2b/v2/registerurl", SimulatePath: "/mpesa/c2b/v2/simulate"}}),
+				CallbackSecret: testCallbackSecret, AllowedIPs: h.mpesaAllowed, AutoCreditMaxCents: h.mpesaMax, RegisterPath: "/mpesa/c2b/v2/registerurl", SimulatePath: "/mpesa/c2b/v2/simulate"}}),
 		Portal: portal.NewService(portal.Options{
 			Pool: h.pool, Academics: academicsSvc, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
 		}),

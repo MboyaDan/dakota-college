@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -57,7 +58,7 @@ func accessLog(logger *slog.Logger) gin.HandlerFunc {
 		logger.LogAttrs(c.Request.Context(), level, "http request",
 			slog.String("request_id", c.GetString(requestIDKey)),
 			slog.String("method", c.Request.Method),
-			slog.String("path", c.Request.URL.Path),
+			slog.String("path", loggedPath(c)),
 			slog.Int("status", status),
 			slog.Duration("duration", time.Since(start)),
 			slog.String("client_ip", c.ClientIP()),
@@ -82,4 +83,14 @@ func recoverJSON(logger *slog.Logger) gin.HandlerFunc {
 		}()
 		c.Next()
 	}
+}
+
+// loggedPath is the request path for the access log. Paths that carry a
+// secret (the M-Pesa callback secret, file link tokens) are logged as their
+// route pattern, so the secret never reaches the logs.
+func loggedPath(c *gin.Context) string {
+	if route := c.FullPath(); strings.Contains(route, ":secret") || strings.Contains(route, ":token") {
+		return route
+	}
+	return c.Request.URL.Path
 }

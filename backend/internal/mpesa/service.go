@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,7 +40,9 @@ const PermSetup = "finance.mpesa.setup"
 var (
 	// ErrUnauthorised: not a callback we accept (wrong secret or address).
 	ErrUnauthorised = errors.New("callback not accepted")
-	ErrNotFound     = errors.New("not found")
+	// ErrThrottled: too many refused attempts from this address lately.
+	ErrThrottled = errors.New("too many refused callbacks")
+	ErrNotFound  = errors.New("not found")
 	// ErrDecided: the transaction is no longer waiting for Finance.
 	ErrDecided = errors.New("transaction already settled")
 	// ErrSandboxOnly: simulating payments is for the sandbox.
@@ -55,6 +58,49 @@ type Service struct {
 	daraja  *Daraja
 	now     func() time.Time
 	allowed []netip.Prefix
+	refused *refusals
+}
+
+// Refused callback attempts per address. After maxRefused in refusedWindow,
+// the address is refused outright until the window passes, so the secret
+// cannot be guessed by trying.
+const (
+	maxRefused    = 20
+	refusedWindow = 10 * time.Minute
+)
+
+type refusals struct {
+	mu    sync.Mutex
+	byKey map[string][]time.Time
+}
+
+// note records one refusal for the address.
+func (r *refusals) note(key string, now time.Time) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.byKey[key] = append(r.recent(key, now), now)
+}
+
+func (r *refusals) blocked(key string, now time.Time) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.recent(key, now)) >= maxRefused
+}
+
+// recent keeps the refusals inside the window (caller holds the lock).
+func (r *refusals) recent(key string, now time.Time) []time.Time {
+	kept := r.byKey[key][:0]
+	for _, t := range r.byKey[key] {
+		if now.Sub(t) < refusedWindow {
+			kept = append(kept, t)
+		}
+	}
+	if len(kept) == 0 {
+		delete(r.byKey, key)
+		return nil
+	}
+	r.byKey[key] = kept
+	return kept
 }
 
 type Options struct {
@@ -79,7 +125,7 @@ func NewService(o Options) *Service {
 	if client == nil {
 		client = &http.Client{Timeout: 30 * time.Second}
 	}
-	s := &Service{pool: o.Pool, logger: o.Logger, cfg: o.Config, now: now,
+	s := &Service{pool: o.Pool, logger: o.Logger, cfg: o.Config, now: now, refused: &refusals{byKey: map[string][]time.Time{}},
 		daraja: &Daraja{baseURL: o.Config.APIBaseURL, key: o.Config.ConsumerKey, secret: o.Config.ConsumerSecret,
 			registerPath: o.Config.RegisterPath, simulPath: o.Config.SimulatePath, client: client, now: now}}
 	for _, a := range o.Config.AllowedIPs {
@@ -186,7 +232,16 @@ func (c Confirmation) time() time.Time {
 // error is ErrUnauthorised when the call is not accepted; any later failure
 // is logged and the stored callback can be processed again.
 func (s *Service) Callback(ctx context.Context, kind, secret string, ip *netip.Addr, body []byte) error {
+	key := "unknown"
+	if ip != nil {
+		key = ip.Unmap().String()
+	}
+	if s.refused.blocked(key, s.now()) {
+		return ErrThrottled
+	}
 	if !s.accepts(secret, ip) {
+		s.refused.note(key, s.now())
+		s.logger.Warn("M-Pesa callback refused", slog.String("client_ip", key), slog.String("kind", kind))
 		return ErrUnauthorised
 	}
 	if !json.Valid(body) {
@@ -272,6 +327,11 @@ func (s *Service) process(ctx context.Context, callback int64, body []byte) erro
 			return settle("matched", "", &existing.StudentID, &existing.ID)
 		}
 
+		// Defence in depth: a payment above the configured ceiling is not
+		// credited by itself, even with the right secret (D-174).
+		if limit := s.cfg.AutoCreditMaxCents; limit > 0 && amount > limit && student != nil {
+			return s.leave(ctx, q, id, "Above the amount credited automatically. Find it on the M-Pesa statement, then assign it.", req, c.TransID, amount)
+		}
 		if student == nil {
 			reason := fmt.Sprintf("No student has the account number %q.", c.BillRefNumber)
 			if len(students) > 1 {

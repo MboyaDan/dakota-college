@@ -60,6 +60,8 @@ func (h mpesaHandlers) callback(kind string) gin.HandlerFunc {
 		switch {
 		case errors.Is(err, mpesa.ErrUnauthorised):
 			writeError(c, http.StatusNotFound, "not_found", "No such endpoint.")
+		case errors.Is(err, mpesa.ErrThrottled):
+			writeError(c, http.StatusTooManyRequests, "too_many_requests", "Too many requests.")
 		case err != nil:
 			// Not stored: answer an error so the failure is visible on Safaricom's side.
 			internalError(c, err)
