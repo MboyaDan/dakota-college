@@ -15,6 +15,7 @@ export function Overview() {
   const [toApprove, setToApprove] = useState<number | null>(null);
   const [toRelease, setToRelease] = useState<number | null>(null);
   const [enquiries, setEnquiries] = useState<{ new: number; mine: number } | null>(null);
+  const [finance, setFinance] = useState<{ pending_payments: number; draft_invoices: number } | null>(null);
   const [applications, setApplications] = useState<{
     new: number;
     mine: number;
@@ -42,6 +43,11 @@ export function Overview() {
     if (can("enquiries.view")) {
       void api.GET("/api/v1/staff/enquiries/counts").then(({ data }) => {
         if (data) setEnquiries(data);
+      });
+    }
+    if (can("finance.view")) {
+      void api.GET("/api/v1/staff/finance/summary").then(({ data }) => {
+        if (data) setFinance(data);
       });
     }
   }, [can]);
@@ -82,6 +88,27 @@ export function Overview() {
           <LinkButton href="/staff/result-releases" className="self-start">
             Release results
           </LinkButton>
+        </Card>
+      ) : null}
+      {can("finance.view") ? (
+        <Card>
+          <h2 className="text-xl font-semibold">Finance</h2>
+          {finance === null ? (
+            <p>Checking…</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              <li>{plural(finance.pending_payments, "payment waits", "payments wait")} to be confirmed</li>
+              <li>{plural(finance.draft_invoices, "draft invoice", "draft invoices")} not issued yet</li>
+            </ul>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <LinkButton href="/staff/finance/payments" className="self-start">
+              {can("finance.payment.confirm") ? "Check payments" : "See payments"}
+            </LinkButton>
+            <LinkButton href="/staff/finance" variant="outline" className="self-start">
+              Finance
+            </LinkButton>
+          </div>
         </Card>
       ) : null}
       {can("admissions.view") ? (
