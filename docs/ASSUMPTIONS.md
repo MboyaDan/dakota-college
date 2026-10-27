@@ -78,3 +78,5 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-39 | Fees charged per year are not modelled separately: Finance bills them once at enrolment or adds them to a term invoice by hand. | Default, Stage 14a; owner may change |
 | A-40 | Daraja C2B callbacks carry no signature (community guides; check on the Daraja portal before go-live). If Safaricom offers signed callbacks or fixed source addresses, set `MPESA_ALLOWED_IPS` and add the check. | Default, Stage 15a; verify |
 | A-41 | The paybill is used only for fees, so every payment to it is meant for a student account. | Default, Stage 15a; owner may change |
+| A-42 | KCB's `timestamp` is yyyyMMddHHmmss in Nairobi time; anything else (their sample has 13 digits) is kept as sent and the arrival time is used. | Default, Stage 15b; confirm with KCB |
+| A-43 | The payer's KCB `customerReference` carries the student number, as the M-Pesa account number does. | Default, Stage 15b; owner may change |
