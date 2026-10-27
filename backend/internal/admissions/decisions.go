@@ -18,6 +18,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/auth"
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
+	"github.com/MboyaDan/dakota-college/backend/internal/finance"
 	"github.com/MboyaDan/dakota-college/backend/internal/letters"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 )
@@ -401,8 +402,13 @@ func (s *Service) Enrol(ctx context.Context, p *auth.Principal, id uuid.UUID, re
 			}
 		}
 		inv, err := q.InsertDraftInvoice(ctx, dbq.InsertDraftInvoiceParams{StudentID: st.ID, IntakeID: a.IntakeID, CreatedBy: p.UserID,
-			Note: "Opened at enrolment. Finance adds the fee lines and issues it."})
+			Note: "Opened at enrolment. Finance checks the fee lines and issues it."})
 		if err != nil {
+			return err
+		}
+		// Lines from the programme's fee structure, if Finance has set one
+		// (Stage 14a); otherwise the draft stays empty for Finance to fill.
+		if _, err := finance.FillFromStructure(ctx, q, inv); err != nil {
 			return err
 		}
 		if err := application.Move(ctx, q, id, a.Status, "enrolled", &p.UserID, "Enrolled as student "+number); err != nil {
