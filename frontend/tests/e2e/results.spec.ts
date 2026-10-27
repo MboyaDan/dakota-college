@@ -107,6 +107,10 @@ test("results go from the trainer to the student only once released", async ({ b
     await field(n, "Continuous assessment (30%)").fill(String(i === 0 ? cat : 55));
     await field(n, "Final exam (70%)").fill("50");
   }
+  // Students other specs enrolled into this class need marks too before it can be sent.
+  for (const box of await trainer.getByRole("group").getByRole("textbox").all()) {
+    if ((await box.inputValue()) === "") await box.fill("50");
+  }
   if (correcting)
     await trainer.getByLabel("Why are you correcting these results?").fill(`E2E ${stamp}: re-marked.`);
   await trainer.getByRole("button", { name: correcting ? "Save the correction" : "Save marks" }).click();
