@@ -443,6 +443,35 @@ type Mark struct {
 	EnteredAt time.Time
 }
 
+type MpesaCallback struct {
+	ID         int64
+	Kind       string
+	RemoteIp   string
+	Body       []byte
+	ReceivedAt time.Time
+}
+
+type MpesaTransaction struct {
+	ID          uuid.UUID
+	TransID     string
+	TransType   string
+	TransTime   time.Time
+	AmountCents int64
+	ShortCode   string
+	BillRef     string
+	Msisdn      string
+	PayerName   string
+	CallbackID  int64
+	Status      string
+	Reason      string
+	StudentID   *uuid.UUID
+	PaymentID   *uuid.UUID
+	HandledBy   *uuid.UUID
+	HandledAt   *time.Time
+	Note        string
+	CreatedAt   time.Time
+}
+
 type NewsPost struct {
 	ID             uuid.UUID
 	Slug           string
@@ -551,7 +580,7 @@ type Payment struct {
 	Note         string
 	Status       string
 	ConfirmedVia *string
-	RecordedBy   uuid.UUID
+	RecordedBy   *uuid.UUID
 	RecordedAt   time.Time
 	DecidedBy    *uuid.UUID
 	DecidedAt    *time.Time
