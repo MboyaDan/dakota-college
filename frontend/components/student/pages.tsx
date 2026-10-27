@@ -29,7 +29,7 @@ type Request = components["schemas"]["ServiceRequest"];
 type GuardianInput = components["schemas"]["GuardianInput"];
 
 /** Loads one API answer; shows structure while loading and a plain error. */
-function useLoad<T>(load: () => Promise<{ data?: T; error?: unknown }>) {
+export function useLoad<T>(load: () => Promise<{ data?: T; error?: unknown }>) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -47,7 +47,7 @@ function useLoad<T>(load: () => Promise<{ data?: T; error?: unknown }>) {
   return { data, setData, error };
 }
 
-function Page({ title, intro, children }: { title: string; intro?: ReactNode; children: ReactNode }) {
+export function Page({ title, intro, children }: { title: string; intro?: ReactNode; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
@@ -59,7 +59,7 @@ function Page({ title, intro, children }: { title: string; intro?: ReactNode; ch
   );
 }
 
-function Loaded<T>({
+export function Loaded<T>({
   state,
   label,
   children,
