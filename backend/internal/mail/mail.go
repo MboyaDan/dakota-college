@@ -5,6 +5,7 @@ package mail
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/mail"
@@ -22,6 +23,10 @@ type Message struct {
 	// ReplyTo is optional, e.g. the visitor who sent a website enquiry.
 	ReplyTo string
 }
+
+// ErrBadAddress means the recipient address is not valid; sending again
+// cannot help.
+var ErrBadAddress = errors.New("not a valid email address")
 
 type Mailer interface {
 	Send(ctx context.Context, m Message) error
@@ -45,7 +50,7 @@ func (s SMTP) Send(ctx context.Context, m Message) error {
 	from := &mail.Address{Name: SenderName, Address: addr.Address}
 	to, err := mail.ParseAddress(m.To)
 	if err != nil {
-		return fmt.Errorf("recipient: %w", err)
+		return fmt.Errorf("recipient: %w (%v)", ErrBadAddress, err)
 	}
 	// Header injection guard: subjects come from code, but check anyway.
 	if strings.ContainsAny(m.Subject, "\r\n") {
@@ -88,13 +93,24 @@ func (s SMTP) Send(ctx context.Context, m Message) error {
 type Recorder struct {
 	mu       sync.Mutex
 	Messages []Message
+	err      error
 }
 
 func (r *Recorder) Send(_ context.Context, m Message) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.err != nil {
+		return r.err
+	}
 	r.Messages = append(r.Messages, m)
 	return nil
+}
+
+// FailWith makes every send fail with err until it is called with nil.
+func (r *Recorder) FailWith(err error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.err = err
 }
 
 func (r *Recorder) All() []Message {

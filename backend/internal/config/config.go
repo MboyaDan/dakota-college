@@ -2,6 +2,8 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -44,7 +46,13 @@ type Config struct {
 
 	Session SessionConfig
 	SMTP    SMTPConfig
-	S3      S3Config
+	// MessageKey encrypts queued messages while they wait to be sent
+	// (32 bytes, MESSAGE_KEY in base64). Development and test fall back to a
+	// fixed key, reported by MessageKeyIsDevelopment; staging and production
+	// must set one.
+	MessageKey              []byte
+	MessageKeyIsDevelopment bool
+	S3                      S3Config
 	// ClamAVAddr is a clamd host:port for scanning uploads. Empty means no
 	// scanner: files are stored as "not_scanned" (D-19).
 	ClamAVAddr string
@@ -144,6 +152,8 @@ type SMTPConfig struct {
 	From     string
 }
 
+const messageKeySize = 32
+
 // Load reads configuration from the process environment.
 func Load() (Config, error) {
 	return FromLookup(os.LookupEnv)
@@ -227,6 +237,19 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 	}
 	if cfg.SMTP.Port, err = strconv.Atoi(get("SMTP_PORT", "1025")); err != nil || cfg.SMTP.Port <= 0 {
 		errs = append(errs, errors.New("SMTP_PORT must be a positive number"))
+	}
+
+	if v := get("MESSAGE_KEY", ""); v != "" {
+		key, err := base64.StdEncoding.DecodeString(v)
+		if err != nil || len(key) != messageKeySize {
+			errs = append(errs, errors.New("MESSAGE_KEY must be 32 random bytes in base64 (openssl rand -base64 32)"))
+		}
+		cfg.MessageKey = key
+	} else if cfg.Env == EnvDevelopment || cfg.Env == EnvTest {
+		key := sha256.Sum256([]byte("dakota-college development message key"))
+		cfg.MessageKey, cfg.MessageKeyIsDevelopment = key[:], true
+	} else {
+		errs = append(errs, fmt.Errorf("MESSAGE_KEY is required when APP_ENV=%s (openssl rand -base64 32)", cfg.Env))
 	}
 
 	cfg.S3 = S3Config{

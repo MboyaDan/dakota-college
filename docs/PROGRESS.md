@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 15b, KCB Buni notifications. Done, awaiting review.
-- **Next stage:** 16, Notifications and reports (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-15b-kcb-ipn` (from `main` after #38)
+- **Current stage:** 16a, Message queue with retries. Done, awaiting review.
+- **Next stage:** 16b, Principal and Registrar dashboards and exports with approval (KCB signature check slots in when KCB sends the key).
+- **Branch:** `stage-16a-message-queue` (from `main` after #40)
 
 ## Stage status
 
@@ -40,8 +40,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 14b | Finance screens | Merged (#36) |
 | 15a | M-Pesa C2B | Merged (#37) |
 | 15a.2 | M-Pesa hardening and sandbox tunnel | Merged (#38) |
-| 15b | KCB Buni notifications | Done, awaiting review (signature check waits for KCB) |
-| 16 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 15b | KCB Buni notifications | Merged (#39, gitleaks fix #40); signature check waits for KCB |
+| 16a | Message queue with retries | Done, awaiting review |
+| 16b | Dashboards and exports | Not started |
+| 17 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -54,6 +56,16 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 16a: Message queue with retries (2026-10-28)
+
+- Stage 16 split into 16a (queue) and 16b (dashboards and exports); exports with personal data will need a second person's approval (brief 7.2); DG-03 not cleared (owner, D-177).
+- Migration 00020: `notifications` becomes the queue (encrypted text while waiting, attempts, next try, expiry, claim), `system_key` for staff-facing emails, `sending` status; rows queued before the migration are marked failed.
+- `internal/outbox`: worker in the API process with retries after 1, 5, 15, 60 and 240 minutes; refused addresses fail at once; text encrypted with `MESSAGE_KEY` and bound to the recipient, erased once sent or expired; links expire with their message (D-178 to D-180).
+- All email now goes through it: applicant, student and admissions templates, plus password resets and enquiry routing and assignment, which used to be fire-and-forget.
+- Staff: "Sent messages" with filters and "Send again" for failed messages, a link from the templates page, an overview card when messages failed in the last week (D-181). SMS stays skipped behind an `SMSSender` interface until DG-03 (D-182).
+- New env var `MESSAGE_KEY` (required in staging and production).
+- Verified: Go tests against PostgreSQL with `-race` (outbox: retry timing, give up and resend, refused address, expiry with the link, text erased, abandoned claim, changed recipient unreadable, four workers sharing 35 messages; API: log, filters, resend, audit, permissions, an applicant email waiting out an outage); migration 00020 up, down and up on a scratch database; live: a reset email sent through the queue to Mailpit, and with Mailpit stopped the email waited and was delivered on the one-minute retry; 121 unit tests; 151 Playwright tests passed locally including the new sent-messages test with axe and the overflow check at 360 px and desktop. Screenshots checked by eye.
 
 ### Stage 15b: KCB Buni notifications (2026-10-27)
 

@@ -19,6 +19,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/config"
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
+	"github.com/MboyaDan/dakota-college/backend/internal/outbox"
 )
 
 const (
@@ -75,7 +76,7 @@ func ValidCSRF(sessionToken, presented string) bool {
 
 type Service struct {
 	pool       *pgxpool.Pool
-	mailer     mail.Mailer
+	outbox     *outbox.Queue
 	logger     *slog.Logger
 	session    config.SessionConfig
 	appBaseURL string
@@ -90,7 +91,7 @@ type Service struct {
 
 type Options struct {
 	Pool       *pgxpool.Pool
-	Mailer     mail.Mailer
+	Outbox     *outbox.Queue
 	Logger     *slog.Logger
 	Session    config.SessionConfig
 	AppBaseURL string
@@ -110,7 +111,7 @@ func NewService(o Options) (*Service, error) {
 		return nil, err
 	}
 	return &Service{
-		pool: o.Pool, mailer: o.Mailer, logger: o.Logger, session: o.Session,
+		pool: o.Pool, outbox: o.Outbox, logger: o.Logger, session: o.Session,
 		appBaseURL: strings.TrimRight(o.AppBaseURL, "/"), now: now,
 		// Per email: brute force on one account. Per IP: spraying across
 		// accounts. The IP limit is generous because every request may arrive
@@ -339,15 +340,14 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string, req au
 		Text: fmt.Sprintf("Hello %s,\n\nWe received a request to reset your password. Open this link within one hour to choose a new one:\n\n%s%s\n\nIf you did not ask for this, you can ignore this email. Your password has not changed.\n\nDakota Training College\n",
 			u.FullName, s.appBaseURL, ResetPath(token, u.Kind)),
 	}
-	// Sent in the background so response time does not reveal whether the
-	// account exists. Stage 16 moves email onto a retrying queue.
-	go func() {
-		sendCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-		if err := s.mailer.Send(sendCtx, msg); err != nil {
-			s.logger.Error("password reset email failed", slog.String("user_id", u.ID.String()), slog.String("error", err.Error()))
-		}
-	}()
+	// Queued, so the response time does not depend on the mail server. The
+	// message expires with its link.
+	_, err = s.outbox.Email(ctx, outbox.Item{
+		SystemKey: outbox.SystemPasswordReset, RelatedType: "user", RelatedID: u.ID.String(), ValidFor: ResetTokenTTL,
+	}, msg)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

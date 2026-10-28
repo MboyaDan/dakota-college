@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,11 @@ export function MessageTemplates() {
           The wording of emails and text messages the website sends, and of the offer letter. Words in braces,
           like <code className="font-mono">{"{name}"}</code>, are filled in for each applicant. Changes apply
           to the next message sent.
+        </p>
+        <p>
+          <Link href="/staff/messages/sent" className="font-semibold text-royal underline">
+            See sent messages and send failed ones again
+          </Link>
         </p>
       </div>
       {error ? (

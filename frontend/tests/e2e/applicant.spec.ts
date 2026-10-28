@@ -150,7 +150,38 @@ test.describe("staff message templates", () => {
   test("content editors do not see the message templates", async ({ page }) => {
     await signIn(page, "editor@example.invalid");
     await expect(page.getByRole("link", { name: "Messages to applicants" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Sent messages" })).toHaveCount(0);
     await page.goto("/staff/messages");
     await expect(page.getByText("You do not have permission to do this.")).toBeVisible();
+    await page.goto("/staff/messages/sent");
+    await expect(page.getByText("You do not have permission to do this.")).toBeVisible();
+  });
+
+  // Stage 16a: every email goes through the queue and shows in the log.
+  test("the registrar finds a sent sign-in email in the log", async ({ page, request }, testInfo) => {
+    test.skip(!mailpit, "set E2E_MAILPIT_URL to wait for the email");
+    const email = `e2e-sent-${testInfo.project.name}-${Date.now()}@example.invalid`;
+    const since = Date.now() - 2_000;
+    await page.goto("/apply/start");
+    await page.getByLabel("Your name").fill("Test Applicant E2E");
+    await page.getByLabel("Email address").fill(email);
+    await page.getByRole("button", { name: "Email me a link" }).click();
+    await expect(page.getByText("Check your email")).toBeVisible();
+    await linkFromEmail(request, email, since);
+
+    await signIn(page, "registrar@example.invalid");
+    await page.getByRole("link", { name: "Sent messages" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Sent messages" })).toBeVisible();
+    await page.getByLabel("Recipient").fill(email);
+    await page.getByRole("button", { name: "Show" }).click();
+    await expect(page.getByRole("status")).toHaveText("1 message");
+    const row = page.getByRole("listitem").filter({ hasText: `To ${email}` });
+    await expect(row.getByText("Applicant sign-in link")).toBeVisible();
+    await expect(row.getByText("Sent", { exact: true })).toBeVisible();
+    await expect(row.getByRole("button", { name: /Send again/ })).toHaveCount(0);
+    // The text, with its sign-in link, is never shown.
+    await expect(page.getByText("/apply/continue")).toHaveCount(0);
+    await expectNoSeriousA11yIssues(page);
+    expect(await hasHorizontalOverflow(page)).toBe(false);
   });
 });
