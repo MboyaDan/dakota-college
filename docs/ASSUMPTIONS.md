@@ -80,3 +80,5 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-41 | The paybill is used only for fees, so every payment to it is meant for a student account. | Default, Stage 15a; owner may change |
 | A-42 | KCB's `timestamp` is yyyyMMddHHmmss in Nairobi time; anything else (their sample has 13 digits) is kept as sent and the arrival time is used. | Default, Stage 15b; confirm with KCB |
 | A-43 | The payer's KCB `customerReference` carries the student number, as the M-Pesa account number does. | Default, Stage 15b; owner may change |
+| A-44 | A failed message is tried six times over about five and a half hours (D-178), then waits for staff to send it again. | Default, Stage 16a; owner may change |
+| A-45 | The sent messages log is for the people who edit messages (`notifications.manage`: Super Admin, ICT Admin, Registrar). It shows recipients' addresses but never message text. | Default, Stage 16a; owner may change |
