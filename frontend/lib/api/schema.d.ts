@@ -3397,6 +3397,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/reports/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Figures for a period, by what the viewer may see (reports.view)
+         * @description admissions needs admissions.view; finance needs finance.view; enquiries needs enquiries.view;
+         *     students and results need students.view and schools.all. A section the viewer may not see is null.
+         */
+        get: operations["reportsDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/reports/exports/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download a count-only CSV export (reports.export plus the data permission)
+         * @description admissions (admissions.view), enrolments and results (students.view and schools.all),
+         *     fee-collection (finance.view). UTF-8 with a byte order mark, CRLF lines, a Total row last.
+         *     Money is in shillings with two decimals. Audited as reports.exported.
+         */
+        get: operations["reportsExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4497,6 +4540,95 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
             updated_by_name: string | null;
+        };
+        Dashboard: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            admissions: null | {
+                totals: components["schemas"]["AdmissionsFigures"];
+                by_school: (components["schemas"]["AdmissionsFigures"] & {
+                    /** Format: uuid */
+                    school_id: string;
+                    school_name: string;
+                })[];
+            };
+            students: null | {
+                totals: components["schemas"]["StudentStatusCounts"];
+                /** @description Students enrolled in the period. */
+                joined: number;
+                by_school: (components["schemas"]["StudentStatusCounts"] & {
+                    /** Format: uuid */
+                    school_id: string;
+                    school_name: string;
+                    joined: number;
+                })[];
+                open_requests: number;
+                pending_changes: number;
+            };
+            results: null | {
+                draft: number;
+                submitted: number;
+                approved: number;
+                released: number;
+                /** @description Classes whose latest release falls in the period. */
+                released_classes: number;
+                results: number;
+                /** @description Passed or competent. */
+                passed: number;
+            };
+            finance: null | {
+                /** Format: int64 */
+                billed_cents: number;
+                /** Format: int64 */
+                collected_cents: number;
+                /** Format: int64 */
+                charges_cents: number;
+                /** Format: int64 */
+                credits_cents: number;
+                by_month: {
+                    /** @description YYYY-MM */
+                    month: string;
+                    /** Format: int64 */
+                    billed_cents: number;
+                    /** Format: int64 */
+                    collected_cents: number;
+                    /** Format: int64 */
+                    charges_cents: number;
+                    /** Format: int64 */
+                    credits_cents: number;
+                }[];
+                /**
+                 * Format: int64
+                 * @description Owed now across all students
+                 */
+                outstanding_cents: number;
+                pending_payments: number;
+                /** Format: int64 */
+                pending_payment_cents: number;
+            };
+            enquiries: null | {
+                received: number;
+                closed: number;
+                new_now: number;
+                open_now: number;
+                by_office: {
+                    /** @enum {string} */
+                    office: "admissions" | "finance" | "general";
+                    received: number;
+                    closed: number;
+                    new_now: number;
+                    open_now: number;
+                }[];
+            };
+        };
+        StudentStatusCounts: {
+            active: number;
+            deferred: number;
+            suspended: number;
+            withdrawn: number;
+            graduated: number;
         };
         SentMessage: {
             /** Format: uuid */
@@ -11145,6 +11277,67 @@ export interface operations {
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
             409: components["responses"]["Error"];
+        };
+    };
+    reportsDashboard: {
+        parameters: {
+            query?: {
+                /** @description First Nairobi date (YYYY-MM-DD); default 1 January this year. */
+                from?: string;
+                /** @description Last Nairobi date, at most two years after from; default today. */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dashboard. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dashboard"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    reportsExport: {
+        parameters: {
+            query?: {
+                /** @description First Nairobi date (YYYY-MM-DD); default 1 January this year. */
+                from?: string;
+                /** @description Last Nairobi date, at most two years after from; default today. */
+                to?: string;
+            };
+            header?: never;
+            path: {
+                kind: "admissions" | "enrolments" | "fee-collection" | "results";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file. */
+            200: {
+                headers: {
+                    /** @description Data rows including the Total row. */
+                    "X-Export-Rows"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
         };
     };
 }
