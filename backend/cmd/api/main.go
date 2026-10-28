@@ -38,6 +38,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/mpesa"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
+	"github.com/MboyaDan/dakota-college/backend/internal/outbox"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
 	"github.com/MboyaDan/dakota-college/backend/internal/results"
 )
@@ -76,9 +77,24 @@ func run() error {
 	defer pool.Close()
 
 	mailer := mail.SMTP{Host: cfg.SMTP.Host, Port: cfg.SMTP.Port, Username: cfg.SMTP.Username, Password: cfg.SMTP.Password, From: cfg.SMTP.From}
+	if cfg.MessageKeyIsDevelopment {
+		logger.Warn("MESSAGE_KEY not set: queued messages use the development key")
+	}
+	// Every email goes through the queue; text messages are recorded as
+	// skipped until an SMS provider is chosen (DG-03).
+	queue, err := outbox.New(outbox.Options{Pool: pool, Mailer: mailer, Key: cfg.MessageKey, Logger: logger})
+	if err != nil {
+		return fmt.Errorf("message queue: %w", err)
+	}
+	queueDone := make(chan struct{})
+	go func() {
+		defer close(queueDone)
+		queue.Run(ctx)
+	}()
+
 	authSvc, err := auth.NewService(auth.Options{
 		Pool:       pool,
-		Mailer:     mailer,
+		Outbox:     queue,
 		Logger:     logger,
 		Session:    cfg.Session,
 		AppBaseURL: cfg.AppBaseURL,
@@ -113,7 +129,7 @@ func run() error {
 		logger.Warn("no virus scanner configured: applicant documents are stored as not scanned")
 	}
 
-	notifier := notify.NewService(pool, mailer, logger)
+	notifier := notify.NewService(pool, queue, logger)
 	// M-Pesa C2B is on only when MPESA_ENABLED (DG-02); every value comes from the environment.
 	mpesaSvc := mpesa.NewService(mpesa.Options{Pool: pool, Logger: logger, Config: cfg.Mpesa})
 	paybill := ""
@@ -132,7 +148,7 @@ func run() error {
 		Access:         access.NewService(pool),
 		Content:        content.NewService(pool),
 		Images:         images,
-		Enquiries:      enquiry.NewService(pool, mailer, logger, cfg.AppBaseURL),
+		Enquiries:      enquiry.NewService(pool, queue, logger, cfg.AppBaseURL),
 		Notify:         notifier,
 		Applicants: applicant.NewService(applicant.Options{
 			Pool: pool, Auth: authSvc, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
@@ -189,6 +205,12 @@ func run() error {
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("shutdown: %w", err)
+	}
+	// The worker stops with ctx; a message it was sending is recorded first.
+	stop()
+	select {
+	case <-queueDone:
+	case <-shutdownCtx.Done():
 	}
 	logger.Info("stopped")
 	return nil

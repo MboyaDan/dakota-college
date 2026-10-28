@@ -194,6 +194,9 @@ func NewRouter(d Deps) (*Router, error) {
 		nh := notificationHandlers{svc: d.Notify}
 		add(http.MethodGet, "/staff/notification-templates", false, notify.PermManage, nh.list)
 		add(http.MethodPut, "/staff/notification-templates/:key/:channel", false, notify.PermManage, nh.update)
+		add(http.MethodGet, "/staff/notifications", false, notify.PermManage, nh.sent)
+		add(http.MethodGet, "/staff/notifications/counts", false, notify.PermManage, nh.counts)
+		add(http.MethodPost, "/staff/notifications/:id/resend", false, notify.PermManage, nh.resend)
 	}
 
 	if d.Applicants != nil && d.Auth != nil {

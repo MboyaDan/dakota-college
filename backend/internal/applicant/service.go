@@ -120,7 +120,7 @@ func (s *Service) RequestLink(ctx context.Context, email, name, next string, req
 	return s.notify.Email(ctx, notify.Message{
 		Template: notify.ApplicantSignInLink, To: email,
 		Vars:        map[string]string{"name": greeting(name), "link": link, "minutes": minutes()},
-		RelatedType: "applicant_email",
+		RelatedType: "applicant_email", ValidFor: LinkTTL,
 	})
 }
 
@@ -151,7 +151,7 @@ func (s *Service) ResumeByReference(ctx context.Context, reference, email string
 	return s.notify.Email(ctx, notify.Message{
 		Template: notify.ApplicantResumeLink, To: email,
 		Vars:        map[string]string{"name": greeting(app.FullName), "reference": app.Reference, "link": link, "minutes": minutes()},
-		RelatedType: "application", RelatedID: app.ID.String(),
+		RelatedType: "application", RelatedID: app.ID.String(), ValidFor: LinkTTL,
 	})
 }
 

@@ -30,6 +30,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
 	"github.com/MboyaDan/dakota-college/backend/internal/mpesa"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
+	"github.com/MboyaDan/dakota-college/backend/internal/outbox"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
 	"github.com/MboyaDan/dakota-college/backend/internal/results"
 	"github.com/MboyaDan/dakota-college/backend/internal/testdb"
@@ -39,6 +40,9 @@ const (
 	testOrigin   = "https://dakota.example"
 	testPassword = "correct horse battery staple"
 )
+
+// testMessageKey encrypts queued messages in tests; never a real key.
+var testMessageKey = bytes.Repeat([]byte{7}, outbox.KeySize)
 
 // harness is a full API over a fresh, migrated database.
 type harness struct {
@@ -58,6 +62,11 @@ type harness struct {
 	mpesaAllowed []string
 	mpesaMax     int64
 	kcbMax       int64
+	// queue is the message queue; its worker runs until the next rebuild or
+	// the end of the test.
+	queue     *outbox.Queue
+	stopQueue context.CancelFunc
+	sms       outbox.SMSSender
 }
 
 func newHarness(t *testing.T) *harness {
@@ -74,21 +83,36 @@ func (h *harness) rebuild() {
 	h.t.Helper()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	var err error
+	if h.stopQueue != nil {
+		h.stopQueue()
+	}
+	h.queue, err = outbox.New(outbox.Options{Pool: h.pool, Mailer: h.mailer, SMS: h.sms, Key: testMessageKey, Logger: logger, PollInterval: 50 * time.Millisecond})
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		h.queue.Run(ctx)
+	}()
+	h.stopQueue = func() { cancel(); <-done }
+	h.t.Cleanup(h.stopQueue)
 	h.auth, err = auth.NewService(auth.Options{
-		Pool: h.pool, Mailer: h.mailer, Logger: logger, AppBaseURL: testOrigin,
+		Pool: h.pool, Outbox: h.queue, Logger: logger, AppBaseURL: testOrigin,
 		Session: config.SessionConfig{CookieSecure: true, TTL: 12 * time.Hour, IdleTimeout: 30 * time.Minute},
 	})
 	if err != nil {
 		h.t.Fatal(err)
 	}
 	h.access = access.NewService(h.pool)
-	notifier := notify.NewService(h.pool, h.mailer, logger)
+	notifier := notify.NewService(h.pool, h.queue, logger)
 	academicsSvc := academics.NewService(h.pool, func() time.Time { return h.now() })
 	h.router, err = NewRouter(Deps{
 		Logger: logger, DB: h.pool, AllowedOrigins: []string{testOrigin}, CookieSecure: true,
 		Auth: h.auth, Access: h.access, Content: content.NewService(h.pool),
 		Images:    &media.Images{Pool: h.pool, Storage: h.storage, Bucket: "dakota-public", PublicBaseURL: "https://cdn.example/dakota-public"},
-		Enquiries: enquiry.NewService(h.pool, h.mailer, logger, testOrigin),
+		Enquiries: enquiry.NewService(h.pool, h.queue, logger, testOrigin),
 		Notify:    notifier,
 		Applicants: applicant.NewService(applicant.Options{
 			Pool: h.pool, Auth: h.auth, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },

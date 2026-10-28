@@ -72,8 +72,9 @@ tags:
       verified, notifications create pending bank payments for Finance to confirm (D-175).
   - name: notifications
     description: |
-      Editable text of emails and text messages sent to applicants (notifications.manage). Text
-      messages are kept ready but are not sent until an SMS provider is chosen (DG-03).
+      Editable text of emails and text messages sent to applicants (notifications.manage), and the
+      log of every message the queue sent or tried to send, with resend for failed ones (Stage
+      16a). Text messages are kept ready but are not sent until an SMS provider is chosen (DG-03).
   - name: public
     description: |
       Public website. No session. Only published content is returned, and only content whose
@@ -4231,6 +4232,69 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/notifications:
+    get:
+      tags: [notifications]
+      operationId: listSentMessages
+      summary: Messages sent or waiting to be sent, newest first, 50 a page (notifications.manage)
+      description: The message text is never returned.
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [queued, sending, sent, failed, skipped] } }
+        - { name: channel, in: query, schema: { type: string, enum: [email, sms] } }
+        - { name: q, in: query, description: Part of the recipient's address or number., schema: { type: string, maxLength: 80 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 10000 } }
+      responses:
+        "200":
+          description: One page of the log.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, page, page_size]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/SentMessage" } }
+                  total: { type: integer }
+                  page: { type: integer }
+                  page_size: { type: integer }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/notifications/counts:
+    get:
+      tags: [notifications]
+      operationId: sentMessageCounts
+      summary: Messages waiting, and messages that failed in the last seven days (notifications.manage)
+      responses:
+        "200":
+          description: Counts for the staff overview.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [waiting, failed_recent]
+                properties:
+                  waiting: { type: integer }
+                  failed_recent: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/notifications/{id}/resend:
+    post:
+      tags: [notifications]
+      operationId: resendMessage
+      summary: Send a failed message again (notifications.manage)
+      description: |
+        Starts a fresh set of attempts. Only for failed messages whose text is still kept: a
+        message's text is erased when it expires, and messages with a sign-in or reset link
+        expire with the link. Audited.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "204": { description: Queued again. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     csrf:
@@ -5416,6 +5480,26 @@ components:
         sending: { type: boolean, description: False for text messages until DG-03 clears. }
         updated_at: { type: string, format: date-time }
         updated_by_name: { type: [string, "null"] }
+    SentMessage:
+      type: object
+      required: [id, name, channel, recipient, status, error, attempts, related_type, related_id, created_at, sent_at, next_attempt_at, can_resend]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, description: The template's name, or the name of a staff-facing email. }
+        channel: { type: string, enum: [email, sms] }
+        recipient: { type: string }
+        status:
+          type: string
+          enum: [queued, sending, sent, failed, skipped]
+          description: "skipped: a text message while no SMS provider is set up (DG-03)."
+        error: { type: string, description: The last failure, or why it was skipped. }
+        attempts: { type: integer }
+        related_type: { type: string, description: "application, enquiry, student, user or empty." }
+        related_id: { type: string }
+        created_at: { type: string, format: date-time }
+        sent_at: { type: [string, "null"], format: date-time }
+        next_attempt_at: { type: [string, "null"], format: date-time, description: When a failed attempt is tried again. }
+        can_resend: { type: boolean }
     Message:
       type: object
       required: [message]

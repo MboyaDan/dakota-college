@@ -30,6 +30,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/content"
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
+	"github.com/MboyaDan/dakota-college/backend/internal/outbox"
 )
 
 const (
@@ -86,7 +87,7 @@ type Submission struct {
 
 type Service struct {
 	pool       *pgxpool.Pool
-	mailer     mail.Mailer
+	outbox     *outbox.Queue
 	logger     *slog.Logger
 	appBaseURL string
 	perContact *auth.Limiter
@@ -95,9 +96,9 @@ type Service struct {
 
 // NewService builds the enquiry service. appBaseURL is the website origin,
 // used for links to the staff portal in emails.
-func NewService(pool *pgxpool.Pool, mailer mail.Mailer, logger *slog.Logger, appBaseURL string) *Service {
+func NewService(pool *pgxpool.Pool, queue *outbox.Queue, logger *slog.Logger, appBaseURL string) *Service {
 	return &Service{
-		pool: pool, mailer: mailer, logger: logger, appBaseURL: strings.TrimRight(appBaseURL, "/"),
+		pool: pool, outbox: queue, logger: logger, appBaseURL: strings.TrimRight(appBaseURL, "/"),
 		perContact: auth.NewLimiter(perContactMax, time.Hour, nil),
 		overall:    auth.NewLimiter(overallMax, time.Hour, nil),
 	}
@@ -209,15 +210,10 @@ func (s *Service) Submit(ctx context.Context, sub Submission, req audit.Request)
 		Text:    emailText(sub, programmeTitle, row.CreatedAt),
 		ReplyTo: sub.Email,
 	}
-	// Sent in the background; the enquiry is already saved. Stage 16 moves
-	// email onto a retrying queue.
-	go func() {
-		sendCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-		if err := s.mailer.Send(sendCtx, msg); err != nil {
-			s.logger.Error("enquiry email failed", slog.String("enquiry_id", row.ID.String()), slog.String("error", err.Error()))
-		}
-	}()
+	// The enquiry is saved; if queueing the email fails, the inbox still has it.
+	if _, err := s.outbox.Email(ctx, outbox.Item{SystemKey: outbox.SystemEnquiryReceived, RelatedType: "enquiry", RelatedID: row.ID.String()}, msg); err != nil {
+		s.logger.Error("enquiry email not queued", slog.String("enquiry_id", row.ID.String()), slog.String("error", err.Error()))
+	}
 	return nil
 }
 

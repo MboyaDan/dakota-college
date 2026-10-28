@@ -15,6 +15,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/audit"
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
 	"github.com/MboyaDan/dakota-college/backend/internal/mail"
+	"github.com/MboyaDan/dakota-college/backend/internal/outbox"
 )
 
 // The staff inbox (Stage 8a): enquiries.view to read, enquiries.manage to
@@ -274,7 +275,7 @@ func (s *Service) Assign(ctx context.Context, id uuid.UUID, assignee *uuid.UUID,
 	}
 	// Assigning to yourself needs no email.
 	if notify != nil && (req.ActorID == nil || *req.ActorID != notify.ID) {
-		s.send(mail.Message{
+		s.send(ctx, outbox.SystemEnquiryAssigned, mail.Message{
 			To:      notify.Email,
 			Subject: "A website enquiry was assigned to you",
 			Text: fmt.Sprintf("Hello %s,\n\nA website enquiry was assigned to you in the staff portal. Open it here:\n\n%s/staff/enquiries/%s\n\nDakota Training College\n",
@@ -353,14 +354,10 @@ func (s *Service) Counts(ctx context.Context, user uuid.UUID) (Counts, error) {
 	return Counts{New: r.NewCount, Mine: r.MineCount}, nil
 }
 
-func (s *Service) send(m mail.Message, id uuid.UUID) {
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-		if err := s.mailer.Send(ctx, m); err != nil {
-			s.logger.Error("enquiry email failed", slog.String("enquiry_id", id.String()), slog.String("error", err.Error()))
-		}
-	}()
+func (s *Service) send(ctx context.Context, key string, m mail.Message, id uuid.UUID) {
+	if _, err := s.outbox.Email(ctx, outbox.Item{SystemKey: key, RelatedType: "enquiry", RelatedID: id.String()}, m); err != nil {
+		s.logger.Error("enquiry email not queued", slog.String("enquiry_id", id.String()), slog.String("error", err.Error()))
+	}
 }
 
 func sameUser(a, b *uuid.UUID) bool {
