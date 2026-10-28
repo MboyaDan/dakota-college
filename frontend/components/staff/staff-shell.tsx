@@ -16,6 +16,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
 
   const nav: NavItem[] = [
     { href: "/staff", label: "Overview", show: true },
+    { href: "/staff/reports", label: "Reports", show: can("reports.view") },
     { href: "/staff/applications", label: "Applications", show: can("admissions.view") },
     { href: "/staff/students", label: "Students", show: can("students.view") },
     { href: "/staff/student-requests", label: "Student requests", show: can("students.view") },

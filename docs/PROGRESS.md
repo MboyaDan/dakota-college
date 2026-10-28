@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 16b, Reports API (dashboard data and count exports). Done, awaiting review.
-- **Next stage:** 16c, dashboard pages and export buttons (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-16b-reports-api` (from `main` after #41)
+- **Current stage:** 16c, Reports page and export buttons. Done, awaiting review.
+- **Next stage:** 17, Security and privacy hardening (KCB signature check slots in when KCB sends the key).
+- **Branch:** `stage-16c-report-screens` (from `main` after #42)
 
 ## Stage status
 
@@ -42,8 +42,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 15a.2 | M-Pesa hardening and sandbox tunnel | Merged (#38) |
 | 15b | KCB Buni notifications | Merged (#39, gitleaks fix #40); signature check waits for KCB |
 | 16a | Message queue with retries | Merged (#41) |
-| 16b | Reports API: dashboard data and count exports | Done, awaiting review |
-| 16c | Dashboard pages and export buttons | Not started |
+| 16b | Reports API: dashboard data and count exports | Merged (#42) |
+| 16c | Dashboard pages and export buttons | Done, awaiting review |
 | 17 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -57,6 +57,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 16c: Reports page and export buttons (2026-10-28)
+
+- `/staff/reports` (nav "Reports", `reports.view`) with a period form; shows the sections the API returns: admissions, students, results, finance, enquiries, each with stat tiles and a table with totals (D-188, D-189). Empty state for roles that may open reports but see no data (ICT Admin).
+- CSV buttons (admissions, enrolments, pass rates, fee collection) for viewers with `reports.export`, downloading the period on screen; refusals show a message (D-190). Overview card links to the page.
+- No backend or migration changes.
+- Verified: typecheck, lint, Prettier, build; 126 unit tests (5 new for percentages, file names, months); Playwright `reports.spec.ts` 10 of 10 at 360 px and desktop (Principal sees five sections and four buttons and downloads admissions: file name, BOM, header, Total row; Finance sees no admissions and downloads fee collection; Head of School sees admissions without buttons; ICT Admin sees the empty state; a reversed period shows the field message; axe and no overflow). Full suite: 161 passed, 7 timed out on a slowed run (display asleep), all 7 passed on rerun. Screenshots checked by eye at 360 px and desktop.
 
 ### Stage 16b: Reports API (2026-10-28)
 

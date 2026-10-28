@@ -61,6 +61,18 @@ export function Overview() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Hello, {user.full_name.split(" ")[0]}</h1>
+      {can("reports.view") ? (
+        <Card>
+          <h2 className="text-xl font-semibold">Reports</h2>
+          <p>
+            Admissions, students, results, finance and enquiries for a period you choose
+            {can("reports.export") ? ", with spreadsheet downloads" : ""}.
+          </p>
+          <LinkButton href="/staff/reports" className="self-start">
+            See reports
+          </LinkButton>
+        </Card>
+      ) : null}
       {can("academics.teach") ? (
         <Card>
           <h2 className="text-xl font-semibold">My teaching</h2>
