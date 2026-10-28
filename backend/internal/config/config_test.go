@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"encoding/base64"
 	"log/slog"
 	"strings"
 	"testing"
@@ -11,6 +13,29 @@ func lookupFrom(m map[string]string) func(string) (string, bool) {
 	return func(k string) (string, bool) {
 		v, ok := m[k]
 		return v, ok
+	}
+}
+
+// testMessageKey is 32 bytes of a fixed pattern, never a real key.
+var testMessageKey = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{7}, 32))
+
+func TestMessageKey(t *testing.T) {
+	dev, err := FromLookup(lookupFrom(map[string]string{"APP_ENV": "development", "DATABASE_URL": "x"}))
+	if err != nil || len(dev.MessageKey) != 32 || !dev.MessageKeyIsDevelopment {
+		t.Fatalf("development falls back to a fixed key: %v %d", err, len(dev.MessageKey))
+	}
+	set, err := FromLookup(lookupFrom(map[string]string{"APP_ENV": "test", "DATABASE_URL": "x", "MESSAGE_KEY": testMessageKey}))
+	if err != nil || !bytes.Equal(set.MessageKey, bytes.Repeat([]byte{7}, 32)) || set.MessageKeyIsDevelopment {
+		t.Fatalf("a set key is used: %v", err)
+	}
+	prod := map[string]string{"APP_ENV": "staging", "DATABASE_URL": "x", "APP_BASE_URL": "https://dakota.example", "ALLOWED_ORIGINS": "https://dakota.example"}
+	if _, err := FromLookup(lookupFrom(prod)); err == nil || !strings.Contains(err.Error(), "MESSAGE_KEY is required") {
+		t.Errorf("staging without a key: %v", err)
+	}
+	for _, bad := range []string{"not base64!", base64.StdEncoding.EncodeToString([]byte("too short"))} {
+		if _, err := FromLookup(lookupFrom(map[string]string{"APP_ENV": "test", "DATABASE_URL": "x", "MESSAGE_KEY": bad})); err == nil || !strings.Contains(err.Error(), "MESSAGE_KEY must be") {
+			t.Errorf("%q accepted: %v", bad, err)
+		}
 	}
 }
 
@@ -49,6 +74,7 @@ func TestFromLookupOverrides(t *testing.T) {
 	cfg, err := FromLookup(lookupFrom(map[string]string{
 		"APP_ENV":          "production",
 		"DATABASE_URL":     "postgres://x",
+		"MESSAGE_KEY":      testMessageKey,
 		"APP_BASE_URL":     "https://dakota.example/",
 		"ALLOWED_ORIGINS":  "https://dakota.example",
 		"HTTP_ADDR":        ":9000",
@@ -121,6 +147,7 @@ func TestMpesaConfig(t *testing.T) {
 		m := map[string]string{
 			"APP_ENV": "staging", "DATABASE_URL": "postgres://u:p@localhost:5432/db", "SESSION_COOKIE_SECURE": "true",
 			"APP_BASE_URL": "https://staging.college.example", "ALLOWED_ORIGINS": "https://staging.college.example",
+			"MESSAGE_KEY":   testMessageKey,
 			"MPESA_ENABLED": "true", "MPESA_CONSUMER_KEY": "k", "MPESA_CONSUMER_SECRET": "s", "MPESA_SHORTCODE": "600999",
 			"MPESA_CALLBACK_BASE_URL": "https://api.college.example", "MPESA_CALLBACK_SECRET": strings.Repeat("a", 40),
 		}
