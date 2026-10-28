@@ -3,11 +3,14 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/textproto"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 )
@@ -114,12 +117,19 @@ func TestApplicantEmailWaitsOutAnOutage(t *testing.T) {
 	h := newHarness(t)
 	h.mailer.FailWith(&textproto.Error{Code: 421, Msg: "service not available"})
 	h.do(req{method: http.MethodPost, path: "/api/v1/applicant/sign-in-link", body: map[string]string{"email": "test.applicant.099@example.invalid"}})
-	id := h.waitStatus("test.applicant.099@example.invalid", "queued")
+	// Queued from the start; wait for the first attempt to fail and be put back.
+	var id string
 	var attempts int
 	var validFor time.Duration
-	if err := h.pool.QueryRow(context.Background(),
-		`SELECT attempts, (extract(epoch FROM expires_at - created_at) * 1e9)::bigint FROM notifications WHERE id = $1`, id).Scan(&attempts, &validFor); err != nil {
-		t.Fatal(err)
+	deadline := time.Now().Add(3 * time.Second)
+	for attempts == 0 && time.Now().Before(deadline) {
+		err := h.pool.QueryRow(context.Background(),
+			`SELECT id::text, attempts, (extract(epoch FROM expires_at - created_at) * 1e9)::bigint FROM notifications
+			 WHERE recipient = $1 AND status = 'queued'`, "test.applicant.099@example.invalid").Scan(&id, &attempts, &validFor)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			t.Fatal(err)
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 	if attempts != 1 || validFor > time.Hour {
 		t.Fatalf("attempts %d, valid for %v (a sign-in link must expire with the link)", attempts, validFor)
