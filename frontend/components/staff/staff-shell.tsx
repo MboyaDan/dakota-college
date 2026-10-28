@@ -40,6 +40,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
     })),
     { href: "/staff/settings", label: "Site settings", show: can("content.read") },
     { href: "/staff/messages", label: "Messages to applicants", show: can("notifications.manage") },
+    { href: "/staff/messages/sent", label: "Sent messages", show: can("notifications.manage") },
     { href: "/staff/staff-schools", label: "Staff schools", show: can("users.manage") },
   ];
   // The longest matching link is the current one, so /staff/finance/payments

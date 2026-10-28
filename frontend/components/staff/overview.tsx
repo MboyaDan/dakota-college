@@ -15,6 +15,7 @@ export function Overview() {
   const [toApprove, setToApprove] = useState<number | null>(null);
   const [toRelease, setToRelease] = useState<number | null>(null);
   const [enquiries, setEnquiries] = useState<{ new: number; mine: number } | null>(null);
+  const [failedMessages, setFailedMessages] = useState(0);
   const [finance, setFinance] = useState<{ pending_payments: number; draft_invoices: number } | null>(null);
   const [applications, setApplications] = useState<{
     new: number;
@@ -43,6 +44,11 @@ export function Overview() {
     if (can("enquiries.view")) {
       void api.GET("/api/v1/staff/enquiries/counts").then(({ data }) => {
         if (data) setEnquiries(data);
+      });
+    }
+    if (can("notifications.manage")) {
+      void api.GET("/api/v1/staff/notifications/counts").then(({ data }) => {
+        if (data) setFailedMessages(data.failed_recent);
       });
     }
     if (can("finance.view")) {
@@ -156,6 +162,19 @@ export function Overview() {
               Assigned to me
             </LinkButton>
           </div>
+        </Card>
+      ) : null}
+      {failedMessages > 0 ? (
+        <Card>
+          <h2 className="text-xl font-semibold">Messages not delivered</h2>
+          <p>
+            {failedMessages === 1
+              ? "1 email could not be sent in the last seven days."
+              : `${failedMessages} emails could not be sent in the last seven days.`}
+          </p>
+          <LinkButton href="/staff/messages/sent?status=failed" className="self-start">
+            See failed messages
+          </LinkButton>
         </Card>
       ) : null}
       {can("content.publish") ? (

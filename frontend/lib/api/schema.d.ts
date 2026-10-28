@@ -3338,6 +3338,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Messages sent or waiting to be sent, newest first, 50 a page (notifications.manage)
+         * @description The message text is never returned.
+         */
+        get: operations["listSentMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/notifications/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Messages waiting, and messages that failed in the last seven days (notifications.manage) */
+        get: operations["sentMessageCounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/notifications/{id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a failed message again (notifications.manage)
+         * @description Starts a fresh set of attempts. Only for failed messages whose text is still kept: a
+         *     message's text is erased when it expires, and messages with a sign-in or reset link
+         *     expire with the link. Audited.
+         */
+        post: operations["resendMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4438,6 +4497,36 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
             updated_by_name: string | null;
+        };
+        SentMessage: {
+            /** Format: uuid */
+            id: string;
+            /** @description The template's name */
+            name: string;
+            /** @enum {string} */
+            channel: "email" | "sms";
+            recipient: string;
+            /**
+             * @description skipped: a text message while no SMS provider is set up (DG-03).
+             * @enum {string}
+             */
+            status: "queued" | "sending" | "sent" | "failed" | "skipped";
+            /** @description The last failure */
+            error: string;
+            attempts: number;
+            /** @description application, enquiry, student, user or empty. */
+            related_type: string;
+            related_id: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            sent_at: string | null;
+            /**
+             * Format: date-time
+             * @description When a failed attempt is tried again.
+             */
+            next_attempt_at: string | null;
+            can_resend: boolean;
         };
         Message: {
             message: string;
@@ -10973,6 +11062,89 @@ export interface operations {
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
             422: components["responses"]["Error"];
+        };
+    };
+    listSentMessages: {
+        parameters: {
+            query?: {
+                status?: "queued" | "sending" | "sent" | "failed" | "skipped";
+                channel?: "email" | "sms";
+                /** @description Part of the recipient's address or number. */
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of the log. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["SentMessage"][];
+                        total: number;
+                        page: number;
+                        page_size: number;
+                    };
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    sentMessageCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Counts for the staff overview. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        waiting: number;
+                        failed_recent: number;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    resendMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued again. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
         };
     };
 }
