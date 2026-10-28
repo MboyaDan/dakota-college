@@ -32,6 +32,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/outbox"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
+	"github.com/MboyaDan/dakota-college/backend/internal/reports"
 	"github.com/MboyaDan/dakota-college/backend/internal/results"
 	"github.com/MboyaDan/dakota-college/backend/internal/testdb"
 )
@@ -108,6 +109,10 @@ func (h *harness) rebuild() {
 	h.access = access.NewService(h.pool)
 	notifier := notify.NewService(h.pool, h.queue, logger)
 	academicsSvc := academics.NewService(h.pool, func() time.Time { return h.now() })
+	admissionsSvc := admissions.NewService(admissions.Options{
+		Pool: h.pool, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
+		Storage: h.storage, PrivateBucket: "dakota-private",
+	})
 	h.router, err = NewRouter(Deps{
 		Logger: logger, DB: h.pool, AllowedOrigins: []string{testOrigin}, CookieSecure: true,
 		Auth: h.auth, Access: h.access, Content: content.NewService(h.pool),
@@ -135,10 +140,8 @@ func (h *harness) rebuild() {
 		Portal: portal.NewService(portal.Options{
 			Pool: h.pool, Academics: academicsSvc, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
 		}),
-		Admissions: admissions.NewService(admissions.Options{
-			Pool: h.pool, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
-			Storage: h.storage, PrivateBucket: "dakota-private",
-		}),
+		Admissions: admissionsSvc,
+		Reports:    reports.NewService(reports.Options{Pool: h.pool, Admissions: admissionsSvc, Now: func() time.Time { return h.now() }}),
 	})
 	if err != nil {
 		h.t.Fatal(err)

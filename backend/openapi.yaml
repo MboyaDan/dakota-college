@@ -70,6 +70,11 @@ tags:
       KCB Buni instant payment notifications for the college account (Stage 15b). Only when
       KCB_IPN_ENABLED; every value comes from the environment. Until KCB's Signature header can be
       verified, notifications create pending bank payments for Finance to confirm (D-175).
+  - name: reports
+    description: |
+      Dashboards and count-only CSV exports (Stage 16b, brief 7.2). Each dashboard section and each
+      export is shown only to a viewer who may already see its data. Exports contain no names or
+      contact details, so they need no approval; each one is audited (D-183, D-184).
   - name: notifications
     description: |
       Editable text of emails and text messages sent to applicants (notifications.manage), and the
@@ -4295,6 +4300,50 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/reports/dashboard:
+    get:
+      tags: [reports]
+      operationId: reportsDashboard
+      summary: Figures for a period, by what the viewer may see (reports.view)
+      description: |
+        admissions needs admissions.view; finance needs finance.view; enquiries needs enquiries.view;
+        students and results need students.view and schools.all. A section the viewer may not see is null.
+      parameters:
+        - { name: from, in: query, description: "First Nairobi date (YYYY-MM-DD); default 1 January this year.", schema: { type: string, format: date } }
+        - { name: to, in: query, description: "Last Nairobi date, at most two years after from; default today.", schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: The dashboard.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dashboard" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/reports/exports/{kind}:
+    get:
+      tags: [reports]
+      operationId: reportsExport
+      summary: Download a count-only CSV export (reports.export plus the data permission)
+      description: |
+        admissions (admissions.view), enrolments and results (students.view and schools.all),
+        fee-collection (finance.view). UTF-8 with a byte order mark, CRLF lines, a Total row last.
+        Money is in shillings with two decimals. Audited as reports.exported.
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string, enum: [admissions, enrolments, fee-collection, results] } }
+        - { name: from, in: query, description: "First Nairobi date (YYYY-MM-DD); default 1 January this year.", schema: { type: string, format: date } }
+        - { name: to, in: query, description: "Last Nairobi date, at most two years after from; default today.", schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: The CSV file.
+          headers:
+            X-Export-Rows: { description: Data rows including the Total row., schema: { type: integer } }
+          content:
+            text/csv: { schema: { type: string, format: binary } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     csrf:
@@ -5480,6 +5529,117 @@ components:
         sending: { type: boolean, description: False for text messages until DG-03 clears. }
         updated_at: { type: string, format: date-time }
         updated_by_name: { type: [string, "null"] }
+    Dashboard:
+      type: object
+      required: [from, to, admissions, students, results, finance, enquiries]
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        admissions:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [totals, by_school]
+              properties:
+                totals: { $ref: "#/components/schemas/AdmissionsFigures" }
+                by_school:
+                  type: array
+                  items:
+                    allOf:
+                      - $ref: "#/components/schemas/AdmissionsFigures"
+                      - type: object
+                        required: [school_id, school_name]
+                        properties:
+                          school_id: { type: string, format: uuid }
+                          school_name: { type: string }
+        students:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [totals, joined, by_school, open_requests, pending_changes]
+              properties:
+                totals: { $ref: "#/components/schemas/StudentStatusCounts" }
+                joined: { type: integer, description: Students enrolled in the period. }
+                by_school:
+                  type: array
+                  items:
+                    allOf:
+                      - $ref: "#/components/schemas/StudentStatusCounts"
+                      - type: object
+                        required: [school_id, school_name, joined]
+                        properties:
+                          school_id: { type: string, format: uuid }
+                          school_name: { type: string }
+                          joined: { type: integer }
+                open_requests: { type: integer }
+                pending_changes: { type: integer }
+        results:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [draft, submitted, approved, released, released_classes, results, passed]
+              properties:
+                draft: { type: integer }
+                submitted: { type: integer }
+                approved: { type: integer }
+                released: { type: integer }
+                released_classes: { type: integer, description: Classes whose latest release falls in the period. }
+                results: { type: integer }
+                passed: { type: integer, description: Passed or competent. }
+        finance:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [billed_cents, collected_cents, charges_cents, credits_cents, by_month, outstanding_cents, pending_payments, pending_payment_cents]
+              properties:
+                billed_cents: { type: integer, format: int64 }
+                collected_cents: { type: integer, format: int64 }
+                charges_cents: { type: integer, format: int64 }
+                credits_cents: { type: integer, format: int64 }
+                by_month:
+                  type: array
+                  items:
+                    type: object
+                    required: [month, billed_cents, collected_cents, charges_cents, credits_cents]
+                    properties:
+                      month: { type: string, description: YYYY-MM }
+                      billed_cents: { type: integer, format: int64 }
+                      collected_cents: { type: integer, format: int64 }
+                      charges_cents: { type: integer, format: int64 }
+                      credits_cents: { type: integer, format: int64 }
+                outstanding_cents: { type: integer, format: int64, description: Owed now across all students, net of credit. }
+                pending_payments: { type: integer }
+                pending_payment_cents: { type: integer, format: int64 }
+        enquiries:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [received, closed, new_now, open_now, by_office]
+              properties:
+                received: { type: integer }
+                closed: { type: integer }
+                new_now: { type: integer }
+                open_now: { type: integer }
+                by_office:
+                  type: array
+                  items:
+                    type: object
+                    required: [office, received, closed, new_now, open_now]
+                    properties:
+                      office: { type: string, enum: [admissions, finance, general] }
+                      received: { type: integer }
+                      closed: { type: integer }
+                      new_now: { type: integer }
+                      open_now: { type: integer }
+    StudentStatusCounts:
+      type: object
+      required: [active, deferred, suspended, withdrawn, graduated]
+      properties:
+        active: { type: integer }
+        deferred: { type: integer }
+        suspended: { type: integer }
+        withdrawn: { type: integer }
+        graduated: { type: integer }
     SentMessage:
       type: object
       required: [id, name, channel, recipient, status, error, attempts, related_type, related_id, created_at, sent_at, next_attempt_at, can_resend]

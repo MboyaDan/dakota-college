@@ -81,4 +81,6 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-42 | KCB's `timestamp` is yyyyMMddHHmmss in Nairobi time; anything else (their sample has 13 digits) is kept as sent and the arrival time is used. | Default, Stage 15b; confirm with KCB |
 | A-43 | The payer's KCB `customerReference` carries the student number, as the M-Pesa account number does. | Default, Stage 15b; owner may change |
 | A-44 | A failed message is tried six times over about five and a half hours (D-178), then waits for staff to send it again. | Default, Stage 16a; owner may change |
+| A-46 | A Head of School (no `schools.all`) sees admissions and enquiries on the dashboard only if they hold those permissions, and no college-wide student or results figures. A dashboard scoped to their own schools can follow if wanted. | Default, Stage 16b; owner may change |
+| A-47 | Dashboards and exports default to 1 January this year to today, Nairobi dates, at most two years at a time. | Default, Stage 16b; owner may change |
 | A-45 | The sent messages log is for the people who edit messages (`notifications.manage`: Super Admin, ICT Admin, Registrar). It shows recipients' addresses but never message text. | Default, Stage 16a; owner may change |

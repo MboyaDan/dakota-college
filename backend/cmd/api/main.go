@@ -40,6 +40,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/outbox"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
+	"github.com/MboyaDan/dakota-college/backend/internal/reports"
 	"github.com/MboyaDan/dakota-college/backend/internal/results"
 )
 
@@ -138,6 +139,10 @@ func run() error {
 		logger.Info("M-Pesa C2B enabled", slog.String("environment", cfg.Mpesa.Environment), slog.String("shortcode", cfg.Mpesa.ShortCode))
 	}
 	academicsSvc := academics.NewService(pool, nil)
+	admissionsSvc := admissions.NewService(admissions.Options{
+		Pool: pool, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
+		Storage: store, PrivateBucket: cfg.S3.PrivateBucket,
+	})
 	router, err := httpapi.NewRouter(httpapi.Deps{
 		Logger:         logger,
 		DB:             pool,
@@ -167,10 +172,8 @@ func run() error {
 		Portal: portal.NewService(portal.Options{
 			Pool: pool, Academics: academicsSvc, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
 		}),
-		Admissions: admissions.NewService(admissions.Options{
-			Pool: pool, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
-			Storage: store, PrivateBucket: cfg.S3.PrivateBucket,
-		}),
+		Admissions: admissionsSvc,
+		Reports:    reports.NewService(reports.Options{Pool: pool, Admissions: admissionsSvc}),
 	})
 	if err != nil {
 		return fmt.Errorf("router: %w", err)

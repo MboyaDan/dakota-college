@@ -22,6 +22,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/mpesa"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
+	"github.com/MboyaDan/dakota-college/backend/internal/reports"
 	"github.com/MboyaDan/dakota-college/backend/internal/results"
 )
 
@@ -50,6 +51,7 @@ type Deps struct {
 	Applications *application.Service
 	// Admissions is the staff workflow over submitted applications.
 	Admissions *admissions.Service
+	Reports    *reports.Service
 	// Academics is student records, units, offerings and teaching.
 	Academics *academics.Service
 	// Portal is the student portal and the staff side of what students ask for.
@@ -231,6 +233,12 @@ func NewRouter(d Deps) (*Router, error) {
 		add(http.MethodPost, "/staff/applications/:id/documents/:doc/link", false, application.PermView, fh.staffDocumentLink)
 		// Any signed-in account; the link itself says whose it is.
 		add(http.MethodGet, "/files/:token", false, "", fh.openFile)
+	}
+
+	if d.Reports != nil && d.Auth != nil {
+		rh := reportHandlers{svc: d.Reports}
+		add(http.MethodGet, "/staff/reports/dashboard", false, reports.PermView, rh.dashboard)
+		add(http.MethodGet, "/staff/reports/exports/:kind", false, reports.PermExport, rh.export)
 	}
 
 	if d.Admissions != nil && d.Auth != nil {

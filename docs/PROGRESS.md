@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 16a, Message queue with retries. Done, awaiting review.
-- **Next stage:** 16b, Principal and Registrar dashboards and exports with approval (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-16a-message-queue` (from `main` after #40)
+- **Current stage:** 16b, Reports API (dashboard data and count exports). Done, awaiting review.
+- **Next stage:** 16c, dashboard pages and export buttons (KCB signature check slots in when KCB sends the key).
+- **Branch:** `stage-16b-reports-api` (from `main` after #41)
 
 ## Stage status
 
@@ -41,8 +41,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 15a | M-Pesa C2B | Merged (#37) |
 | 15a.2 | M-Pesa hardening and sandbox tunnel | Merged (#38) |
 | 15b | KCB Buni notifications | Merged (#39, gitleaks fix #40); signature check waits for KCB |
-| 16a | Message queue with retries | Done, awaiting review |
-| 16b | Dashboards and exports | Not started |
+| 16a | Message queue with retries | Merged (#41) |
+| 16b | Reports API: dashboard data and count exports | Done, awaiting review |
+| 16c | Dashboard pages and export buttons | Not started |
 | 17 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -56,6 +57,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 16b: Reports API (2026-10-28)
+
+- Stage 16b split into 16b (API) and 16c (screens); only count exports for now, so no approval yet; Registrar and Finance Officer may export what they can see (owner, D-183, D-184).
+- Migration 00021: `reports.export` for Registrar and Finance Officer.
+- `internal/reports`: one dashboard by permission (admissions, students, results, finance, enquiries; null when not allowed) for a period of Nairobi dates (D-185, D-186); four CSV exports (admissions, enrolments, fee collection, results) with formula-safe cells, integer money and audit (D-187).
+- Verified: Go tests against PostgreSQL with `-race` (`TestDashboardAndExports`: every figure from known data, period filtering, each role's sections, data permission needed per export, unknown export, bad periods, CSV bytes, BOM, Total rows, formula guard, audit count; unit tests for shillings, percentages and the formula guard; route walk and OpenAPI match); migration 00021 up, down and up on a scratch database; live check against the migrated dev API (Registrar: no finance section; enrolments CSV downloads).
 
 ### Stage 16a: Message queue with retries (2026-10-28)
 
