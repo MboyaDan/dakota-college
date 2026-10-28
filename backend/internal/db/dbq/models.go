@@ -542,16 +542,23 @@ type Notice struct {
 }
 
 type Notification struct {
-	ID          uuid.UUID
-	TemplateKey string
-	Channel     string
-	Recipient   string
-	Status      string
-	Error       string
-	RelatedType string
-	RelatedID   string
-	CreatedAt   time.Time
-	SentAt      *time.Time
+	ID            uuid.UUID
+	TemplateKey   *string
+	Channel       string
+	Recipient     string
+	Status        string
+	Error         string
+	RelatedType   string
+	RelatedID     string
+	CreatedAt     time.Time
+	SentAt        *time.Time
+	SystemKey     *string
+	Payload       []byte
+	Attempts      int32
+	NextAttemptAt time.Time
+	LockedUntil   *time.Time
+	LastAttemptAt *time.Time
+	ExpiresAt     time.Time
 }
 
 type NotificationTemplate struct {

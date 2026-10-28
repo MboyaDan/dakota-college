@@ -12,6 +12,128 @@ import (
 	"github.com/google/uuid"
 )
 
+const claimNotifications = `-- name: ClaimNotifications :many
+UPDATE notifications SET status = 'sending', attempts = attempts + 1, locked_until = $1::timestamptz, last_attempt_at = $2::timestamptz
+WHERE id IN (
+  SELECT n.id FROM notifications n
+  WHERE n.payload IS NOT NULL AND n.expires_at > $2::timestamptz
+    AND ((n.status = 'queued' AND n.next_attempt_at <= $2) OR (n.status = 'sending' AND n.locked_until < $2))
+  ORDER BY n.next_attempt_at
+  LIMIT $3
+  FOR UPDATE SKIP LOCKED
+)
+RETURNING id, channel, recipient, payload, attempts
+`
+
+type ClaimNotificationsParams struct {
+	LockedUntil time.Time
+	Now         time.Time
+	MaxRows     int32
+}
+
+type ClaimNotificationsRow struct {
+	ID        uuid.UUID
+	Channel   string
+	Recipient string
+	Payload   []byte
+	Attempts  int32
+}
+
+// Takes due messages for one attempt. A claim whose worker stopped before
+// recording the result is taken again once its lock runs out.
+func (q *Queries) ClaimNotifications(ctx context.Context, arg ClaimNotificationsParams) ([]ClaimNotificationsRow, error) {
+	rows, err := q.db.Query(ctx, claimNotifications, arg.LockedUntil, arg.Now, arg.MaxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ClaimNotificationsRow{}
+	for rows.Next() {
+		var i ClaimNotificationsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Channel,
+			&i.Recipient,
+			&i.Payload,
+			&i.Attempts,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countNotifications = `-- name: CountNotifications :one
+SELECT count(*) FROM notifications n
+WHERE ($1::text IS NULL OR n.status = $1::text)
+  AND ($2::text IS NULL OR n.channel = $2::text)
+  AND ($3::text IS NULL OR n.recipient ILIKE '%' || $3::text || '%')
+`
+
+type CountNotificationsParams struct {
+	Status  *string
+	Channel *string
+	Search  *string
+}
+
+func (q *Queries) CountNotifications(ctx context.Context, arg CountNotificationsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countNotifications, arg.Status, arg.Channel, arg.Search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countNotificationsByStatus = `-- name: CountNotificationsByStatus :one
+SELECT count(*) FILTER (WHERE status IN ('queued', 'sending')) AS waiting,
+       count(*) FILTER (WHERE status = 'failed' AND created_at >= $1) AS failed_recent
+FROM notifications
+`
+
+type CountNotificationsByStatusRow struct {
+	Waiting      int64
+	FailedRecent int64
+}
+
+func (q *Queries) CountNotificationsByStatus(ctx context.Context, since time.Time) (CountNotificationsByStatusRow, error) {
+	row := q.db.QueryRow(ctx, countNotificationsByStatus, since)
+	var i CountNotificationsByStatusRow
+	err := row.Scan(&i.Waiting, &i.FailedRecent)
+	return i, err
+}
+
+const eraseExpiredPayloads = `-- name: EraseExpiredPayloads :execrows
+UPDATE notifications SET payload = NULL
+WHERE status = 'failed' AND payload IS NOT NULL AND expires_at <= $1
+`
+
+func (q *Queries) EraseExpiredPayloads(ctx context.Context, now time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, eraseExpiredPayloads, now)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const expireNotifications = `-- name: ExpireNotifications :execrows
+UPDATE notifications SET status = 'failed', error = 'Not sent before it expired', payload = NULL, locked_until = NULL
+WHERE expires_at <= $1
+  AND (status = 'queued' OR (status = 'sending' AND locked_until < $1))
+`
+
+// Messages not sent in time are given up; a claim still being worked on is
+// left to finish.
+func (q *Queries) ExpireNotifications(ctx context.Context, now time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, expireNotifications, now)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getNotificationTemplate = `-- name: GetNotificationTemplate :one
 
 SELECT key, channel, subject, body FROM notification_templates WHERE key = $1 AND channel = $2
@@ -43,30 +165,40 @@ func (q *Queries) GetNotificationTemplate(ctx context.Context, arg GetNotificati
 }
 
 const insertNotification = `-- name: InsertNotification :one
-INSERT INTO notifications (template_key, channel, recipient, status, error, related_type, related_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+
+INSERT INTO notifications (template_key, system_key, channel, recipient, status, error, related_type, related_id, payload, next_attempt_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 RETURNING id
 `
 
 type InsertNotificationParams struct {
-	TemplateKey string
-	Channel     string
-	Recipient   string
-	Status      string
-	Error       string
-	RelatedType string
-	RelatedID   string
+	TemplateKey   *string
+	SystemKey     *string
+	Channel       string
+	Recipient     string
+	Status        string
+	Error         string
+	RelatedType   string
+	RelatedID     string
+	Payload       []byte
+	NextAttemptAt time.Time
+	ExpiresAt     time.Time
 }
 
+// ---------- message queue (Stage 16a) ----------
 func (q *Queries) InsertNotification(ctx context.Context, arg InsertNotificationParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, insertNotification,
 		arg.TemplateKey,
+		arg.SystemKey,
 		arg.Channel,
 		arg.Recipient,
 		arg.Status,
 		arg.Error,
 		arg.RelatedType,
 		arg.RelatedID,
+		arg.Payload,
+		arg.NextAttemptAt,
+		arg.ExpiresAt,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
@@ -120,8 +252,92 @@ func (q *Queries) ListNotificationTemplates(ctx context.Context) ([]ListNotifica
 	return items, nil
 }
 
+const listNotifications = `-- name: ListNotifications :many
+SELECT n.id, n.template_key, n.system_key, n.channel, n.recipient, n.status, n.error, n.attempts,
+       n.related_type, n.related_id, n.created_at, n.sent_at, n.next_attempt_at, n.expires_at,
+       (n.payload IS NOT NULL)::boolean AS has_payload, t.name AS template_name
+FROM notifications n
+LEFT JOIN notification_templates t ON t.key = n.template_key AND t.channel = n.channel
+WHERE ($1::text IS NULL OR n.status = $1::text)
+  AND ($2::text IS NULL OR n.channel = $2::text)
+  AND ($3::text IS NULL OR n.recipient ILIKE '%' || $3::text || '%')
+ORDER BY n.created_at DESC, n.id
+LIMIT $5 OFFSET $4
+`
+
+type ListNotificationsParams struct {
+	Status   *string
+	Channel  *string
+	Search   *string
+	SkipRows int32
+	MaxRows  int32
+}
+
+type ListNotificationsRow struct {
+	ID            uuid.UUID
+	TemplateKey   *string
+	SystemKey     *string
+	Channel       string
+	Recipient     string
+	Status        string
+	Error         string
+	Attempts      int32
+	RelatedType   string
+	RelatedID     string
+	CreatedAt     time.Time
+	SentAt        *time.Time
+	NextAttemptAt time.Time
+	ExpiresAt     time.Time
+	HasPayload    bool
+	TemplateName  *string
+}
+
+func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]ListNotificationsRow, error) {
+	rows, err := q.db.Query(ctx, listNotifications,
+		arg.Status,
+		arg.Channel,
+		arg.Search,
+		arg.SkipRows,
+		arg.MaxRows,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListNotificationsRow{}
+	for rows.Next() {
+		var i ListNotificationsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TemplateKey,
+			&i.SystemKey,
+			&i.Channel,
+			&i.Recipient,
+			&i.Status,
+			&i.Error,
+			&i.Attempts,
+			&i.RelatedType,
+			&i.RelatedID,
+			&i.CreatedAt,
+			&i.SentAt,
+			&i.NextAttemptAt,
+			&i.ExpiresAt,
+			&i.HasPayload,
+			&i.TemplateName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markNotificationFailed = `-- name: MarkNotificationFailed :exec
-UPDATE notifications SET status = 'failed', error = $1 WHERE id = $2
+UPDATE notifications SET status = 'failed', error = $1, locked_until = NULL
+WHERE id = $2
 `
 
 type MarkNotificationFailedParams struct {
@@ -135,11 +351,64 @@ func (q *Queries) MarkNotificationFailed(ctx context.Context, arg MarkNotificati
 }
 
 const markNotificationSent = `-- name: MarkNotificationSent :exec
-UPDATE notifications SET status = 'sent', sent_at = now(), error = '' WHERE id = $1
+UPDATE notifications SET status = 'sent', sent_at = $1::timestamptz, error = '', payload = NULL, locked_until = NULL
+WHERE id = $2
 `
 
-func (q *Queries) MarkNotificationSent(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, markNotificationSent, id)
+type MarkNotificationSentParams struct {
+	Now time.Time
+	ID  uuid.UUID
+}
+
+func (q *Queries) MarkNotificationSent(ctx context.Context, arg MarkNotificationSentParams) error {
+	_, err := q.db.Exec(ctx, markNotificationSent, arg.Now, arg.ID)
+	return err
+}
+
+const resendNotification = `-- name: ResendNotification :one
+UPDATE notifications SET status = 'queued', attempts = 0, error = '', next_attempt_at = $1, locked_until = NULL
+WHERE id = $2 AND status = 'failed' AND payload IS NOT NULL AND expires_at > $1::timestamptz
+RETURNING id, channel, template_key, system_key
+`
+
+type ResendNotificationParams struct {
+	Now time.Time
+	ID  uuid.UUID
+}
+
+type ResendNotificationRow struct {
+	ID          uuid.UUID
+	Channel     string
+	TemplateKey *string
+	SystemKey   *string
+}
+
+// Only a failed message whose text is still stored can go again.
+func (q *Queries) ResendNotification(ctx context.Context, arg ResendNotificationParams) (ResendNotificationRow, error) {
+	row := q.db.QueryRow(ctx, resendNotification, arg.Now, arg.ID)
+	var i ResendNotificationRow
+	err := row.Scan(
+		&i.ID,
+		&i.Channel,
+		&i.TemplateKey,
+		&i.SystemKey,
+	)
+	return i, err
+}
+
+const retryNotificationLater = `-- name: RetryNotificationLater :exec
+UPDATE notifications SET status = 'queued', error = $1, next_attempt_at = $2, locked_until = NULL
+WHERE id = $3
+`
+
+type RetryNotificationLaterParams struct {
+	Error         string
+	NextAttemptAt time.Time
+	ID            uuid.UUID
+}
+
+func (q *Queries) RetryNotificationLater(ctx context.Context, arg RetryNotificationLaterParams) error {
+	_, err := q.db.Exec(ctx, retryNotificationLater, arg.Error, arg.NextAttemptAt, arg.ID)
 	return err
 }
 
