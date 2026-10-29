@@ -19,10 +19,13 @@ func lookupFrom(m map[string]string) func(string) (string, bool) {
 // testMessageKey is 32 bytes of a fixed pattern, never a real key.
 var testMessageKey = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{7}, 32))
 
+// testTOTPKey is 32 bytes of another fixed pattern, never a real key.
+var testTOTPKey = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{9}, 32))
+
 var testClientIPSecret = strings.Repeat("c", 32)
 
 func TestClientIPSecret(t *testing.T) {
-	staging := map[string]string{"APP_ENV": "staging", "DATABASE_URL": "x", "MESSAGE_KEY": testMessageKey,
+	staging := map[string]string{"APP_ENV": "staging", "DATABASE_URL": "x", "MESSAGE_KEY": testMessageKey, "TOTP_KEY": testTOTPKey,
 		"APP_BASE_URL": "https://dakota.example", "ALLOWED_ORIGINS": "https://dakota.example"}
 	if _, err := FromLookup(lookupFrom(staging)); err == nil || !strings.Contains(err.Error(), "CLIENT_IP_SECRET is required") {
 		t.Errorf("staging without a client IP secret: %v", err)
@@ -37,6 +40,26 @@ func TestClientIPSecret(t *testing.T) {
 	}
 	if cfg, err := FromLookup(lookupFrom(map[string]string{"APP_ENV": "development", "DATABASE_URL": "x"})); err != nil || cfg.ClientIPSecret != "" {
 		t.Errorf("development needs no secret: %v", err)
+	}
+}
+
+func TestTOTPKey(t *testing.T) {
+	dev, err := FromLookup(lookupFrom(map[string]string{"APP_ENV": "development", "DATABASE_URL": "x"}))
+	if err != nil || len(dev.TOTPKey) != 32 || !dev.TOTPKeyIsDevelopment || bytes.Equal(dev.TOTPKey, dev.MessageKey) {
+		t.Fatalf("development falls back to its own fixed key: %v", err)
+	}
+	set, err := FromLookup(lookupFrom(map[string]string{"APP_ENV": "test", "DATABASE_URL": "x", "TOTP_KEY": testTOTPKey}))
+	if err != nil || !bytes.Equal(set.TOTPKey, bytes.Repeat([]byte{9}, 32)) || set.TOTPKeyIsDevelopment {
+		t.Fatalf("a set key is used: %v", err)
+	}
+	staging := map[string]string{"APP_ENV": "staging", "DATABASE_URL": "x", "MESSAGE_KEY": testMessageKey, "CLIENT_IP_SECRET": testClientIPSecret,
+		"APP_BASE_URL": "https://dakota.example", "ALLOWED_ORIGINS": "https://dakota.example"}
+	if _, err := FromLookup(lookupFrom(staging)); err == nil || !strings.Contains(err.Error(), "TOTP_KEY is required") {
+		t.Errorf("staging without a key: %v", err)
+	}
+	staging["TOTP_KEY"] = base64.StdEncoding.EncodeToString([]byte("too short"))
+	if _, err := FromLookup(lookupFrom(staging)); err == nil || !strings.Contains(err.Error(), "TOTP_KEY must be") {
+		t.Errorf("short key accepted: %v", err)
 	}
 }
 
@@ -96,6 +119,7 @@ func TestFromLookupOverrides(t *testing.T) {
 		"APP_ENV":          "production",
 		"DATABASE_URL":     "postgres://x",
 		"MESSAGE_KEY":      testMessageKey,
+		"TOTP_KEY":         testTOTPKey,
 		"CLIENT_IP_SECRET": testClientIPSecret,
 		"APP_BASE_URL":     "https://dakota.example/",
 		"ALLOWED_ORIGINS":  "https://dakota.example",
@@ -169,7 +193,7 @@ func TestMpesaConfig(t *testing.T) {
 		m := map[string]string{
 			"APP_ENV": "staging", "DATABASE_URL": "postgres://u:p@localhost:5432/db", "SESSION_COOKIE_SECURE": "true",
 			"APP_BASE_URL": "https://staging.college.example", "ALLOWED_ORIGINS": "https://staging.college.example",
-			"MESSAGE_KEY": testMessageKey, "CLIENT_IP_SECRET": testClientIPSecret,
+			"MESSAGE_KEY": testMessageKey, "TOTP_KEY": testTOTPKey, "CLIENT_IP_SECRET": testClientIPSecret,
 			"MPESA_ENABLED": "true", "MPESA_CONSUMER_KEY": "k", "MPESA_CONSUMER_SECRET": "s", "MPESA_SHORTCODE": "600999",
 			"MPESA_CALLBACK_BASE_URL": "https://api.college.example", "MPESA_CALLBACK_SECRET": strings.Repeat("a", 40),
 		}

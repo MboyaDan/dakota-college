@@ -175,6 +175,10 @@ func Run(ctx context.Context, pool *pgxpool.Pool, password string) (Summary, err
 			if err := q.AssignRole(ctx, dbq.AssignRoleParams{UserID: userID, RoleID: role.ID}); err != nil {
 				return err
 			}
+			// Seeding again restores the password alone as the way in.
+			if _, err := auth.RemoveTwoStep(ctx, q, userID); err != nil {
+				return err
+			}
 			sum.Users++
 		}
 

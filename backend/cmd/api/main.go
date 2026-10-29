@@ -81,6 +81,9 @@ func run() error {
 	if cfg.MessageKeyIsDevelopment {
 		logger.Warn("MESSAGE_KEY not set: queued messages use the development key")
 	}
+	if cfg.TOTPKeyIsDevelopment {
+		logger.Warn("TOTP_KEY not set: two-step sign-in secrets use the development key")
+	}
 	// Every email goes through the queue; text messages are recorded as
 	// skipped until an SMS provider is chosen (DG-03).
 	queue, err := outbox.New(outbox.Options{Pool: pool, Mailer: mailer, Key: cfg.MessageKey, Logger: logger})
@@ -99,6 +102,7 @@ func run() error {
 		Logger:     logger,
 		Session:    cfg.Session,
 		AppBaseURL: cfg.AppBaseURL,
+		TOTPKey:    cfg.TOTPKey,
 	})
 	if err != nil {
 		return fmt.Errorf("auth: %w", err)

@@ -13,6 +13,64 @@ import (
 	"github.com/google/uuid"
 )
 
+const confirmUserTOTP = `-- name: ConfirmUserTOTP :exec
+UPDATE user_totp SET confirmed_at = now(), last_step = $1 WHERE user_id = $2 AND confirmed_at IS NULL
+`
+
+type ConfirmUserTOTPParams struct {
+	LastStep int64
+	UserID   uuid.UUID
+}
+
+func (q *Queries) ConfirmUserTOTP(ctx context.Context, arg ConfirmUserTOTPParams) error {
+	_, err := q.db.Exec(ctx, confirmUserTOTP, arg.LastStep, arg.UserID)
+	return err
+}
+
+const countLoginChallengeAttempt = `-- name: CountLoginChallengeAttempt :exec
+UPDATE login_challenges SET attempts = attempts + 1 WHERE id = $1
+`
+
+func (q *Queries) CountLoginChallengeAttempt(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, countLoginChallengeAttempt, id)
+	return err
+}
+
+const countUserRecoveryCodes = `-- name: CountUserRecoveryCodes :one
+SELECT count(*) FROM user_recovery_codes WHERE user_id = $1 AND used_at IS NULL
+`
+
+func (q *Queries) CountUserRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countUserRecoveryCodes, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createLoginChallenge = `-- name: CreateLoginChallenge :exec
+INSERT INTO login_challenges (token_hash, user_id, expires_at, ip, user_agent)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type CreateLoginChallengeParams struct {
+	TokenHash []byte
+	UserID    uuid.UUID
+	ExpiresAt time.Time
+	Ip        *netip.Addr
+	UserAgent *string
+}
+
+func (q *Queries) CreateLoginChallenge(ctx context.Context, arg CreateLoginChallengeParams) error {
+	_, err := q.db.Exec(ctx, createLoginChallenge,
+		arg.TokenHash,
+		arg.UserID,
+		arg.ExpiresAt,
+		arg.Ip,
+		arg.UserAgent,
+	)
+	return err
+}
+
 const createPasswordReset = `-- name: CreatePasswordReset :exec
 INSERT INTO password_resets (user_id, token_hash, expires_at, requested_ip)
 VALUES ($1, $2, $3, $4)
@@ -60,6 +118,71 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (u
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const deleteOldLoginChallenges = `-- name: DeleteOldLoginChallenges :exec
+DELETE FROM login_challenges WHERE expires_at < now() - interval '1 day'
+`
+
+// Challenges are useless after a few minutes; old ones are cleared as new
+// ones are made.
+func (q *Queries) DeleteOldLoginChallenges(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteOldLoginChallenges)
+	return err
+}
+
+const deleteUserRecoveryCodes = `-- name: DeleteUserRecoveryCodes :exec
+DELETE FROM user_recovery_codes WHERE user_id = $1
+`
+
+func (q *Queries) DeleteUserRecoveryCodes(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUserRecoveryCodes, userID)
+	return err
+}
+
+const deleteUserTOTP = `-- name: DeleteUserTOTP :execrows
+DELETE FROM user_totp WHERE user_id = $1
+`
+
+func (q *Queries) DeleteUserTOTP(ctx context.Context, userID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteUserTOTP, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const getLoginChallengeForUpdate = `-- name: GetLoginChallengeForUpdate :one
+SELECT c.id, c.user_id, c.expires_at, c.attempts, c.used_at, u.email, u.status
+FROM login_challenges c
+JOIN users u ON u.id = c.user_id
+WHERE c.token_hash = $1
+FOR UPDATE OF c
+`
+
+type GetLoginChallengeForUpdateRow struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	ExpiresAt time.Time
+	Attempts  int32
+	UsedAt    *time.Time
+	Email     string
+	Status    string
+}
+
+func (q *Queries) GetLoginChallengeForUpdate(ctx context.Context, tokenHash []byte) (GetLoginChallengeForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getLoginChallengeForUpdate, tokenHash)
+	var i GetLoginChallengeForUpdateRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ExpiresAt,
+		&i.Attempts,
+		&i.UsedAt,
+		&i.Email,
+		&i.Status,
+	)
+	return i, err
 }
 
 const getPasswordResetForUpdate = `-- name: GetPasswordResetForUpdate :one
@@ -162,6 +285,79 @@ func (q *Queries) GetUserForLogin(ctx context.Context, email string) (GetUserFor
 	return i, err
 }
 
+const getUserPasswordHash = `-- name: GetUserPasswordHash :one
+
+SELECT password_hash FROM users WHERE id = $1
+`
+
+// Two-step sign-in (Stage 17b).
+func (q *Queries) GetUserPasswordHash(ctx context.Context, id uuid.UUID) (*string, error) {
+	row := q.db.QueryRow(ctx, getUserPasswordHash, id)
+	var password_hash *string
+	err := row.Scan(&password_hash)
+	return password_hash, err
+}
+
+const getUserTOTP = `-- name: GetUserTOTP :one
+SELECT user_id, secret_sealed, confirmed_at, last_step FROM user_totp WHERE user_id = $1
+`
+
+type GetUserTOTPRow struct {
+	UserID       uuid.UUID
+	SecretSealed []byte
+	ConfirmedAt  *time.Time
+	LastStep     int64
+}
+
+func (q *Queries) GetUserTOTP(ctx context.Context, userID uuid.UUID) (GetUserTOTPRow, error) {
+	row := q.db.QueryRow(ctx, getUserTOTP, userID)
+	var i GetUserTOTPRow
+	err := row.Scan(
+		&i.UserID,
+		&i.SecretSealed,
+		&i.ConfirmedAt,
+		&i.LastStep,
+	)
+	return i, err
+}
+
+const getUserTOTPForUpdate = `-- name: GetUserTOTPForUpdate :one
+SELECT user_id, secret_sealed, confirmed_at, last_step FROM user_totp WHERE user_id = $1 FOR UPDATE
+`
+
+type GetUserTOTPForUpdateRow struct {
+	UserID       uuid.UUID
+	SecretSealed []byte
+	ConfirmedAt  *time.Time
+	LastStep     int64
+}
+
+func (q *Queries) GetUserTOTPForUpdate(ctx context.Context, userID uuid.UUID) (GetUserTOTPForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getUserTOTPForUpdate, userID)
+	var i GetUserTOTPForUpdateRow
+	err := row.Scan(
+		&i.UserID,
+		&i.SecretSealed,
+		&i.ConfirmedAt,
+		&i.LastStep,
+	)
+	return i, err
+}
+
+const insertUserRecoveryCode = `-- name: InsertUserRecoveryCode :exec
+INSERT INTO user_recovery_codes (user_id, code_hash) VALUES ($1, $2)
+`
+
+type InsertUserRecoveryCodeParams struct {
+	UserID   uuid.UUID
+	CodeHash []byte
+}
+
+func (q *Queries) InsertUserRecoveryCode(ctx context.Context, arg InsertUserRecoveryCodeParams) error {
+	_, err := q.db.Exec(ctx, insertUserRecoveryCode, arg.UserID, arg.CodeHash)
+	return err
+}
+
 const recordLoginFailure = `-- name: RecordLoginFailure :one
 UPDATE users
 SET failed_login_count = failed_login_count + 1,
@@ -197,6 +393,24 @@ UPDATE users SET failed_login_count = 0, locked_until = NULL, last_login_at = no
 func (q *Queries) RecordLoginSuccess(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, recordLoginSuccess, id)
 	return err
+}
+
+const revokeOtherUserSessions = `-- name: RevokeOtherUserSessions :execrows
+UPDATE sessions SET revoked_at = now()
+WHERE user_id = $1 AND id <> $2 AND revoked_at IS NULL
+`
+
+type RevokeOtherUserSessionsParams struct {
+	UserID uuid.UUID
+	KeepID uuid.UUID
+}
+
+func (q *Queries) RevokeOtherUserSessions(ctx context.Context, arg RevokeOtherUserSessionsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeOtherUserSessions, arg.UserID, arg.KeepID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const revokeSession = `-- name: RevokeSession :exec
@@ -236,12 +450,53 @@ func (q *Queries) SetUserPassword(ctx context.Context, arg SetUserPasswordParams
 	return err
 }
 
+const setUserTOTPStep = `-- name: SetUserTOTPStep :exec
+UPDATE user_totp SET last_step = $1 WHERE user_id = $2 AND last_step < $1
+`
+
+type SetUserTOTPStepParams struct {
+	LastStep int64
+	UserID   uuid.UUID
+}
+
+func (q *Queries) SetUserTOTPStep(ctx context.Context, arg SetUserTOTPStepParams) error {
+	_, err := q.db.Exec(ctx, setUserTOTPStep, arg.LastStep, arg.UserID)
+	return err
+}
+
+const startUserTOTP = `-- name: StartUserTOTP :exec
+INSERT INTO user_totp (user_id, secret_sealed) VALUES ($1, $2)
+ON CONFLICT (user_id) DO UPDATE SET secret_sealed = EXCLUDED.secret_sealed, last_step = 0
+WHERE user_totp.confirmed_at IS NULL
+`
+
+type StartUserTOTPParams struct {
+	UserID       uuid.UUID
+	SecretSealed []byte
+}
+
+// A new setup replaces an unfinished one. It never replaces a confirmed
+// authenticator: the caller turns that off first.
+func (q *Queries) StartUserTOTP(ctx context.Context, arg StartUserTOTPParams) error {
+	_, err := q.db.Exec(ctx, startUserTOTP, arg.UserID, arg.SecretSealed)
+	return err
+}
+
 const touchSession = `-- name: TouchSession :exec
 UPDATE sessions SET last_seen_at = now() WHERE id = $1
 `
 
 func (q *Queries) TouchSession(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, touchSession, id)
+	return err
+}
+
+const useLoginChallenge = `-- name: UseLoginChallenge :exec
+UPDATE login_challenges SET used_at = now() WHERE id = $1
+`
+
+func (q *Queries) UseLoginChallenge(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, useLoginChallenge, id)
 	return err
 }
 
@@ -253,4 +508,22 @@ UPDATE password_resets SET used_at = now() WHERE user_id = $1 AND used_at IS NUL
 func (q *Queries) UseUserPasswordResets(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, useUserPasswordResets, userID)
 	return err
+}
+
+const useUserRecoveryCode = `-- name: UseUserRecoveryCode :execrows
+UPDATE user_recovery_codes SET used_at = now()
+WHERE user_id = $1 AND code_hash = $2 AND used_at IS NULL
+`
+
+type UseUserRecoveryCodeParams struct {
+	UserID   uuid.UUID
+	CodeHash []byte
+}
+
+func (q *Queries) UseUserRecoveryCode(ctx context.Context, arg UseUserRecoveryCodeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, useUserRecoveryCode, arg.UserID, arg.CodeHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

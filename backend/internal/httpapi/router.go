@@ -156,6 +156,16 @@ func NewRouter(d Deps) (*Router, error) {
 		add(http.MethodPost, "/auth/password-reset/confirm", true, "", a.confirmReset)
 		add(http.MethodGet, "/auth/session", false, "", a.session)
 		add(http.MethodPost, "/auth/logout", false, "", a.logout)
+		add(http.MethodPost, "/auth/login/code", true, "", a.loginCode)
+		// Two-step sign-in is for staff accounts (Stage 17b).
+		staffOnly := func(method, path string, h gin.HandlerFunc) {
+			mount(Route{Method: method, Path: path, Kind: "staff"}, defaultBodyLimit, h)
+		}
+		staffOnly(http.MethodGet, "/auth/two-step", a.twoStepStatus)
+		staffOnly(http.MethodPost, "/auth/two-step/setup", a.twoStepSetup)
+		staffOnly(http.MethodPost, "/auth/two-step/confirm", a.twoStepConfirm)
+		staffOnly(http.MethodPost, "/auth/two-step/recovery-codes", a.twoStepRecoveryCodes)
+		staffOnly(http.MethodPost, "/auth/two-step/disable", a.twoStepDisable)
 	}
 
 	if d.Access != nil && d.Auth != nil {
@@ -165,6 +175,7 @@ func NewRouter(d Deps) (*Router, error) {
 		add(http.MethodPut, "/admin/users/:id/roles", false, "users.manage", ad.setUserRoles)
 		add(http.MethodPost, "/admin/users/:id/disable", false, "users.manage", ad.disableUser)
 		add(http.MethodPost, "/admin/users/:id/enable", false, "users.manage", ad.enableUser)
+		add(http.MethodPost, "/admin/users/:id/two-step/reset", false, "users.manage", ad.resetTwoStep)
 		add(http.MethodGet, "/admin/roles", false, "roles.manage", ad.listRoles)
 		add(http.MethodPost, "/admin/roles", false, "roles.manage", ad.createRole)
 		add(http.MethodPut, "/admin/roles/:id/permissions", false, "roles.manage", ad.setRolePermissions)

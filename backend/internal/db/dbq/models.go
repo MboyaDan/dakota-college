@@ -488,6 +488,18 @@ type KcbTransaction struct {
 	CreatedAt            time.Time
 }
 
+type LoginChallenge struct {
+	ID        uuid.UUID
+	TokenHash []byte
+	UserID    uuid.UUID
+	CreatedAt time.Time
+	ExpiresAt time.Time
+	Attempts  int32
+	UsedAt    *time.Time
+	Ip        *netip.Addr
+	UserAgent *string
+}
+
 type Mark struct {
 	ID        int64
 	SheetID   uuid.UUID
@@ -975,9 +987,26 @@ type User struct {
 	UpdatedAt         time.Time
 }
 
+type UserRecoveryCode struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	CodeHash  []byte
+	UsedAt    *time.Time
+	CreatedAt time.Time
+}
+
 type UserRole struct {
 	UserID    uuid.UUID
 	RoleID    uuid.UUID
 	GrantedBy *uuid.UUID
 	GrantedAt time.Time
+}
+
+type UserTotp struct {
+	UserID       uuid.UUID
+	SecretSealed []byte
+	ConfirmedAt  *time.Time
+	LastStep     int64
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }

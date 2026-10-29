@@ -45,6 +45,28 @@ func (s sessionCookie) clear(c *gin.Context) {
 	})
 }
 
+// stepCookie holds a sign-in challenge between the password and the code
+// (Stage 17b). It lives only as long as the challenge.
+func (s sessionCookie) stepName() string {
+	if s.secure {
+		return "__Host-dtc_signin_step"
+	}
+	return "dtc_signin_step"
+}
+
+func (s sessionCookie) setStep(c *gin.Context, token string, expires time.Time) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name: s.stepName(), Value: token, Path: "/", Expires: expires, MaxAge: int(time.Until(expires).Seconds()),
+		HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteStrictMode,
+	})
+}
+
+func (s sessionCookie) clearStep(c *gin.Context) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name: s.stepName(), Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteStrictMode,
+	})
+}
+
 func unsafeMethod(m string) bool {
 	return m != http.MethodGet && m != http.MethodHead && m != http.MethodOptions
 }

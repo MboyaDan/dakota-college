@@ -56,7 +56,12 @@ type Config struct {
 	// must set one.
 	MessageKey              []byte
 	MessageKeyIsDevelopment bool
-	S3                      S3Config
+	// TOTPKey encrypts staff authenticator secrets (32 bytes, TOTP_KEY in
+	// base64). Like MessageKey, development and test fall back to a fixed
+	// key and staging and production must set one.
+	TOTPKey              []byte
+	TOTPKeyIsDevelopment bool
+	S3                   S3Config
 	// ClamAVAddr is a clamd host:port for scanning uploads. Empty means no
 	// scanner: files are stored as "not_scanned" (D-19).
 	ClamAVAddr string
@@ -258,6 +263,19 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 		cfg.MessageKey, cfg.MessageKeyIsDevelopment = key[:], true
 	} else {
 		errs = append(errs, fmt.Errorf("MESSAGE_KEY is required when APP_ENV=%s (openssl rand -base64 32)", cfg.Env))
+	}
+
+	if v := get("TOTP_KEY", ""); v != "" {
+		key, err := base64.StdEncoding.DecodeString(v)
+		if err != nil || len(key) != messageKeySize {
+			errs = append(errs, errors.New("TOTP_KEY must be 32 random bytes in base64 (openssl rand -base64 32)"))
+		}
+		cfg.TOTPKey = key
+	} else if cfg.Env == EnvDevelopment || cfg.Env == EnvTest {
+		key := sha256.Sum256([]byte("dakota-college development two-step key"))
+		cfg.TOTPKey, cfg.TOTPKeyIsDevelopment = key[:], true
+	} else {
+		errs = append(errs, fmt.Errorf("TOTP_KEY is required when APP_ENV=%s (openssl rand -base64 32)", cfg.Env))
 	}
 
 	cfg.S3 = S3Config{

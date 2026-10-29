@@ -65,3 +65,39 @@ func CreateFirstSuperAdmin(ctx context.Context, pool *pgxpool.Pool, email, fullN
 	})
 	return userID, err
 }
+
+// ErrNoSuchStaff is returned by ResetTwoStepByEmail for an unknown email.
+var ErrNoSuchStaff = errors.New("no staff account uses that email")
+
+// ResetTwoStepByEmail turns off a staff member's two-step sign-in from the
+// server's command line, for when nobody who could reset it in the staff
+// portal can sign in (for example the only Super Admin lost their phone and
+// recovery codes). It signs the person out everywhere and is audited.
+func ResetTwoStepByEmail(ctx context.Context, pool *pgxpool.Pool, email string) error {
+	email = NormaliseEmail(email)
+	return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
+		q := dbq.New(tx)
+		u, err := q.GetUserForLogin(ctx, email)
+		if errors.Is(err, pgx.ErrNoRows) || (err == nil && u.Kind != "staff") {
+			return ErrNoSuchStaff
+		}
+		if err != nil {
+			return err
+		}
+		n, err := RemoveTwoStep(ctx, q, u.ID)
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return errors.New("this person does not use two-step sign-in")
+		}
+		revoked, err := q.RevokeUserSessions(ctx, u.ID)
+		if err != nil {
+			return err
+		}
+		return audit.Write(ctx, q, audit.Request{}, audit.Entry{
+			Action: "user.two_step_reset", EntityType: "user", EntityID: u.ID.String(),
+			Details: map[string]any{"sessions_revoked": revoked, "via": "command_line"},
+		})
+	})
+}

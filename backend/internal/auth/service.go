@@ -87,6 +87,7 @@ type Service struct {
 	resetByEmail *Limiter
 	resetByIP    *Limiter
 	dummyHash    string
+	box          *secretBox
 }
 
 type Options struct {
@@ -95,6 +96,8 @@ type Options struct {
 	Logger     *slog.Logger
 	Session    config.SessionConfig
 	AppBaseURL string
+	// TOTPKey seals authenticator secrets (TOTP_KEY, TOTPKeySize bytes).
+	TOTPKey []byte
 	// Now is for tests; defaults to time.Now.
 	Now func() time.Time
 }
@@ -110,6 +113,10 @@ func NewService(o Options) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	box, err := newSecretBox(o.TOTPKey)
+	if err != nil {
+		return nil, err
+	}
 	return &Service{
 		pool: o.Pool, outbox: o.Outbox, logger: o.Logger, session: o.Session,
 		appBaseURL: strings.TrimRight(o.AppBaseURL, "/"), now: now,
@@ -121,6 +128,7 @@ func NewService(o Options) (*Service, error) {
 		resetByEmail: NewLimiter(3, time.Hour, now),
 		resetByIP:    NewLimiter(30, time.Hour, now),
 		dummyHash:    dummy,
+		box:          box,
 	}, nil
 }
 
@@ -133,7 +141,8 @@ type LoginResult struct {
 }
 
 // Login checks the password and starts a session. Every outcome is audited.
-// Wrong email and wrong password return the same error.
+// Wrong email and wrong password return the same error. For an account with
+// two-step sign-in it returns *SecondStepRequired instead of a session.
 func (s *Service) Login(ctx context.Context, email, password string, req audit.Request) (*LoginResult, error) {
 	email = NormaliseEmail(email)
 	q := dbq.New(s.pool)
@@ -195,6 +204,17 @@ func (s *Service) Login(ctx context.Context, email, password string, req audit.R
 		return fail("wrong_password", &u.ID, ErrInvalidCredentials)
 	}
 
+	// With two-step sign-in on, a right password only earns a challenge.
+	if twoStep, err := usesTwoStep(ctx, q, u.ID); err != nil {
+		return nil, err
+	} else if twoStep {
+		ch, err := s.startChallenge(ctx, q, u.ID, req)
+		if err != nil {
+			return nil, err
+		}
+		return nil, ch
+	}
+
 	var res *LoginResult
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		tq := dbq.New(tx)
@@ -212,14 +232,7 @@ func (s *Service) Login(ctx context.Context, email, password string, req audit.R
 		return nil, err
 	}
 	s.loginByEmail.Reset(email)
-
-	perms, err := q.ListUserPermissionKeys(ctx, u.ID)
-	if err != nil {
-		return nil, err
-	}
-	res.Principal.Email, res.Principal.FullName, res.Principal.Kind = u.Email, u.FullName, u.Kind
-	res.Principal.Permissions = perms
-	return res, nil
+	return s.fillPrincipal(ctx, res, u.ID)
 }
 
 // StartSession creates a session for userID inside the caller's transaction.

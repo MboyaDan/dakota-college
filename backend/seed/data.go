@@ -111,6 +111,10 @@ var userSeeds = []userSeed{
 	{"head.ict@example.invalid", "Test Head of School 002", "staff", "head_of_school"},
 	{"trainer@example.invalid", "Test Trainer 001", "staff", "trainer"},
 	{"editor@example.invalid", "Test Content Editor 001", "staff", "content_editor"},
+	// Two-step sign-in is turned on and off by the end-to-end test, one
+	// account per Playwright project, so no other test is affected.
+	{"twostep.mobile@example.invalid", "Test Two-step User 001", "staff", "finance_officer"},
+	{"twostep.desktop@example.invalid", "Test Two-step User 002", "staff", "finance_officer"},
 	{"student001@example.invalid", "Test Student 001", "student", "student"},
 }
 

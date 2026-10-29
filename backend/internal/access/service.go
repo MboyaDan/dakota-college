@@ -38,6 +38,8 @@ var (
 	ErrUnknownRole             = errors.New("unknown role")
 	ErrUnknownPermission       = errors.New("unknown permission")
 	ErrSelf                    = errors.New("you cannot disable your own account")
+	ErrSelfTwoStep             = errors.New("turn off your own two-step sign-in from your account page")
+	ErrNoTwoStep               = errors.New("this person does not use two-step sign-in")
 	ErrNotStaff                = errors.New("roles are only for staff accounts")
 	ErrDuplicate               = errors.New("already exists")
 )
@@ -232,6 +234,47 @@ func (s *Service) SetUserActive(ctx context.Context, actor *auth.Principal, user
 			}
 		}
 		return audit.Write(ctx, q, req, audit.Entry{Action: action, EntityType: "user", EntityID: userID.String()})
+	})
+}
+
+// ResetTwoStep removes a staff member's authenticator and recovery codes,
+// for a lost phone, and signs them out everywhere. They then sign in with
+// their password alone and can set it up again. Resetting a Super Admin
+// needs system.admin, and nobody resets their own: that path asks for the
+// password (auth.DisableTwoStep).
+func (s *Service) ResetTwoStep(ctx context.Context, actor *auth.Principal, userID uuid.UUID, req audit.Request) error {
+	if userID == actor.UserID {
+		return ErrSelfTwoStep
+	}
+	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		q := dbq.New(tx)
+		if _, err := q.GetUserByID(ctx, userID); errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		} else if err != nil {
+			return err
+		}
+		roles, err := q.ListUserRoleKeys(ctx, userID)
+		if err != nil {
+			return err
+		}
+		if err := checkSystemAdminChange(ctx, q, actor, roles); err != nil {
+			return err
+		}
+		n, err := auth.RemoveTwoStep(ctx, q, userID)
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return ErrNoTwoStep
+		}
+		revoked, err := q.RevokeUserSessions(ctx, userID)
+		if err != nil {
+			return err
+		}
+		return audit.Write(ctx, q, req, audit.Entry{
+			Action: "user.two_step_reset", EntityType: "user", EntityID: userID.String(),
+			Details: map[string]any{"sessions_revoked": revoked},
+		})
 	})
 }
 
