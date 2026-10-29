@@ -7,6 +7,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { api, errorMessage } from "@/lib/api/client";
+import { fields } from "@/lib/form-fields";
 import { useHydrated } from "@/lib/use-hydrated";
 
 /** Only student portal paths are followed after sign-in. */
@@ -19,17 +20,16 @@ export function safeStudentNext(next: string | null): string {
 export function StudentLoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [number, setNumber] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const hydrated = useHydrated();
 
-  async function submit() {
+  async function submit(form: HTMLFormElement) {
+    const { student_number, password } = fields(form, "student_number", "password");
     setBusy(true);
     setError(null);
     const { data, error: err } = await api.POST("/api/v1/student/sign-in", {
-      body: { student_number: number, password },
+      body: { student_number, password },
     });
     setBusy(false);
     if (data) router.replace(safeStudentNext(params.get("next")));
@@ -42,7 +42,7 @@ export function StudentLoginForm() {
       className="flex flex-col gap-5"
       onSubmit={(e) => {
         e.preventDefault();
-        void submit();
+        void submit(e.currentTarget);
       }}
     >
       {error ? (
@@ -58,18 +58,8 @@ export function StudentLoginForm() {
         spellCheck={false}
         required
         hint="As in your enrolment email, for example DTC/2027/0001."
-        value={number}
-        onChange={(e) => setNumber(e.target.value)}
       />
-      <Input
-        name="password"
-        label="Password"
-        type="password"
-        autoComplete="current-password"
-        required
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+      <Input name="password" label="Password" type="password" autoComplete="current-password" required />
       <Button type="submit" loading={busy} disabled={!hydrated}>
         Sign in
       </Button>
@@ -84,17 +74,17 @@ export function StudentLoginForm() {
 }
 
 export function StudentForgotForm() {
-  const [number, setNumber] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const hydrated = useHydrated();
 
-  async function submit() {
+  async function submit(form: HTMLFormElement) {
+    const { student_number } = fields(form, "student_number");
     setBusy(true);
     setError(null);
     const { data, error: err } = await api.POST("/api/v1/student/password-reset", {
-      body: { student_number: number },
+      body: { student_number },
     });
     setBusy(false);
     if (data) setMessage(data.message);
@@ -114,7 +104,7 @@ export function StudentForgotForm() {
       className="flex flex-col gap-5"
       onSubmit={(e) => {
         e.preventDefault();
-        void submit();
+        void submit(e.currentTarget);
       }}
     >
       {error ? (
@@ -128,8 +118,6 @@ export function StudentForgotForm() {
         autoCapitalize="characters"
         spellCheck={false}
         required
-        value={number}
-        onChange={(e) => setNumber(e.target.value)}
       />
       <Button type="submit" loading={busy} disabled={!hydrated}>
         Email me a link

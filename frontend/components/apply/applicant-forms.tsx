@@ -15,6 +15,7 @@ import { api, errorMessage, isApiError, setCsrfToken } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 import { applicationStatus } from "@/lib/apply/status";
 import { formatDate, formatNairobi } from "@/lib/staff/datetime";
+import { fields } from "@/lib/form-fields";
 import { useHydrated } from "@/lib/use-hydrated";
 
 // Applicant sign-in without a password (D-96): ask for a link, open it,
@@ -72,7 +73,7 @@ function Form({
   error,
   children,
 }: {
-  onSubmit: () => void;
+  onSubmit: (form: HTMLFormElement) => void;
   error: string | null;
   children: ReactNode;
 }) {
@@ -81,9 +82,9 @@ function Form({
       method="post"
       noValidate
       className="flex flex-col gap-5"
-      onSubmit={(e: FormEvent) => {
+      onSubmit={(e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        onSubmit();
+        onSubmit(e.currentTarget);
       }}
     >
       {error ? (
@@ -111,8 +112,6 @@ function nextFrom(params: URLSearchParams): string | undefined {
 
 export function StartForm() {
   const params = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   const s = useSubmit();
   const hydrated = useHydrated();
 
@@ -120,13 +119,14 @@ export function StartForm() {
   return (
     <Form
       error={s.error}
-      onSubmit={() =>
+      onSubmit={(form) => {
+        const { email, full_name } = fields(form, "email", "full_name");
         void s.run(() =>
           api.POST("/api/v1/applicant/sign-in-link", {
-            body: { email, full_name: name || undefined, next: nextFrom(params) },
+            body: { email, full_name: full_name || undefined, next: nextFrom(params) },
           }),
-        )
-      }
+        );
+      }}
     >
       <Input
         name="full_name"
@@ -134,9 +134,7 @@ export function StartForm() {
         autoComplete="name"
         hint="As it appears on your ID or birth certificate."
         maxLength={120}
-        value={name}
         error={s.errors.full_name}
-        onChange={(e) => setName(e.target.value)}
       />
       <Input
         name="email"
@@ -146,9 +144,7 @@ export function StartForm() {
         autoComplete="email"
         required
         hint="We send a sign-in link here. Use an address you can open on this phone or computer."
-        value={email}
         error={s.errors.email}
-        onChange={(e) => setEmail(e.target.value)}
       />
       <Button type="submit" loading={s.busy} disabled={!hydrated}>
         Email me a link
@@ -162,8 +158,6 @@ export function StartForm() {
 
 /** Resume by reference number plus the email on the application (AC-04). */
 export function ResumeForm() {
-  const [reference, setReference] = useState("");
-  const [email, setEmail] = useState("");
   const s = useSubmit();
   const hydrated = useHydrated();
 
@@ -171,7 +165,10 @@ export function ResumeForm() {
   return (
     <Form
       error={s.error}
-      onSubmit={() => void s.run(() => api.POST("/api/v1/applicant/resume", { body: { reference, email } }))}
+      onSubmit={(form) => {
+        const body = fields(form, "reference", "email");
+        void s.run(() => api.POST("/api/v1/applicant/resume", { body }));
+      }}
     >
       <Input
         name="reference"
@@ -183,9 +180,7 @@ export function ResumeForm() {
         hint="It looks like DTC-APP-2026-000123. It is in the email we sent when you started."
         maxLength={40}
         className="font-mono"
-        value={reference}
         error={s.errors.reference}
-        onChange={(e) => setReference(e.target.value)}
       />
       <Input
         name="email"
@@ -194,9 +189,7 @@ export function ResumeForm() {
         inputMode="email"
         autoComplete="email"
         required
-        value={email}
         error={s.errors.email}
-        onChange={(e) => setEmail(e.target.value)}
       />
       <Button type="submit" loading={s.busy} disabled={!hydrated}>
         Email me a link
