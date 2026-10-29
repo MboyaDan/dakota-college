@@ -15,7 +15,8 @@ WHERE status = 'published' AND starts_at <= now() AND ends_at > now()
 ORDER BY starts_at DESC;
 
 -- name: PublicListSchools :many
-SELECT slug, name, short_name, accent_key, summary, description, head_message, is_sample
+-- A photo is published only with consent (table check, NN-08).
+SELECT slug, name, short_name, accent_key, summary, description, head_message, photo_file_id, photo_alt, is_sample
 FROM schools
 WHERE status = 'published'
 ORDER BY sort_order, name;
@@ -94,6 +95,20 @@ ORDER BY slug;
 SELECT g.file_id, g.caption, g.alt_text, g.is_sample FROM gallery_items g
 WHERE g.status = 'published'
 ORDER BY g.sort_order, g.created_at;
+
+-- name: PublicGetHomeHero :one
+-- The home page photo: a published gallery photo (so with consent) chosen
+-- for the hero. If several are chosen, the most recently changed one wins.
+SELECT file_id, caption, alt_text, is_sample FROM gallery_items
+WHERE status = 'published' AND home_hero
+ORDER BY updated_at DESC
+LIMIT 1;
+
+-- name: PublicListFounders :many
+-- Every published profile has the person's consent (table check).
+SELECT name, role_title, intro, story, photo_file_id, photo_alt, is_sample FROM founders
+WHERE status = 'published'
+ORDER BY sort_order, name;
 
 -- name: PublicCountNews :one
 SELECT count(*) FROM news_posts WHERE status = 'published';

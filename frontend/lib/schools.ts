@@ -40,15 +40,47 @@ export const schools: readonly School[] = [
   },
 ];
 
-/** Full class strings so Tailwind can see them. Accents never carry meaning alone. */
-export const schoolAccent: Record<SchoolKey, { bg: string; border: string; text: string }> = {
-  medical: { bg: "bg-school-medical", border: "border-school-medical", text: "text-school-medical" },
+/**
+ * Full class strings so Tailwind can see them. Accents never carry meaning
+ * alone. `textOnDark` is a lighter tint of the accent for navy surfaces.
+ */
+export const schoolAccent: Record<
+  SchoolKey,
+  { bg: string; border: string; text: string; textOnDark: string; cssVar: string }
+> = {
+  medical: {
+    bg: "bg-school-medical",
+    border: "border-school-medical",
+    text: "text-school-medical",
+    textOnDark: "text-teal-300",
+    cssVar: "var(--color-school-medical)",
+  },
   hospitality: {
     bg: "bg-school-hospitality",
     border: "border-school-hospitality",
     text: "text-school-hospitality",
+    textOnDark: "text-amber-300",
+    cssVar: "var(--color-school-hospitality)",
   },
-  ict: { bg: "bg-school-ict", border: "border-school-ict", text: "text-school-ict" },
-  business: { bg: "bg-school-business", border: "border-school-business", text: "text-school-business" },
-  pool: { bg: "bg-school-pool", border: "border-school-pool", text: "text-school-pool" },
+  ict: {
+    bg: "bg-school-ict",
+    border: "border-school-ict",
+    text: "text-school-ict",
+    textOnDark: "text-violet-300",
+    cssVar: "var(--color-school-ict)",
+  },
+  business: {
+    bg: "bg-school-business",
+    border: "border-school-business",
+    text: "text-school-business",
+    textOnDark: "text-green-300",
+    cssVar: "var(--color-school-business)",
+  },
+  pool: {
+    bg: "bg-school-pool",
+    border: "border-school-pool",
+    text: "text-school-pool",
+    textOnDark: "text-sky-300",
+    cssVar: "var(--color-school-pool)",
+  },
 };

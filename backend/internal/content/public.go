@@ -2,9 +2,11 @@ package content
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/MboyaDan/dakota-college/backend/internal/db/dbq"
 	"github.com/MboyaDan/dakota-college/backend/internal/media"
@@ -35,6 +37,20 @@ type Site struct {
 	News           []PublicNews          `json:"news"`
 	Pages          []PublicPage          `json:"pages"`
 	Gallery        []PublicPhoto         `json:"gallery"`
+	// HomeHero is the gallery photo chosen for the top of the home page.
+	HomeHero *PublicPhoto    `json:"home_hero"`
+	Founders []PublicFounder `json:"founders"`
+}
+
+// PublicFounder is a founder's profile, published only with their consent.
+type PublicFounder struct {
+	Name      string           `json:"name"`
+	RoleTitle string           `json:"role_title"`
+	Intro     string           `json:"intro"`
+	Story     string           `json:"story"`
+	Photo     *media.ImageFile `json:"photo"`
+	PhotoAlt  string           `json:"photo_alt"`
+	IsSample  bool             `json:"is_sample"`
 }
 
 type PublicPage struct {
@@ -74,7 +90,10 @@ type PublicSchool struct {
 	Summary     string `json:"summary"`
 	Description string `json:"description"`
 	HeadMessage string `json:"head_message"`
-	IsSample    bool   `json:"is_sample"`
+	// Photo is published only with consent (NN-08); nil shows the plain card.
+	Photo    *media.ImageFile `json:"photo"`
+	PhotoAlt string           `json:"photo_alt"`
+	IsSample bool             `json:"is_sample"`
 }
 
 type PublicProgramme struct {
@@ -196,8 +215,12 @@ func (s *Service) Site(ctx context.Context, images *media.Images) (*Site, error)
 	}
 	site.Schools = make([]PublicSchool, 0, len(schools))
 	for _, r := range schools {
-		site.Schools = append(site.Schools, PublicSchool{Slug: r.Slug, Name: r.Name, ShortName: r.ShortName, AccentKey: r.AccentKey,
-			Summary: r.Summary, Description: r.Description, HeadMessage: r.HeadMessage, IsSample: r.IsSample})
+		school := PublicSchool{Slug: r.Slug, Name: r.Name, ShortName: r.ShortName, AccentKey: r.AccentKey,
+			Summary: r.Summary, Description: r.Description, HeadMessage: r.HeadMessage, IsSample: r.IsSample}
+		if school.Photo = cover(ctx, images, r.PhotoFileID); school.Photo != nil {
+			school.PhotoAlt = r.PhotoAlt
+		}
+		site.Schools = append(site.Schools, school)
 	}
 
 	if site.Programmes, err = publicProgrammes(ctx, q, now); err != nil {
@@ -295,10 +318,33 @@ func (s *Service) Site(ctx context.Context, images *media.Images) (*Site, error)
 		}
 		site.Gallery = append(site.Gallery, PublicPhoto{Image: img, Caption: r.Caption, AltText: r.AltText, IsSample: r.IsSample})
 	}
+
+	hero, err := q.PublicGetHomeHero(ctx)
+	switch {
+	case err == nil:
+		if img := cover(ctx, images, &hero.FileID); img != nil {
+			site.HomeHero = &PublicPhoto{Image: img, Caption: hero.Caption, AltText: hero.AltText, IsSample: hero.IsSample}
+		}
+	case !errors.Is(err, pgx.ErrNoRows):
+		return nil, err
+	}
+
+	founders, err := q.PublicListFounders(ctx)
+	if err != nil {
+		return nil, err
+	}
+	site.Founders = make([]PublicFounder, 0, len(founders))
+	for _, r := range founders {
+		f := PublicFounder{Name: r.Name, RoleTitle: r.RoleTitle, Intro: r.Intro, Story: r.Story, IsSample: r.IsSample}
+		if f.Photo = cover(ctx, images, r.PhotoFileID); f.Photo != nil {
+			f.PhotoAlt = r.PhotoAlt
+		}
+		site.Founders = append(site.Founders, f)
+	}
 	return site, nil
 }
 
-// cover looks up a news cover image; nil when there is none or storage is off.
+// cover looks up an uploaded image; nil when there is none or storage is off.
 func cover(ctx context.Context, images *media.Images, id *uuid.UUID) *media.ImageFile {
 	if id == nil || images == nil {
 		return nil

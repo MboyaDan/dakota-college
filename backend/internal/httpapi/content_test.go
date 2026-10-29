@@ -249,6 +249,8 @@ func TestEveryContentKindWorkflow(t *testing.T) {
 		"accreditations": {"body": "Test Authority", "reference": "TEST-001", "description": "", "evidence_note": "Certificate on file",
 			"verified_on": now.Format(time.DateOnly), "sort_order": 0},
 		"pages": {"slug": "student-life", "title": "Student life", "summary": "", "body": "## Clubs\n\n- Drama", "seo_title": "", "seo_description": ""},
+		"founders": {"name": "Test Founder", "role_title": "Founder", "intro": "", "story": "Started the college.", "photo_file_id": img.body["id"],
+			"photo_alt": "Test Founder outside the college", "consent_confirmed": true, "consent_note": "Signed form on file.", "sort_order": 0},
 	}
 	for kind, doc := range docs {
 		t.Run(kind, func(t *testing.T) {

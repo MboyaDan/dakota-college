@@ -4363,7 +4363,7 @@ components:
       required: true
       schema:
         type: string
-        enum: [schools, programmes, news, events, faq-categories, faqs, banners, gallery, statistics, accreditations, pages]
+        enum: [schools, programmes, news, events, faq-categories, faqs, banners, gallery, statistics, accreditations, pages, founders]
     ID:
       name: id
       in: path
@@ -4440,10 +4440,11 @@ components:
         - { $ref: "#/components/schemas/StatisticDoc" }
         - { $ref: "#/components/schemas/AccreditationDoc" }
         - { $ref: "#/components/schemas/PageDoc" }
+        - { $ref: "#/components/schemas/FounderDoc" }
     SchoolDoc:
       type: object
       additionalProperties: false
-      required: [slug, name, short_name, accent_key, summary, description, head_message, sort_order]
+      required: [slug, name, short_name, accent_key, summary, description, head_message, sort_order, photo_file_id, photo_alt, photo_consent_confirmed]
       properties:
         slug: { type: string }
         name: { type: string }
@@ -4453,6 +4454,9 @@ components:
         description: { type: string }
         head_message: { type: string }
         sort_order: { type: integer }
+        photo_file_id: { type: [string, "null"], format: uuid, description: "Photo behind the school's card. Needs photo_alt." }
+        photo_alt: { type: string }
+        photo_consent_confirmed: { type: boolean, description: "Written consent from everyone recognisable. Required to publish with a photo." }
     ProgrammeDoc:
       type: object
       additionalProperties: false
@@ -4575,12 +4579,29 @@ components:
     GalleryDoc:
       type: object
       additionalProperties: false
-      required: [file_id, caption, alt_text, consent_confirmed, consent_note, sort_order]
+      required: [file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, sort_order]
       properties:
         file_id: { type: string, format: uuid }
         caption: { type: string }
         alt_text: { type: string }
         consent_confirmed: { type: boolean, description: "Written consent from everyone recognisable. Required to publish." }
+        consent_note: { type: string }
+        home_hero: { type: boolean, description: "Show at the top of the home page. If several are chosen, the most recently changed is used." }
+        sort_order: { type: integer }
+    FounderDoc:
+      type: object
+      additionalProperties: false
+      required: [name, role_title, intro, story, photo_file_id, photo_alt, consent_confirmed, consent_note, sort_order]
+      properties:
+        name: { type: string }
+        role_title: { type: string, description: "For example: Founder and Director." }
+        intro: { type: string, description: "One or two sentences for the home page. Up to 300 characters." }
+        story:
+          type: string
+          description: 'Plain text, same rules as page bodies. Required to publish.'
+        photo_file_id: { type: [string, "null"], format: uuid }
+        photo_alt: { type: string }
+        consent_confirmed: { type: boolean, description: "The founder agreed in writing to publishing the profile and photo. Required to publish." }
         consent_note: { type: string }
         sort_order: { type: integer }
     StatisticDoc:
@@ -5725,7 +5746,7 @@ components:
               $ref: "#/components/schemas/CheckStatus"
     PublicSite:
       type: object
-      required: [generated_at, settings, banners, schools, programmes, faqs, statistics, accreditations, events, news, pages, gallery]
+      required: [generated_at, settings, banners, schools, programmes, faqs, statistics, accreditations, events, news, pages, gallery, home_hero, founders]
       properties:
         generated_at: { type: string, format: date-time }
         settings:
@@ -5742,6 +5763,26 @@ components:
         news: { type: array, items: { $ref: "#/components/schemas/PublicNews" } }
         pages: { type: array, items: { $ref: "#/components/schemas/PublicPage" } }
         gallery: { type: array, items: { $ref: "#/components/schemas/PublicPhoto" } }
+        home_hero:
+          description: The gallery photo chosen for the top of the home page, if any.
+          oneOf:
+            - { $ref: "#/components/schemas/PublicPhoto" }
+            - { type: "null" }
+        founders: { type: array, items: { $ref: "#/components/schemas/PublicFounder" } }
+    PublicFounder:
+      type: object
+      required: [name, role_title, intro, story, photo, photo_alt, is_sample]
+      properties:
+        name: { type: string }
+        role_title: { type: string }
+        intro: { type: string }
+        story: { type: string, description: "Plain text, same rules as page bodies." }
+        photo:
+          oneOf:
+            - { $ref: "#/components/schemas/ImageFile" }
+            - { type: "null" }
+        photo_alt: { type: string }
+        is_sample: { type: boolean }
     PublicBanner:
       type: object
       required: [message, link_label, link_href, ends_at, is_sample]
@@ -5753,7 +5794,7 @@ components:
         is_sample: { type: boolean }
     PublicSchool:
       type: object
-      required: [slug, name, short_name, accent_key, summary, description, head_message, is_sample]
+      required: [slug, name, short_name, accent_key, summary, description, head_message, photo, photo_alt, is_sample]
       properties:
         slug: { type: string }
         name: { type: string }
@@ -5762,6 +5803,12 @@ components:
         summary: { type: string }
         description: { type: string }
         head_message: { type: string }
+        photo:
+          description: Published only with consent. Null shows the plain card.
+          oneOf:
+            - { $ref: "#/components/schemas/ImageFile" }
+            - { type: "null" }
+        photo_alt: { type: string }
         is_sample: { type: boolean }
     PublicProgramme:
       type: object

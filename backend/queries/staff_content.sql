@@ -24,20 +24,23 @@ SELECT entity_id FROM content_pending WHERE entity_type = @entity_type;
 
 -- name: StaffGetSchool :one
 SELECT id, slug, name, short_name, accent_key, summary, description, head_message, sort_order,
-       status, published_at, is_sample, updated_at
+       photo_file_id, photo_alt, photo_consent_confirmed, status, published_at, is_sample, updated_at
 FROM schools WHERE id = @id;
 
 -- name: StaffListSchools :many
 SELECT id, name AS label, status, is_sample, updated_at FROM schools ORDER BY sort_order, name;
 
 -- name: StaffInsertSchool :one
-INSERT INTO schools (slug, name, short_name, accent_key, summary, description, head_message, sort_order, created_by, updated_by)
-VALUES (@slug, @name, @short_name, @accent_key, @summary, @description, @head_message, @sort_order, @actor, @actor)
+INSERT INTO schools (slug, name, short_name, accent_key, summary, description, head_message, sort_order,
+  photo_file_id, photo_alt, photo_consent_confirmed, created_by, updated_by)
+VALUES (@slug, @name, @short_name, @accent_key, @summary, @description, @head_message, @sort_order,
+  @photo_file_id, @photo_alt, @photo_consent_confirmed, @actor, @actor)
 RETURNING id;
 
 -- name: StaffUpdateSchool :exec
 UPDATE schools SET slug = @slug, name = @name, short_name = @short_name, accent_key = @accent_key, summary = @summary,
-  description = @description, head_message = @head_message, sort_order = @sort_order, updated_by = @actor
+  description = @description, head_message = @head_message, sort_order = @sort_order, photo_file_id = @photo_file_id,
+  photo_alt = @photo_alt, photo_consent_confirmed = @photo_consent_confirmed, updated_by = @actor
 WHERE id = @id;
 
 -- name: StaffSetSchoolStatus :exec
@@ -228,20 +231,20 @@ DELETE FROM banners WHERE id = @id;
 -- ---------- gallery ----------
 
 -- name: StaffGetGalleryItem :one
-SELECT id, file_id, caption, alt_text, consent_confirmed, consent_note, sort_order, status, is_sample, updated_at
+SELECT id, file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, sort_order, status, is_sample, updated_at
 FROM gallery_items WHERE id = @id;
 
 -- name: StaffListGalleryItems :many
 SELECT id, alt_text AS label, status, is_sample, updated_at FROM gallery_items ORDER BY sort_order, created_at;
 
 -- name: StaffInsertGalleryItem :one
-INSERT INTO gallery_items (file_id, caption, alt_text, consent_confirmed, consent_note, sort_order)
-VALUES (@file_id, @caption, @alt_text, @consent_confirmed, @consent_note, @sort_order)
+INSERT INTO gallery_items (file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, sort_order)
+VALUES (@file_id, @caption, @alt_text, @consent_confirmed, @consent_note, @home_hero, @sort_order)
 RETURNING id;
 
 -- name: StaffUpdateGalleryItem :exec
 UPDATE gallery_items SET file_id = @file_id, caption = @caption, alt_text = @alt_text,
-  consent_confirmed = @consent_confirmed, consent_note = @consent_note, sort_order = @sort_order
+  consent_confirmed = @consent_confirmed, consent_note = @consent_note, home_hero = @home_hero, sort_order = @sort_order
 WHERE id = @id;
 
 -- name: StaffSetGalleryItemStatus :exec
@@ -249,6 +252,35 @@ UPDATE gallery_items SET status = @status WHERE id = @id;
 
 -- name: StaffDeleteGalleryItem :exec
 DELETE FROM gallery_items WHERE id = @id;
+
+-- ---------- founders ----------
+
+-- name: StaffGetFounder :one
+SELECT id, name, role_title, intro, story, photo_file_id, photo_alt, consent_confirmed, consent_note, sort_order,
+       status, published_at, is_sample, updated_at
+FROM founders WHERE id = @id;
+
+-- name: StaffListFounders :many
+SELECT id, name AS label, role_title, status, is_sample, updated_at FROM founders ORDER BY sort_order, name;
+
+-- name: StaffInsertFounder :one
+INSERT INTO founders (name, role_title, intro, story, photo_file_id, photo_alt, consent_confirmed, consent_note, sort_order,
+  created_by, updated_by)
+VALUES (@name, @role_title, @intro, @story, @photo_file_id, @photo_alt, @consent_confirmed, @consent_note, @sort_order,
+  @actor, @actor)
+RETURNING id;
+
+-- name: StaffUpdateFounder :exec
+UPDATE founders SET name = @name, role_title = @role_title, intro = @intro, story = @story, photo_file_id = @photo_file_id,
+  photo_alt = @photo_alt, consent_confirmed = @consent_confirmed, consent_note = @consent_note, sort_order = @sort_order,
+  updated_by = @actor
+WHERE id = @id;
+
+-- name: StaffSetFounderStatus :exec
+UPDATE founders SET status = @status, published_at = @published_at, updated_by = @actor WHERE id = @id;
+
+-- name: StaffDeleteFounder :exec
+DELETE FROM founders WHERE id = @id;
 
 -- ---------- statistics ----------
 

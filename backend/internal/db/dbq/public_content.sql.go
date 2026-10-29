@@ -59,6 +59,34 @@ func (q *Queries) PublicGetEvent(ctx context.Context, slug string) (PublicGetEve
 	return i, err
 }
 
+const publicGetHomeHero = `-- name: PublicGetHomeHero :one
+SELECT file_id, caption, alt_text, is_sample FROM gallery_items
+WHERE status = 'published' AND home_hero
+ORDER BY updated_at DESC
+LIMIT 1
+`
+
+type PublicGetHomeHeroRow struct {
+	FileID   uuid.UUID
+	Caption  string
+	AltText  string
+	IsSample bool
+}
+
+// The home page photo: a published gallery photo (so with consent) chosen
+// for the hero. If several are chosen, the most recently changed one wins.
+func (q *Queries) PublicGetHomeHero(ctx context.Context) (PublicGetHomeHeroRow, error) {
+	row := q.db.QueryRow(ctx, publicGetHomeHero)
+	var i PublicGetHomeHeroRow
+	err := row.Scan(
+		&i.FileID,
+		&i.Caption,
+		&i.AltText,
+		&i.IsSample,
+	)
+	return i, err
+}
+
 const publicGetNewsPost = `-- name: PublicGetNewsPost :one
 SELECT slug, title, summary, body, published_at, updated_at, cover_file_id, cover_alt, seo_title, seo_description, is_sample
 FROM news_posts
@@ -302,6 +330,51 @@ func (q *Queries) PublicListFees(ctx context.Context) ([]PublicListFeesRow, erro
 			&i.AmountCents,
 			&i.Frequency,
 			&i.Notes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const publicListFounders = `-- name: PublicListFounders :many
+SELECT name, role_title, intro, story, photo_file_id, photo_alt, is_sample FROM founders
+WHERE status = 'published'
+ORDER BY sort_order, name
+`
+
+type PublicListFoundersRow struct {
+	Name        string
+	RoleTitle   string
+	Intro       string
+	Story       string
+	PhotoFileID *uuid.UUID
+	PhotoAlt    string
+	IsSample    bool
+}
+
+// Every published profile has the person's consent (table check).
+func (q *Queries) PublicListFounders(ctx context.Context) ([]PublicListFoundersRow, error) {
+	rows, err := q.db.Query(ctx, publicListFounders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PublicListFoundersRow{}
+	for rows.Next() {
+		var i PublicListFoundersRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.RoleTitle,
+			&i.Intro,
+			&i.Story,
+			&i.PhotoFileID,
+			&i.PhotoAlt,
+			&i.IsSample,
 		); err != nil {
 			return nil, err
 		}
@@ -645,7 +718,7 @@ func (q *Queries) PublicListRequirements(ctx context.Context) ([]PublicListRequi
 }
 
 const publicListSchools = `-- name: PublicListSchools :many
-SELECT slug, name, short_name, accent_key, summary, description, head_message, is_sample
+SELECT slug, name, short_name, accent_key, summary, description, head_message, photo_file_id, photo_alt, is_sample
 FROM schools
 WHERE status = 'published'
 ORDER BY sort_order, name
@@ -659,9 +732,12 @@ type PublicListSchoolsRow struct {
 	Summary     string
 	Description string
 	HeadMessage string
+	PhotoFileID *uuid.UUID
+	PhotoAlt    string
 	IsSample    bool
 }
 
+// A photo is published only with consent (table check, NN-08).
 func (q *Queries) PublicListSchools(ctx context.Context) ([]PublicListSchoolsRow, error) {
 	rows, err := q.db.Query(ctx, publicListSchools)
 	if err != nil {
@@ -679,6 +755,8 @@ func (q *Queries) PublicListSchools(ctx context.Context) ([]PublicListSchoolsRow
 			&i.Summary,
 			&i.Description,
 			&i.HeadMessage,
+			&i.PhotoFileID,
+			&i.PhotoAlt,
 			&i.IsSample,
 		); err != nil {
 			return nil, err

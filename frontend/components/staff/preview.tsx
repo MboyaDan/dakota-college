@@ -139,8 +139,11 @@ export function Preview({ kind, doc }: { kind: ContentKind; doc: Doc }) {
         <p className="font-semibold">{formatNairobi(doc.starts_at as string)}</p>
       ) : null}
       {kind === "accreditations" ? <p className="font-mono">{doc.reference as string}</p> : null}
-      <Paragraphs text={doc.summary} />
-      <Paragraphs text={doc.answer ?? doc.description ?? doc.body} />
+      {kind === "founders" && doc.role_title ? (
+        <p className="font-semibold text-gold-text">{doc.role_title as string}</p>
+      ) : null}
+      <Paragraphs text={doc.summary ?? doc.intro} />
+      <Paragraphs text={doc.answer ?? doc.description ?? doc.body ?? doc.story} />
       {kind === "banners" && doc.link_label ? (
         <p className="font-semibold underline">{doc.link_label as string}</p>
       ) : null}

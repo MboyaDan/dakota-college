@@ -15,7 +15,20 @@ import bundled from "./snapshot.json";
 
 // The file is the API's own response (D-74), so it has the contract's shape;
 // cast through unknown because JSON imports type their literal values.
-const fallback = bundled as unknown as PublicSite;
+const fallback = withDefaults(bundled as unknown as PublicSite);
+
+/**
+ * Fields added after the first release default to empty, so a site built or
+ * cached against an older API (or an older bundled copy) still renders.
+ */
+function withDefaults(site: PublicSite): PublicSite {
+  return {
+    ...site,
+    schools: site.schools.map((s) => ({ ...s, photo: s.photo ?? null, photo_alt: s.photo_alt ?? "" })),
+    home_hero: site.home_hero ?? null,
+    founders: site.founders ?? [],
+  };
+}
 
 export const PUBLIC_SITE_TAG = "public-site";
 
@@ -26,7 +39,7 @@ async function loadSite(): Promise<PublicSite> {
   try {
     const site = await fetchPublic<PublicSite>("/api/v1/public/site");
     if (!site) throw new Error("public site snapshot: HTTP 404");
-    return site;
+    return withDefaults(site);
   } catch (err) {
     if (buildOrDev()) {
       console.warn(`Using the bundled content snapshot: ${(err as Error).message}`);

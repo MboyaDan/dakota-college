@@ -57,7 +57,7 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 	}
 
 	counts := map[string]int{}
-	for _, table := range []string{"schools", "programmes", "programme_intakes", "fee_items", "faqs", "users", "user_roles", "accreditations", "pages", "news_posts", "events", "applicants", "applications",
+	for _, table := range []string{"schools", "programmes", "programme_intakes", "fee_items", "faqs", "users", "user_roles", "accreditations", "founders", "pages", "news_posts", "events", "applicants", "applications",
 		"academic_terms", "units", "programme_units", "unit_offerings", "trainer_assignments", "students", "unit_registrations", "school_assignments", "cohorts",
 		"fee_structures", "fee_structure_instalments", "invoices", "payments", "receipts"} {
 		var n int
@@ -68,7 +68,7 @@ func TestRunIsIdempotentAndMarksEverythingSample(t *testing.T) {
 	}
 	want := map[string]int{
 		"schools": 5, "programmes": 8, "programme_intakes": 16, "fee_items": 24,
-		"faqs": 5, "users": 15, "user_roles": 14, "accreditations": 1, "pages": 7, "news_posts": 2, "events": 2,
+		"faqs": 5, "users": 15, "user_roles": 14, "accreditations": 1, "founders": 1, "pages": 7, "news_posts": 2, "events": 2,
 		// Stage 11b: four test students (student001 was already a test user),
 		// each with an application walked to enrolled, in one cohort and two offerings.
 		"applicants": 5, "applications": 5, "academic_terms": 1, "units": 3, "programme_units": 3, "unit_offerings": 2,

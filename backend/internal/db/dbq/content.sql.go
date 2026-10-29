@@ -29,6 +29,7 @@ SELECT
   + (SELECT count(*) FROM academic_terms WHERE is_sample)
   + (SELECT count(*) FROM units WHERE is_sample)
   + (SELECT count(*) FROM pages WHERE is_sample)
+  + (SELECT count(*) FROM founders WHERE is_sample)
   AS total
 `
 
@@ -73,6 +74,15 @@ DELETE FROM faqs WHERE is_sample
 
 func (q *Queries) DeleteSampleFaqs(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, deleteSampleFaqs)
+	return err
+}
+
+const deleteSampleFounders = `-- name: DeleteSampleFounders :exec
+DELETE FROM founders WHERE is_sample
+`
+
+func (q *Queries) DeleteSampleFounders(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteSampleFounders)
 	return err
 }
 
@@ -196,6 +206,30 @@ func (q *Queries) InsertProgrammeRequirement(ctx context.Context, arg InsertProg
 		arg.Kind,
 		arg.Requirement,
 		arg.SortOrder,
+	)
+	return err
+}
+
+const insertSampleFounder = `-- name: InsertSampleFounder :exec
+INSERT INTO founders (name, role_title, intro, story, consent_confirmed, consent_note, status, published_at, is_sample)
+VALUES ($1, $2, $3, $4, true, 'Sample record: not a real person.', 'published', now(), true)
+`
+
+type InsertSampleFounderParams struct {
+	Name      string
+	RoleTitle string
+	Intro     string
+	Story     string
+}
+
+// A placeholder profile with no photo; consent is recorded as not applicable
+// because it describes no real person.
+func (q *Queries) InsertSampleFounder(ctx context.Context, arg InsertSampleFounderParams) error {
+	_, err := q.db.Exec(ctx, insertSampleFounder,
+		arg.Name,
+		arg.RoleTitle,
+		arg.Intro,
+		arg.Story,
 	)
 	return err
 }

@@ -14,6 +14,7 @@ export type PublicNews = Schemas["PublicNews"];
 export type Level = PublicProgramme["level"];
 export type PublicPage = Schemas["PublicPage"];
 export type PublicPhoto = Schemas["PublicPhoto"];
+export type PublicFounder = Schemas["PublicFounder"];
 export type NewsList = Schemas["NewsList"];
 export type NewsArticle = Schemas["NewsArticle"];
 export type EventList = Schemas["EventList"];
