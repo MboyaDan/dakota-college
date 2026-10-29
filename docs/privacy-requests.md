@@ -1,6 +1,6 @@
 # Handling requests about personal data
 
-**Status: draft for the college to approve (DG-06).** The API for this is in place (Stage 17c); the **Data requests** screens come in Stage 17e. Written for the staff who handle these requests: the data protection contact, the Registrar and the Principal (permission `privacy.manage`). Where this page says [TO CONFIRM], the college's legal adviser should check it against the Data Protection Act, 2019 and its regulations.
+**Status: draft for the college to approve (DG-06).** The **Data requests** screens in the staff portal (Stage 17e) follow these steps. Written for the staff who handle these requests: the data protection contact, the Registrar and the Principal (permission `privacy.manage`). Where this page says [TO CONFIRM], the college's legal adviser should check it against the Data Protection Act, 2019 and its regulations.
 
 People can ask the college to show them their data, correct it, delete it, stop using it, or give it to them in a form they can take elsewhere (privacy notice, "Your rights"). A parent or guardian may ask for a child.
 

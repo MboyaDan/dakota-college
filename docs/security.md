@@ -4,7 +4,7 @@ Written threat review for the Dakota Training College platform (brief section 13
 
 - **Last reviewed:** 2026-10-29, Stage 17a, against `main` after #43 plus the Stage 17a branch.
 - **Covers:** the Go API, the Next.js site and the local Compose stack. Hosting, backups and DNS are reviewed in Stage 19 and are listed below as open items.
-- **Stage 17 additions:** two-step sign-in in 17b (section 4.2); retention schedule, data subject request tools and breach procedure in 17c (section 4.10). Their staff screens come in 17e.
+- **Stage 17 additions:** two-step sign-in in 17b (section 4.2); retention schedule, data subject request tools and breach procedure in 17c (section 4.10). Their staff screens were added in 17e (**Data requests**, **Retention**).
 - **Rule for this file:** a control is listed as in place only if a test or a command shows it. Anything not yet checked says so.
 
 ## 1. What we protect
@@ -141,7 +141,6 @@ These block go-live with real applicants. Each has an owner stage.
 | Decide production virus scanning (paid instance or scanner host), or accept and record "not scanned" with the client | 19, DG-04 |
 | Approve the retention schedule (`docs/retention.md`), then set `RETENTION_MODE=apply` (R-30) | DG-06 |
 | Approve the request and breach procedures (`docs/privacy-requests.md`, `docs/breach.md`) and fill in their contacts | DG-06 |
-| Staff screens for data requests and the retention log | 17e |
 | Data protection registration, privacy notice approval, parental consent review (R-26) | DG-06, Stage 20 |
 | Backups with a tested restore; uptime and error monitoring | 19 |
 | Two-factor on GitHub, Cloudflare, Render, Supabase and the domain registrar (brief 13) | 19 (owner action) |
