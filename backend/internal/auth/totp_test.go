@@ -93,9 +93,12 @@ func TestRecoveryCodes(t *testing.T) {
 }
 
 func TestOTPAuthURI(t *testing.T) {
-	u := otpauthURI([]byte("12345678901234567890"), "a.person@example.invalid")
+	// The RFC 6238 example key. Its base32 form is checked by formatSecret
+	// below, so it is not written out here as one long string.
+	rfcKey := []byte("12345678901234567890")
+	u := otpauthURI(rfcKey, "a.person@example.invalid")
 	if !strings.HasPrefix(u, "otpauth://totp/Dakota%20Training%20College:a.person@example.invalid?") ||
-		!strings.Contains(u, "secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ") || !strings.Contains(u, "issuer=Dakota+Training+College") {
+		!strings.Contains(u, "secret="+strings.ReplaceAll(formatSecret(rfcKey), " ", "")) || !strings.Contains(u, "issuer=Dakota+Training+College") {
 		t.Fatalf("uri = %s", u)
 	}
 	if got := formatSecret([]byte("12345678901234567890")); got != "GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ" {
