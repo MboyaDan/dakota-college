@@ -26,6 +26,7 @@ function withDefaults(site: PublicSite): PublicSite {
     ...site,
     schools: site.schools.map((s) => ({ ...s, photo: s.photo ?? null, photo_alt: s.photo_alt ?? "" })),
     home_hero: site.home_hero ?? null,
+    alumni_photos: site.alumni_photos ?? [],
     founders: site.founders ?? [],
   };
 }

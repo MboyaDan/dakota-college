@@ -18,6 +18,8 @@ for (const path of [
   "/contact",
   "/admissions/fees",
   "/admissions/intakes",
+  "/alumni",
+  "/apply/track",
   "/privacy",
   "/news",
   "/news/sample-news-applications",

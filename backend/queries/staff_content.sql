@@ -231,20 +231,20 @@ DELETE FROM banners WHERE id = @id;
 -- ---------- gallery ----------
 
 -- name: StaffGetGalleryItem :one
-SELECT id, file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, sort_order, status, is_sample, updated_at
+SELECT id, file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, alumni, sort_order, status, is_sample, updated_at
 FROM gallery_items WHERE id = @id;
 
 -- name: StaffListGalleryItems :many
 SELECT id, alt_text AS label, status, is_sample, updated_at FROM gallery_items ORDER BY sort_order, created_at;
 
 -- name: StaffInsertGalleryItem :one
-INSERT INTO gallery_items (file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, sort_order)
-VALUES (@file_id, @caption, @alt_text, @consent_confirmed, @consent_note, @home_hero, @sort_order)
+INSERT INTO gallery_items (file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, alumni, sort_order)
+VALUES (@file_id, @caption, @alt_text, @consent_confirmed, @consent_note, @home_hero, @alumni, @sort_order)
 RETURNING id;
 
 -- name: StaffUpdateGalleryItem :exec
 UPDATE gallery_items SET file_id = @file_id, caption = @caption, alt_text = @alt_text,
-  consent_confirmed = @consent_confirmed, consent_note = @consent_note, home_hero = @home_hero, sort_order = @sort_order
+  consent_confirmed = @consent_confirmed, consent_note = @consent_note, home_hero = @home_hero, alumni = @alumni, sort_order = @sort_order
 WHERE id = @id;
 
 -- name: StaffSetGalleryItemStatus :exec

@@ -420,12 +420,21 @@ func TestPublicPhotosAndFounders(t *testing.T) {
 
 	// The hero is a published gallery photo chosen for the home page.
 	heroDoc := map[string]any{"file_id": fileID, "caption": "", "alt_text": "The college entrance", "consent_confirmed": true,
-		"consent_note": "No people in the photo.", "home_hero": true, "sort_order": 0}
+		"consent_note": "No people in the photo.", "home_hero": true, "alumni": false, "sort_order": 0}
 	heroID := h.create(owner, "gallery", heroDoc)
 	if hero := h.site()["home_hero"]; hero != nil {
 		t.Fatalf("draft hero photo is public: %v", hero)
 	}
 	h.publish(owner, "gallery", heroID, http.StatusOK)
+
+	// Alumni page photos: published gallery photos ticked for it, nothing else.
+	alumniDoc := map[string]any{"file_id": fileID, "caption": "Class of 2025 (Sample)", "alt_text": "Graduates at the ceremony", "consent_confirmed": true,
+		"consent_note": "Written consent from everyone pictured.", "home_hero": false, "alumni": true, "sort_order": 0}
+	alumniID := h.create(owner, "gallery", alumniDoc)
+	if got := h.site()["alumni_photos"].([]any); len(got) != 0 {
+		t.Fatalf("draft alumni photo is public: %v", got)
+	}
+	h.publish(owner, "gallery", alumniID, http.StatusOK)
 
 	// A founder needs a story and consent before publishing.
 	founder := map[string]any{"name": "Test Founder", "role_title": "Founder and Director", "intro": "Founded the college.", "story": "",
@@ -462,6 +471,10 @@ func TestPublicPhotosAndFounders(t *testing.T) {
 	hero, _ := site["home_hero"].(map[string]any)
 	if hero == nil || hero["alt_text"] != "The college entrance" || photoURL(hero["image"]) == "" {
 		t.Fatalf("home hero: %v", site["home_hero"])
+	}
+	alumni := site["alumni_photos"].([]any)
+	if len(alumni) != 1 || alumni[0].(map[string]any)["alt_text"] != "Graduates at the ceremony" || photoURL(alumni[0].(map[string]any)["image"]) == "" {
+		t.Fatalf("alumni photos (the home photo is not ticked for alumni): %v", alumni)
 	}
 	founders := site["founders"].([]any)
 	if len(founders) != 1 {

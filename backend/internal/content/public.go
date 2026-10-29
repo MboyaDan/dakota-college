@@ -38,8 +38,10 @@ type Site struct {
 	Pages          []PublicPage          `json:"pages"`
 	Gallery        []PublicPhoto         `json:"gallery"`
 	// HomeHero is the gallery photo chosen for the top of the home page.
-	HomeHero *PublicPhoto    `json:"home_hero"`
-	Founders []PublicFounder `json:"founders"`
+	HomeHero *PublicPhoto `json:"home_hero"`
+	// AlumniPhotos are the gallery photos chosen for the Alumni page.
+	AlumniPhotos []PublicPhoto   `json:"alumni_photos"`
+	Founders     []PublicFounder `json:"founders"`
 }
 
 // PublicFounder is a founder's profile, published only with their consent.
@@ -317,6 +319,17 @@ func (s *Service) Site(ctx context.Context, images *media.Images) (*Site, error)
 			continue // the file is gone or in another bucket; skip the photo
 		}
 		site.Gallery = append(site.Gallery, PublicPhoto{Image: img, Caption: r.Caption, AltText: r.AltText, IsSample: r.IsSample})
+	}
+
+	alumni, err := q.PublicListAlumniPhotos(ctx)
+	if err != nil {
+		return nil, err
+	}
+	site.AlumniPhotos = make([]PublicPhoto, 0, len(alumni))
+	for _, r := range alumni {
+		if img := cover(ctx, images, &r.FileID); img != nil {
+			site.AlumniPhotos = append(site.AlumniPhotos, PublicPhoto{Image: img, Caption: r.Caption, AltText: r.AltText, IsSample: r.IsSample})
+		}
 	}
 
 	hero, err := q.PublicGetHomeHero(ctx)
