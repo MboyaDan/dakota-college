@@ -5167,7 +5167,7 @@ components:
     GalleryDoc:
       type: object
       additionalProperties: false
-      required: [file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, sort_order]
+      required: [file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, alumni, sort_order]
       properties:
         file_id: { type: string, format: uuid }
         caption: { type: string }
@@ -5175,6 +5175,7 @@ components:
         consent_confirmed: { type: boolean, description: "Written consent from everyone recognisable. Required to publish." }
         consent_note: { type: string }
         home_hero: { type: boolean, description: "Show at the top of the home page. If several are chosen, the most recently changed is used." }
+        alumni: { type: boolean, description: "Show on the Alumni page (at most six photos, in sort order)." }
         sort_order: { type: integer }
     FounderDoc:
       type: object
@@ -6362,7 +6363,7 @@ components:
               $ref: "#/components/schemas/CheckStatus"
     PublicSite:
       type: object
-      required: [generated_at, settings, banners, schools, programmes, faqs, statistics, accreditations, events, news, pages, gallery, home_hero, founders]
+      required: [generated_at, settings, banners, schools, programmes, faqs, statistics, accreditations, events, news, pages, gallery, home_hero, alumni_photos, founders]
       properties:
         generated_at: { type: string, format: date-time }
         settings:
@@ -6384,6 +6385,10 @@ components:
           oneOf:
             - { $ref: "#/components/schemas/PublicPhoto" }
             - { type: "null" }
+        alumni_photos:
+          description: Published gallery photos chosen for the Alumni page, at most six.
+          type: array
+          items: { $ref: "#/components/schemas/PublicPhoto" }
         founders: { type: array, items: { $ref: "#/components/schemas/PublicFounder" } }
     PublicFounder:
       type: object

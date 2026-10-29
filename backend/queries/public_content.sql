@@ -104,6 +104,14 @@ WHERE status = 'published' AND home_hero
 ORDER BY updated_at DESC
 LIMIT 1;
 
+-- name: PublicListAlumniPhotos :many
+-- Photos for the Alumni page: published gallery photos (so with consent)
+-- ticked for it, at most six.
+SELECT file_id, caption, alt_text, is_sample FROM gallery_items
+WHERE status = 'published' AND alumni
+ORDER BY sort_order, created_at
+LIMIT 6;
+
 -- name: PublicListFounders :many
 -- Every published profile has the person's consent (table check).
 SELECT name, role_title, intro, story, photo_file_id, photo_alt, is_sample FROM founders

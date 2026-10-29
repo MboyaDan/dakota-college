@@ -439,6 +439,7 @@ type GalleryItem struct {
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 	HomeHero         bool
+	Alumni           bool
 }
 
 type IdempotencyRecord struct {

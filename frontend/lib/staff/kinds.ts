@@ -507,7 +507,7 @@ export const kinds: Record<ContentKind, KindConfig> = {
     kind: "gallery",
     title: "Gallery",
     singular: "photo",
-    description: "Campus and student life photos. Photos of people need written consent.",
+    description: "Campus, student life and alumni photos. Photos of people need written consent.",
     empty: () => ({
       file_id: "",
       caption: "",
@@ -515,6 +515,7 @@ export const kinds: Record<ContentKind, KindConfig> = {
       consent_confirmed: false,
       consent_note: "",
       home_hero: false,
+      alumni: false,
       sort_order: 0,
     }),
     fields: [
@@ -533,6 +534,12 @@ export const kinds: Record<ContentKind, KindConfig> = {
         name: "home_hero",
         label: "Use this photo at the top of the home page",
         hint: "Choose a wide photo of the campus or training. If several photos are chosen, the most recently changed one is used.",
+      },
+      {
+        type: "checkbox",
+        name: "alumni",
+        label: "Show this photo on the Alumni page",
+        hint: "For photos of former students, such as a graduation or a reunion. Up to six photos are shown, in sort order.",
       },
       sortOrder,
     ],
