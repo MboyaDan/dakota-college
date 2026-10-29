@@ -75,6 +75,12 @@ tags:
       Dashboards and count-only CSV exports (Stage 16b, brief 7.2). Each dashboard section and each
       export is shown only to a viewer who may already see its data. Exports contain no names or
       contact details, so they need no approval; each one is audited (D-183, D-184).
+  - name: privacy
+    description: |
+      Data protection tools (Stage 17c, brief 13, privacy.manage): the retention schedule with its
+      run log, and the register of requests from people about their own data. Staff record each
+      request, check identity, then export the person's data or erase an applicant or enquiry that
+      matches the request. Student, academic and financial records are never erased (D-211, D-212).
   - name: notifications
     description: |
       Editable text of emails and text messages sent to applicants (notifications.manage), and the
@@ -1751,7 +1757,9 @@ paths:
       tags: [admissions]
       operationId: addApplicationNote
       summary: Add an internal note (admissions.review)
-      description: Notes are for staff only and cannot be edited or deleted.
+      description: |
+        Notes are for staff only and cannot be edited or deleted. They are the applicant's personal
+        data too, so they are part of the applicant's data export on request (Stage 17c, D-213).
       security: [{ session: [], csrf: [] }]
       parameters:
         - { $ref: "#/components/parameters/ID" }
@@ -4499,6 +4507,247 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/privacy/retention:
+    get:
+      tags: [privacy]
+      operationId: privacyRetention
+      summary: The retention schedule, the configured mode and the latest 30 runs (privacy.manage)
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: The overview.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RetentionOverview" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/privacy/retention/report:
+    post:
+      tags: [privacy]
+      operationId: privacyRetentionReport
+      summary: Count what the schedule would remove now (privacy.manage)
+      description: |
+        Runs the schedule in report mode: spent sign-in links, ended sessions and similar are
+        removed, personal data past its period is only counted. Logged as a run. Applying the
+        schedule is for the daily run (RETENTION_MODE=apply) or the command line, never this call.
+      security: [{ session: [], csrf: [] }]
+      responses:
+        "200":
+          description: What each rule found.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RetentionRunResult" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/privacy/requests:
+    get:
+      tags: [privacy]
+      operationId: listDataRequests
+      summary: The register of data subject requests, open first and soonest due first (privacy.manage)
+      security: [{ session: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [open, completed, refused] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Fifty requests a page.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataRequestList" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [privacy]
+      operationId: createDataRequest
+      summary: Record a request as it arrived (privacy.manage)
+      description: |
+        Give the email address or phone number the college holds for the person, so their records
+        can be found. The due date defaults to 7 days after the date received (A-49). The reference
+        is DTC-DSR-YEAR-NNNN. Audited as privacy.request_recorded.
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DataRequestInput" }
+      responses:
+        "201":
+          description: The recorded request.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/privacy/requests/{id}:
+    get:
+      tags: [privacy]
+      operationId: getDataRequest
+      summary: One request, its history, and the records that carry its email or phone (privacy.manage)
+      security: [{ session: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The request.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/privacy/requests/{id}/identity:
+    post:
+      tags: [privacy]
+      operationId: checkDataRequestIdentity
+      summary: Record how the requester's identity was checked (privacy.manage)
+      description: Needed before an export or erasure, for example "Saw national ID at the front office".
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method]
+              properties:
+                method: { type: string, maxLength: 500 }
+      responses:
+        "200":
+          description: The request after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/privacy/requests/{id}/notes:
+    post:
+      tags: [privacy]
+      operationId: addDataRequestNote
+      summary: Note what was done on a request (privacy.manage)
+      description: For example a correction made on the student's record. Notes cannot be edited.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note: { type: string, maxLength: 5000 }
+      responses:
+        "200":
+          description: The request after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/privacy/requests/{id}/export:
+    post:
+      tags: [privacy]
+      operationId: exportDataRequest
+      summary: Download everything held about the person, as JSON (privacy.manage)
+      description: |
+        For open access and portability requests with identity checked. Covers applications,
+        student records, enquiries, records naming the person as a parent or guardian, staff
+        accounts and messages sent, including staff notes; never password hashes, tokens or message
+        text. Read it before sending and remove anything about other people. Logged on the
+        request and audited as privacy.request_exported.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      responses:
+        "200":
+          description: The JSON file, as an attachment.
+          content:
+            application/json: { schema: { type: object } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/privacy/requests/{id}/erase:
+    post:
+      tags: [privacy]
+      operationId: eraseForDataRequest
+      summary: Erase an applicant or enquiry that matches an erasure request (privacy.manage)
+      description: |
+        Open erasure requests with identity checked only. The record must carry the request's email
+        or phone. Applicants who became students, or with an application still being decided, are
+        refused. Audited as privacy.request_erased and privacy.applicant_erased.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [record_type, record_id]
+              properties:
+                record_type: { type: string, enum: [applicant, enquiry] }
+                record_id: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The request after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/staff/privacy/requests/{id}/close:
+    post:
+      tags: [privacy]
+      operationId: closeDataRequest
+      summary: Complete or refuse a request (privacy.manage)
+      description: The outcome says what was done, or why the request was refused; it is what the person is told.
+      security: [{ session: [], csrf: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, outcome]
+              properties:
+                status: { type: string, enum: [completed, refused] }
+                outcome: { type: string, maxLength: 5000 }
+      responses:
+        "200":
+          description: The request after the change.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     csrf:
@@ -4563,6 +4812,179 @@ components:
       schema:
         type: string
   schemas:
+    RetentionRule:
+      type: object
+      required: [key, title, keep, housekeeping]
+      properties:
+        key: { type: string }
+        title: { type: string }
+        keep: { type: string, description: How long the records are kept, in words. }
+        housekeeping: { type: boolean, description: "Removed in report mode too: spent records with no further use." }
+    RuleResult:
+      type: object
+      required: [rule, due, done]
+      properties:
+        rule: { type: string, description: A schedule key, or removed_files for objects behind deleted files. }
+        due: { type: integer }
+        done: { type: integer }
+    RetentionRunResult:
+      type: object
+      required: [id, mode, results]
+      properties:
+        id: { type: string, format: uuid }
+        mode: { type: string, enum: [report, apply] }
+        results: { type: array, items: { $ref: "#/components/schemas/RuleResult" } }
+    RetentionRunLog:
+      type: object
+      required: [id, mode, started_at, finished_at, results, error]
+      properties:
+        id: { type: string, format: uuid }
+        mode: { type: string, enum: [report, apply] }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+        results: { type: array, items: { $ref: "#/components/schemas/RuleResult" } }
+        error: { type: string }
+    RetentionOverview:
+      type: object
+      required: [mode, schedule, runs]
+      properties:
+        mode: { type: string, enum: [off, report, apply], description: RETENTION_MODE on the API. }
+        schedule: { type: array, items: { $ref: "#/components/schemas/RetentionRule" } }
+        runs: { type: array, items: { $ref: "#/components/schemas/RetentionRunLog" } }
+    DataRequestInput:
+      type: object
+      required: [kind, requester_name, requester_contact]
+      properties:
+        kind: { type: string, enum: [access, correction, erasure, objection, portability, withdraw_consent, other] }
+        requester_name: { type: string, maxLength: 200 }
+        requester_contact: { type: string, maxLength: 200 }
+        acting_for: { type: string, maxLength: 200, description: "Empty when the requester is the person; otherwise, for example, parent." }
+        subject_email: { type: string, description: The email address held for the person. }
+        subject_phone: { type: string, description: The phone number held for the person. }
+        details: { type: string, maxLength: 5000 }
+        received_on: { type: string, format: date, description: Default today. }
+        due_on: { type: string, format: date, description: Default 7 days after received_on. }
+    DataRequestSummary:
+      type: object
+      required: [id, reference, kind, requester_name, status, received_on, due_on, overdue, closed_at]
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        kind: { type: string, enum: [access, correction, erasure, objection, portability, withdraw_consent, other] }
+        requester_name: { type: string }
+        status: { type: string, enum: [open, completed, refused] }
+        received_on: { type: string, format: date }
+        due_on: { type: string, format: date }
+        overdue: { type: boolean }
+        closed_at: { type: string, format: date-time, nullable: true }
+    DataRequestList:
+      type: object
+      required: [items, total]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/DataRequestSummary" } }
+        total: { type: integer }
+    DataRequestEvent:
+      type: object
+      required: [action, note, actor_name, at]
+      properties:
+        action: { type: string, enum: [recorded, identity_checked, note, exported, erased, completed, refused] }
+        note: { type: string }
+        actor_name: { type: string }
+        at: { type: string, format: date-time }
+    PrivacyMatches:
+      type: object
+      required: [applicants, students, enquiries, guardians, staff]
+      properties:
+        applicants:
+          type: array
+          nullable: true
+          items:
+            type: object
+            required: [id, name, email, phone, created_at, applications, is_student, in_progress, erased_at, erasable]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              email: { type: string }
+              phone: { type: string, nullable: true }
+              created_at: { type: string, format: date-time }
+              applications: { type: integer }
+              is_student: { type: boolean }
+              in_progress: { type: integer }
+              erased_at: { type: string, format: date-time, nullable: true }
+              erasable: { type: boolean }
+        students:
+          type: array
+          nullable: true
+          items:
+            type: object
+            required: [id, student_number, name, email, phone, status, enrolled_at]
+            properties:
+              id: { type: string, format: uuid }
+              student_number: { type: string }
+              name: { type: string }
+              email: { type: string }
+              phone: { type: string, nullable: true }
+              status: { type: string }
+              enrolled_at: { type: string, format: date-time }
+        enquiries:
+          type: array
+          nullable: true
+          items:
+            type: object
+            required: [id, name, email, phone, query_type, status, created_at]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              email: { type: string, nullable: true }
+              phone: { type: string, nullable: true }
+              query_type: { type: string }
+              status: { type: string }
+              created_at: { type: string, format: date-time }
+        guardians:
+          type: array
+          nullable: true
+          items:
+            type: object
+            required: [source, record, name, email, phone]
+            properties:
+              source: { type: string, enum: [application, student] }
+              record: { type: string, description: Application reference or student number. }
+              name: { type: string }
+              email: { type: string, nullable: true }
+              phone: { type: string }
+        staff:
+          type: array
+          nullable: true
+          items:
+            type: object
+            required: [id, name, email, status, created_at]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              email: { type: string }
+              status: { type: string }
+              created_at: { type: string, format: date-time }
+    DataRequest:
+      allOf:
+        - $ref: "#/components/schemas/DataRequestSummary"
+        - type: object
+          required: [requester_contact, acting_for, subject_email, subject_phone, details, identity_checked_at,
+                     identity_checked_by_name, identity_method, outcome, closed_by_name, created_by_name, created_at, events, matches]
+          properties:
+            requester_contact: { type: string }
+            acting_for: { type: string }
+            subject_email: { type: string, nullable: true }
+            subject_phone: { type: string, nullable: true }
+            details: { type: string }
+            identity_checked_at: { type: string, format: date-time, nullable: true }
+            identity_checked_by_name: { type: string, nullable: true }
+            identity_method: { type: string }
+            outcome: { type: string }
+            closed_by_name: { type: string, nullable: true }
+            created_by_name: { type: string }
+            created_at: { type: string, format: date-time }
+            events: { type: array, items: { $ref: "#/components/schemas/DataRequestEvent" } }
+            matches: { $ref: "#/components/schemas/PrivacyMatches" }
     ContentSummary:
       type: object
       required: [id, label, status, is_sample, updated_at, has_pending]

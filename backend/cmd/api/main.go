@@ -40,6 +40,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/outbox"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
+	"github.com/MboyaDan/dakota-college/backend/internal/privacy"
 	"github.com/MboyaDan/dakota-college/backend/internal/reports"
 	"github.com/MboyaDan/dakota-college/backend/internal/results"
 )
@@ -147,6 +148,13 @@ func run() error {
 		Pool: pool, Notify: notifier, Logger: logger, AppBaseURL: cfg.AppBaseURL,
 		Storage: store, PrivateBucket: cfg.S3.PrivateBucket,
 	})
+	// The retention schedule runs daily in RETENTION_MODE (Stage 17c).
+	privacySvc := privacy.NewService(privacy.Options{Pool: pool, Logger: logger, Storage: store, Mode: cfg.RetentionMode})
+	if cfg.RetentionMode != privacy.ModeApply {
+		logger.Info("retention schedule in " + cfg.RetentionMode + " mode: personal data past its period is counted, not erased")
+	}
+	go privacySvc.RunDaily(ctx)
+
 	router, err := httpapi.NewRouter(httpapi.Deps{
 		Logger:         logger,
 		DB:             pool,
@@ -179,6 +187,7 @@ func run() error {
 		}),
 		Admissions: admissionsSvc,
 		Reports:    reports.NewService(reports.Options{Pool: pool, Admissions: admissionsSvc}),
+		Privacy:    privacySvc,
 	})
 	if err != nil {
 		return fmt.Errorf("router: %w", err)

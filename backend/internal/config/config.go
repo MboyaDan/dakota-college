@@ -11,6 +11,7 @@ import (
 	"net/mail"
 	"net/url"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -65,6 +66,12 @@ type Config struct {
 	// ClamAVAddr is a clamd host:port for scanning uploads. Empty means no
 	// scanner: files are stored as "not_scanned" (D-19).
 	ClamAVAddr string
+	// RetentionMode is what the daily retention run does (Stage 17c):
+	// "report" counts what is due and removes only spent sign-in links,
+	// sessions and similar; "apply" also erases personal data that is past
+	// its retention period; "off" does nothing. Default "report" until the
+	// college approves the schedule (DG-06).
+	RetentionMode string
 	// Mpesa is Safaricom Daraja C2B (Stage 15a). Off unless MPESA_ENABLED.
 	Mpesa MpesaConfig
 	// KcbIPN is KCB Buni Instant Payment Notifications (Stage 15b). Off
@@ -295,6 +302,11 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 	}
 
 	cfg.ClamAVAddr = get("CLAMAV_ADDR", "")
+
+	cfg.RetentionMode = get("RETENTION_MODE", "report")
+	if !slices.Contains([]string{"off", "report", "apply"}, cfg.RetentionMode) {
+		errs = append(errs, errors.New("RETENTION_MODE must be off, report or apply"))
+	}
 
 	if cfg.Mpesa.Enabled, err = strconv.ParseBool(get("MPESA_ENABLED", "false")); err != nil {
 		errs = append(errs, errors.New("MPESA_ENABLED must be true or false"))

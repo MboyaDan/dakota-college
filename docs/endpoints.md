@@ -79,6 +79,16 @@ Every route needs a session unless marked public. Staff routes also need the nam
 | GET | `/api/v1/files/:token` | Any signed-in account |
 | GET | `/api/v1/staff/reports/dashboard` | Staff with `reports.view` |
 | GET | `/api/v1/staff/reports/exports/:kind` | Staff with `reports.export` |
+| GET | `/api/v1/staff/privacy/retention` | Staff with `privacy.manage` |
+| POST | `/api/v1/staff/privacy/retention/report` | Staff with `privacy.manage` |
+| GET | `/api/v1/staff/privacy/requests` | Staff with `privacy.manage` |
+| POST | `/api/v1/staff/privacy/requests` | Staff with `privacy.manage` |
+| GET | `/api/v1/staff/privacy/requests/:id` | Staff with `privacy.manage` |
+| POST | `/api/v1/staff/privacy/requests/:id/identity` | Staff with `privacy.manage` |
+| POST | `/api/v1/staff/privacy/requests/:id/notes` | Staff with `privacy.manage` |
+| POST | `/api/v1/staff/privacy/requests/:id/export` | Staff with `privacy.manage` |
+| POST | `/api/v1/staff/privacy/requests/:id/erase` | Staff with `privacy.manage` |
+| POST | `/api/v1/staff/privacy/requests/:id/close` | Staff with `privacy.manage` |
 | GET | `/api/v1/staff/applications` | Staff with `admissions.view` |
 | GET | `/api/v1/staff/applications/counts` | Staff with `admissions.view` |
 | GET | `/api/v1/staff/applications/assignees` | Staff with `admissions.review` |
@@ -223,4 +233,4 @@ Every route needs a session unless marked public. Staff routes also need the nam
 | GET | `/api/v1/public/events` | Public |
 | GET | `/api/v1/public/events/:slug` | Public |
 
-215 routes: 20 public, 155 staff, 16 applicant, 21 student, 3 for any signed-in account.
+225 routes: 20 public, 165 staff, 16 applicant, 21 student, 3 for any signed-in account.
