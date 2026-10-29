@@ -22,6 +22,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/mpesa"
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
+	"github.com/MboyaDan/dakota-college/backend/internal/privacy"
 	"github.com/MboyaDan/dakota-college/backend/internal/reports"
 	"github.com/MboyaDan/dakota-college/backend/internal/results"
 )
@@ -68,6 +69,8 @@ type Deps struct {
 	// Kcb is KCB Buni payment notifications; nil when not enabled.
 	Kcb    *kcb.Service
 	Notify *notify.Service
+	// Privacy is the retention schedule and data subject requests.
+	Privacy *privacy.Service
 }
 
 const defaultBodyLimit = 1 << 20 // 1 MB for JSON endpoints
@@ -260,6 +263,20 @@ func NewRouter(d Deps) (*Router, error) {
 		rh := reportHandlers{svc: d.Reports}
 		add(http.MethodGet, "/staff/reports/dashboard", false, reports.PermView, rh.dashboard)
 		add(http.MethodGet, "/staff/reports/exports/:kind", false, reports.PermExport, rh.export)
+	}
+
+	if d.Privacy != nil && d.Auth != nil {
+		ph := privacyHandlers{svc: d.Privacy}
+		add(http.MethodGet, "/staff/privacy/retention", false, privacy.PermManage, ph.retention)
+		add(http.MethodPost, "/staff/privacy/retention/report", false, privacy.PermManage, ph.retentionReport)
+		add(http.MethodGet, "/staff/privacy/requests", false, privacy.PermManage, ph.list)
+		add(http.MethodPost, "/staff/privacy/requests", false, privacy.PermManage, ph.create)
+		add(http.MethodGet, "/staff/privacy/requests/:id", false, privacy.PermManage, ph.get)
+		add(http.MethodPost, "/staff/privacy/requests/:id/identity", false, privacy.PermManage, ph.identity)
+		add(http.MethodPost, "/staff/privacy/requests/:id/notes", false, privacy.PermManage, ph.note)
+		add(http.MethodPost, "/staff/privacy/requests/:id/export", false, privacy.PermManage, ph.export)
+		add(http.MethodPost, "/staff/privacy/requests/:id/erase", false, privacy.PermManage, ph.erase)
+		add(http.MethodPost, "/staff/privacy/requests/:id/close", false, privacy.PermManage, ph.close)
 	}
 
 	if d.Admissions != nil && d.Auth != nil {

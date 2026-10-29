@@ -277,3 +277,22 @@ func TestKcbIPNConfig(t *testing.T) {
 		}
 	}
 }
+
+// Stage 17c: report until the college approves the schedule (D-212).
+func TestRetentionMode(t *testing.T) {
+	base := map[string]string{"APP_ENV": "development", "DATABASE_URL": "x"}
+	c, err := FromLookup(lookupFrom(base))
+	if err != nil || c.RetentionMode != "report" {
+		t.Fatalf("default = %q, %v", c.RetentionMode, err)
+	}
+	for _, mode := range []string{"off", "report", "apply"} {
+		base["RETENTION_MODE"] = mode
+		if c, err := FromLookup(lookupFrom(base)); err != nil || c.RetentionMode != mode {
+			t.Errorf("%s: %q, %v", mode, c.RetentionMode, err)
+		}
+	}
+	base["RETENTION_MODE"] = "erase"
+	if _, err := FromLookup(lookupFrom(base)); err == nil || !strings.Contains(err.Error(), "RETENTION_MODE") {
+		t.Errorf("unknown mode accepted: %v", err)
+	}
+}

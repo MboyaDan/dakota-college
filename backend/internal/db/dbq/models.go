@@ -66,6 +66,7 @@ type Applicant struct {
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 	IdentityDocumentType *string
+	ErasedAt             *time.Time
 }
 
 type ApplicantSignInLink struct {
@@ -230,6 +231,39 @@ type ContentPending struct {
 	UpdatedAt  time.Time
 }
 
+type DataRequest struct {
+	ID                uuid.UUID
+	Reference         string
+	Kind              string
+	RequesterName     string
+	RequesterContact  string
+	ActingFor         string
+	SubjectEmail      *string
+	SubjectPhone      *string
+	Details           string
+	ReceivedOn        time.Time
+	DueOn             time.Time
+	Status            string
+	IdentityCheckedAt *time.Time
+	IdentityCheckedBy *uuid.UUID
+	IdentityMethod    string
+	Outcome           string
+	ClosedAt          *time.Time
+	ClosedBy          *uuid.UUID
+	CreatedBy         uuid.UUID
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+type DataRequestEvent struct {
+	ID        int64
+	RequestID uuid.UUID
+	Action    string
+	Note      string
+	ActorID   uuid.UUID
+	CreatedAt time.Time
+}
+
 type DocumentCounter struct {
 	Name      string
 	Period    int32
@@ -360,6 +394,7 @@ type File struct {
 	Width            *int32
 	Height           *int32
 	ImageWidths      []int32
+	StorageRemovedAt *time.Time
 }
 
 type FileLink struct {
@@ -774,6 +809,15 @@ type ResultSheetEvent struct {
 	Reason     string
 	ActorID    uuid.UUID
 	CreatedAt  time.Time
+}
+
+type RetentionRun struct {
+	ID         uuid.UUID
+	Mode       string
+	StartedAt  time.Time
+	FinishedAt *time.Time
+	Results    []byte
+	Error      string
 }
 
 type Role struct {

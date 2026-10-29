@@ -4,7 +4,7 @@ Written threat review for the Dakota Training College platform (brief section 13
 
 - **Last reviewed:** 2026-10-29, Stage 17a, against `main` after #43 plus the Stage 17a branch.
 - **Covers:** the Go API, the Next.js site and the local Compose stack. Hosting, backups and DNS are reviewed in Stage 19 and are listed below as open items.
-- **Still to come in Stage 17:** retention jobs, data subject request tools and a breach procedure (17c). Two-step sign-in was added in 17b (section 4.2).
+- **Stage 17 additions:** two-step sign-in in 17b (section 4.2); retention schedule, data subject request tools and breach procedure in 17c (section 4.10). Their staff screens come in 17e.
 - **Rule for this file:** a control is listed as in place only if a test or a command shows it. Anything not yet checked says so.
 
 ## 1. What we protect
@@ -49,7 +49,7 @@ The browser never talks to the database or storage directly, except for public c
 
 ### 4.1 Authorisation (every endpoint)
 
-- **Inventory:** [endpoints.md](endpoints.md) lists all routes and who may call each, generated from the route table; `TestEndpointInventoryIsCurrent` fails if it drifts (D-198). Count at this review: 208 routes (19 public, 149 staff, 16 applicant, 21 student, 3 for any signed-in account).
+- **Inventory:** [endpoints.md](endpoints.md) lists all routes and who may call each, generated from the route table; `TestEndpointInventoryIsCurrent` fails if it drifts (D-198). Count at this review: 208 routes (19 public, 149 staff, 16 applicant, 21 student, 3 for any signed-in account). After Stage 17c: 225 routes (20 public, 165 staff, 16 applicant, 21 student, 3 for any signed-in account).
 - **Every protected route refuses the wrong caller:** `TestEveryRouteIsProtected` walks the table. Every non-public route gives 401 without a session and 403 to a user holding every other permission. The public list is reviewed in the test itself (20 routes: two health probes, staff and student sign-in and reset, the two-step sign-in code, site content, news and events, the enquiry form, applicant sign-in links, and the three payment callbacks that answer only on a secret path).
 - **Staff routes need a staff account (new, D-196):** a student account with a Super Admin role inserted directly in the database still gets 403 on staff and admin routes, and the API refuses to give roles to non-staff accounts (`TestPermissionRoutesNeedAStaffAccount`).
 - **Own records only (object level):** applicant and student routes take the account from the session, never from the request. `TestApplicantRoutesRefuseOtherApplicants` (new) sends every applicant route that takes an application ID with another applicant's session: all are refused and the owner's draft is unchanged. Earlier tests cover the rest: `TestStudentsSeeOnlyTheirOwnData`, `TestTrainersSeeOnlyTheirUnits`, `TestHeadOfSchoolScope`, another student's invoice in `TestFinanceFlow`, another student's transcript in `TestResultsSlipAndTranscripts`, file links bound to one account in `TestDocumentLinks`.
@@ -112,6 +112,13 @@ Limits are in memory per API instance (D-46). The account lockout is in the data
 - CI fails on vulnerabilities our Go code reaches (`govulncheck`) and on high or critical advisories in shipped npm packages (D-193). Dependabot is on.
 - **Fixed in this review:** `govulncheck` found GO-2026-5676 (quic-go HTTP/3 memory exhaustion, reachable through Gin) and the module was raised to v0.59.1. After the fix: 0 reachable. `npm audit`: 0 vulnerabilities, dev tools included (closes R-21).
 
+### 4.10 Retention, data subject requests and breaches (Stage 17c)
+
+- **Retention schedule** (`docs/retention.md`, D-211, D-212): the API runs it daily. Spent links, ended sessions and repeat-protection records are always removed; enquiries, applicants who did not enrol and the message log are erased only with `RETENTION_MODE=apply`, which waits for the college's approval of the periods (DG-06). The default `report` mode counts what apply would remove, in a transaction that is rolled back, so the report is exact. Each run is logged; an applied run and each erased applicant are audited. Applying is possible only from the daily run or `cmd/retention apply`, never from the portal.
+- **Erasure** keeps rows for references and counts and blanks everything that identifies the person, including documents in storage, staff notes and consent names. Students and applications still being decided are refused. Append-only tables accept only an update that blanks named text columns, inside a transaction that set `dtc.erasure` (D-214). Evidence: `TestRetentionSchedule`, `TestAppendOnlyExceptErasure`.
+- **Data subject requests** (`docs/privacy-requests.md`, `privacy.manage`): a register with references and due dates; exports and erasure need a recorded identity check and refuse records that do not carry the request's email or phone; exports leave out password hashes, tokens and message text; every step is logged on the request and audited (D-213, D-215). Evidence: `TestDataSubjectRequests`.
+- **Breach procedure:** `docs/breach.md` (containment steps for this system, the 72-hour notice, the breach log). Not rehearsed.
+
 ## 5. Findings of this review
 
 | ID | Finding | Severity | Status |
@@ -132,7 +139,9 @@ These block go-live with real applicants. Each has an owner stage.
 | The GitHub repository is public (R-10): make it private before any real data, client content or staging credentials | Before Stage 19 |
 | Set `CLIENT_IP_HEADER` (the platform's client address header) and `CLIENT_IP_SECRET` on the frontend, and the same secret on the API | 19 |
 | Decide production virus scanning (paid instance or scanner host), or accept and record "not scanned" with the client | 19, DG-04 |
-| Retention schedule jobs, data subject request tools, breach procedure | 17c, DG-06 |
+| Approve the retention schedule (`docs/retention.md`), then set `RETENTION_MODE=apply` (R-30) | DG-06 |
+| Approve the request and breach procedures (`docs/privacy-requests.md`, `docs/breach.md`) and fill in their contacts | DG-06 |
+| Staff screens for data requests and the retention log | 17e |
 | Data protection registration, privacy notice approval, parental consent review (R-26) | DG-06, Stage 20 |
 | Backups with a tested restore; uptime and error monitoring | 19 |
 | Two-factor on GitHub, Cloudflare, Render, Supabase and the domain registrar (brief 13) | 19 (owner action) |
@@ -146,3 +155,5 @@ These block go-live with real applicants. Each has an owner stage.
 - The upload path end to end through the API with a real ClamAV: the adapter was tested against a real clamd, and the API's handling of infected files is tested with a fake scanner.
 - An external penetration test or automated web scanner: not run.
 - Session fixation and cookie behaviour in browsers other than Chromium: Playwright here runs Chromium only.
+- Retention against a real production-sized database: the schedule was tested on test data only. Run `go run ./cmd/retention` (report) on production before turning apply on.
+- Erasure of data outside the system (paper files, spreadsheets, email inboxes): out of reach of the code; the request procedure asks staff to check those.

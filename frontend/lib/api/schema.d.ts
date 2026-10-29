@@ -1332,7 +1332,8 @@ export interface paths {
         put?: never;
         /**
          * Add an internal note (admissions.review)
-         * @description Notes are for staff only and cannot be edited or deleted.
+         * @description Notes are for staff only and cannot be edited or deleted. They are the applicant's personal
+         *     data too, so they are part of the applicant's data export on request (Stage 17c, D-213).
          */
         post: operations["addApplicationNote"];
         delete?: never;
@@ -3576,10 +3577,364 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/privacy/retention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The retention schedule, the configured mode and the latest 30 runs (privacy.manage) */
+        get: operations["privacyRetention"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/privacy/retention/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Count what the schedule would remove now (privacy.manage)
+         * @description Runs the schedule in report mode: spent sign-in links, ended sessions and similar are
+         *     removed, personal data past its period is only counted. Logged as a run. Applying the
+         *     schedule is for the daily run (RETENTION_MODE=apply) or the command line, never this call.
+         */
+        post: operations["privacyRetentionReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/privacy/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The register of data subject requests, open first and soonest due first (privacy.manage) */
+        get: operations["listDataRequests"];
+        put?: never;
+        /**
+         * Record a request as it arrived (privacy.manage)
+         * @description Give the email address or phone number the college holds for the person, so their records
+         *     can be found. The due date defaults to 7 days after the date received (A-49). The reference
+         *     is DTC-DSR-YEAR-NNNN. Audited as privacy.request_recorded.
+         */
+        post: operations["createDataRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/privacy/requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One request, its history, and the records that carry its email or phone (privacy.manage) */
+        get: operations["getDataRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/privacy/requests/{id}/identity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record how the requester's identity was checked (privacy.manage)
+         * @description Needed before an export or erasure, for example "Saw national ID at the front office".
+         */
+        post: operations["checkDataRequestIdentity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/privacy/requests/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Note what was done on a request (privacy.manage)
+         * @description For example a correction made on the student's record. Notes cannot be edited.
+         */
+        post: operations["addDataRequestNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/privacy/requests/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download everything held about the person, as JSON (privacy.manage)
+         * @description For open access and portability requests with identity checked. Covers applications,
+         *     student records, enquiries, records naming the person as a parent or guardian, staff
+         *     accounts and messages sent, including staff notes; never password hashes, tokens or message
+         *     text. Read it before sending and remove anything about other people. Logged on the
+         *     request and audited as privacy.request_exported.
+         */
+        post: operations["exportDataRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/privacy/requests/{id}/erase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Erase an applicant or enquiry that matches an erasure request (privacy.manage)
+         * @description Open erasure requests with identity checked only. The record must carry the request's email
+         *     or phone. Applicants who became students, or with an application still being decided, are
+         *     refused. Audited as privacy.request_erased and privacy.applicant_erased.
+         */
+        post: operations["eraseForDataRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/privacy/requests/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete or refuse a request (privacy.manage)
+         * @description The outcome says what was done, or why the request was refused; it is what the person is told.
+         */
+        post: operations["closeDataRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        RetentionRule: {
+            key: string;
+            title: string;
+            /** @description How long the records are kept */
+            keep: string;
+            /** @description Removed in report mode too: spent records with no further use. */
+            housekeeping: boolean;
+        };
+        RuleResult: {
+            /** @description A schedule key */
+            rule: string;
+            due: number;
+            done: number;
+        };
+        RetentionRunResult: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            mode: "report" | "apply";
+            results: components["schemas"]["RuleResult"][];
+        };
+        RetentionRunLog: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            mode: "report" | "apply";
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            finished_at: string | null;
+            results: components["schemas"]["RuleResult"][];
+            error: string;
+        };
+        RetentionOverview: {
+            /**
+             * @description RETENTION_MODE on the API.
+             * @enum {string}
+             */
+            mode: "off" | "report" | "apply";
+            schedule: components["schemas"]["RetentionRule"][];
+            runs: components["schemas"]["RetentionRunLog"][];
+        };
+        DataRequestInput: {
+            /** @enum {string} */
+            kind: "access" | "correction" | "erasure" | "objection" | "portability" | "withdraw_consent" | "other";
+            requester_name: string;
+            requester_contact: string;
+            /** @description Empty when the requester is the person; otherwise, for example, parent. */
+            acting_for?: string;
+            /** @description The email address held for the person. */
+            subject_email?: string;
+            /** @description The phone number held for the person. */
+            subject_phone?: string;
+            details?: string;
+            /**
+             * Format: date
+             * @description Default today.
+             */
+            received_on?: string;
+            /**
+             * Format: date
+             * @description Default 7 days after received_on.
+             */
+            due_on?: string;
+        };
+        DataRequestSummary: {
+            /** Format: uuid */
+            id: string;
+            reference: string;
+            /** @enum {string} */
+            kind: "access" | "correction" | "erasure" | "objection" | "portability" | "withdraw_consent" | "other";
+            requester_name: string;
+            /** @enum {string} */
+            status: "open" | "completed" | "refused";
+            /** Format: date */
+            received_on: string;
+            /** Format: date */
+            due_on: string;
+            overdue: boolean;
+            /** Format: date-time */
+            closed_at: string | null;
+        };
+        DataRequestList: {
+            items: components["schemas"]["DataRequestSummary"][];
+            total: number;
+        };
+        DataRequestEvent: {
+            /** @enum {string} */
+            action: "recorded" | "identity_checked" | "note" | "exported" | "erased" | "completed" | "refused";
+            note: string;
+            actor_name: string;
+            /** Format: date-time */
+            at: string;
+        };
+        PrivacyMatches: {
+            applicants: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                email: string;
+                phone: string | null;
+                /** Format: date-time */
+                created_at: string;
+                applications: number;
+                is_student: boolean;
+                in_progress: number;
+                /** Format: date-time */
+                erased_at: string | null;
+                erasable: boolean;
+            }[] | null;
+            students: {
+                /** Format: uuid */
+                id: string;
+                student_number: string;
+                name: string;
+                email: string;
+                phone: string | null;
+                status: string;
+                /** Format: date-time */
+                enrolled_at: string;
+            }[] | null;
+            enquiries: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                email: string | null;
+                phone: string | null;
+                query_type: string;
+                status: string;
+                /** Format: date-time */
+                created_at: string;
+            }[] | null;
+            guardians: {
+                /** @enum {string} */
+                source: "application" | "student";
+                /** @description Application reference or student number. */
+                record: string;
+                name: string;
+                email: string | null;
+                phone: string;
+            }[] | null;
+            staff: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                email: string;
+                status: string;
+                /** Format: date-time */
+                created_at: string;
+            }[] | null;
+        };
+        DataRequest: components["schemas"]["DataRequestSummary"] & {
+            requester_contact: string;
+            acting_for: string;
+            subject_email: string | null;
+            subject_phone: string | null;
+            details: string;
+            /** Format: date-time */
+            identity_checked_at: string | null;
+            identity_checked_by_name: string | null;
+            identity_method: string;
+            outcome: string;
+            closed_by_name: string | null;
+            created_by_name: string;
+            /** Format: date-time */
+            created_at: string;
+            events: components["schemas"]["DataRequestEvent"][];
+            matches: components["schemas"]["PrivacyMatches"];
+        };
         ContentSummary: {
             /** Format: uuid */
             id: string;
@@ -11747,6 +12102,298 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    privacyRetention: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The overview. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionOverview"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    privacyRetentionReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What each rule found. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionRunResult"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    listDataRequests: {
+        parameters: {
+            query?: {
+                status?: "open" | "completed" | "refused";
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fifty requests a page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequestList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    createDataRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataRequestInput"];
+            };
+        };
+        responses: {
+            /** @description The recorded request. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getDataRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequest"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    checkDataRequestIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    method: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The request after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    addDataRequestNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The request after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    exportDataRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The JSON file, as an attachment. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    eraseForDataRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    record_type: "applicant" | "enquiry";
+                    /** Format: uuid */
+                    record_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The request after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    closeDataRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "completed" | "refused";
+                    outcome: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The request after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
             422: components["responses"]["Error"];
         };
     };

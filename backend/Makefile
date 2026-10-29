@@ -6,7 +6,7 @@ export
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down logs ps run build test test-db lint fmt docker-build migrate-status migrate-up migrate-down seed setup-admin sqlc mpesa-proxy
+.PHONY: help up down logs ps run build test test-db lint fmt docker-build migrate-status migrate-up migrate-down seed setup-admin retention-report sqlc mpesa-proxy
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -53,6 +53,9 @@ migrate-down: ## Roll back the most recent migration on DATABASE_URL
 
 seed: ## Load fake sample data (development and test only; refuses elsewhere)
 	go run ./cmd/seed
+
+retention-report: ## Count what the retention schedule would remove now (erases nothing)
+	go run ./cmd/retention report
 
 setup-admin: ## Create the first Super Admin from SUPER_ADMIN_* (empty systems only)
 	go run ./cmd/setup

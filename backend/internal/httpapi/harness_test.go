@@ -32,6 +32,7 @@ import (
 	"github.com/MboyaDan/dakota-college/backend/internal/notify"
 	"github.com/MboyaDan/dakota-college/backend/internal/outbox"
 	"github.com/MboyaDan/dakota-college/backend/internal/portal"
+	"github.com/MboyaDan/dakota-college/backend/internal/privacy"
 	"github.com/MboyaDan/dakota-college/backend/internal/reports"
 	"github.com/MboyaDan/dakota-college/backend/internal/results"
 	"github.com/MboyaDan/dakota-college/backend/internal/testdb"
@@ -70,7 +71,9 @@ type harness struct {
 	// the end of the test.
 	queue     *outbox.Queue
 	stopQueue context.CancelFunc
-	sms       outbox.SMSSender
+	// privacy runs the retention schedule; tests call Run directly.
+	privacy *privacy.Service
+	sms     outbox.SMSSender
 }
 
 func newHarness(t *testing.T) *harness {
@@ -116,6 +119,9 @@ func (h *harness) rebuild() {
 		Pool: h.pool, Notify: notifier, Logger: logger, AppBaseURL: testOrigin, Now: func() time.Time { return h.now() },
 		Storage: h.storage, PrivateBucket: "dakota-private",
 	})
+	h.privacy = privacy.NewService(privacy.Options{
+		Pool: h.pool, Logger: logger, Storage: h.storage, Mode: privacy.ModeReport, Now: func() time.Time { return h.now() },
+	})
 	h.router, err = NewRouter(Deps{
 		Logger: logger, DB: h.pool, AllowedOrigins: []string{testOrigin}, CookieSecure: true, ClientIPSecret: testClientIPSecret,
 		Auth: h.auth, Access: h.access, Content: content.NewService(h.pool),
@@ -145,6 +151,7 @@ func (h *harness) rebuild() {
 		}),
 		Admissions: admissionsSvc,
 		Reports:    reports.NewService(reports.Options{Pool: h.pool, Admissions: admissionsSvc, Now: func() time.Time { return h.now() }}),
+		Privacy:    h.privacy,
 	})
 	if err != nil {
 		h.t.Fatal(err)
