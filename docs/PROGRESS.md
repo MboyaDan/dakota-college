@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 17d, Home page photos and founders page (owner request). Done, awaiting review.
-- **Next stage:** 17b, optional two-step sign-in (TOTP) for finance, registrar and admin staff (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-17d-home-photos-founders` (from `main` after #44)
+- **Current stage:** 17b, Two-step sign-in (TOTP). Done, awaiting review.
+- **Next stage:** 17c, retention jobs, data subject requests and breach procedure (KCB signature check slots in when KCB sends the key).
+- **Branch:** `stage-17b-totp` (from `main` after #45)
 
 ## Stage status
 
@@ -44,10 +44,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 16a | Message queue with retries | Merged (#41) |
 | 16b | Reports API: dashboard data and count exports | Merged (#42) |
 | 16c | Dashboard pages and export buttons | Merged (#43) |
-| 17a | Security review, headers, rate limits, dependency audit | Done (#44) |
-| 17b | Two-step sign-in (TOTP) | Not started |
+| 17a | Security review, headers, rate limits, dependency audit | Merged (#44) |
+| 17b | Two-step sign-in (TOTP) | Done, awaiting review |
 | 17c | Retention jobs, data subject requests, breach procedure | Not started |
-| 17d | Home page photos and founders page (owner request) | Done, awaiting review |
+| 17d | Home page photos and founders page (owner request) | Merged (#45) |
 | 18 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -61,6 +61,15 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 17b: Two-step sign-in (2026-10-29)
+
+- Optional for each person, open to every staff account; holders of finance, registrar and admin permissions get a prompt on the Overview (D-206, A-15 done).
+- Migration 00023: `user_totp` (encrypted secret, last used step), `user_recovery_codes` (hashed), `login_challenges`. New env var `TOTP_KEY` (required in staging and production; D-208, R-29).
+- API: a right password for an account with two-step sign-in answers 202 with a five-minute challenge cookie; `POST /auth/login/code` takes an app code or a recovery code. Settings routes to set up, confirm, replace recovery codes and turn off (password asked again). Wrong codes count towards the account lockout. Admin reset `POST /admin/users/:id/two-step/reset` (`users.manage`; not your own; Super Admin only for a Super Admin) and `go run ./cmd/setup reset-two-step EMAIL` (D-207, D-209, D-210). Staff list shows who uses it.
+- Screens: code step on staff sign-in (with recovery code option); new Your account page with QR code setup, recovery codes (copy or download), new codes and turn off; reset button on Staff schools.
+- Seed: two fake accounts for the end-to-end test; seeding turns two-step sign-in off on the fake accounts.
+- Verified: all Go tests with PostgreSQL and `-race` (new `TestTwoStepSignIn`, `TestTwoStepWrongCodesLockTheAccount`, `TestTwoStepAdminReset`, RFC 6238 vectors, `TestTOTPKey`); migration up, down, up on the dev database; `make lint`; govulncheck (no vulnerabilities affecting the code); frontend lint, typecheck, 137 unit tests, build; Playwright `two-step.spec.ts` and `staff.spec.ts` 9 passed, 1 skipped (mobile and desktop, axe and 360 px overflow on the setup and code screens).
 
 ### Stage 17d: Home page photos and founders page (2026-10-29)
 

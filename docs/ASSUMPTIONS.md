@@ -51,7 +51,7 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-12 | The GitHub repository stays public during scaffold stages and becomes private before Stage 5. Making it private does not change commits or the workflow; the only effect is that GitHub Actions on a free private repo is capped at 2,000 minutes a month, which this CI fits within. | Confirmed (owner, 2026-10-22) |
 | A-13 | Toolchain: Go 1.26 (D-33; the local 1.25 install downloads 1.26.10 automatically via `toolchain`), Node 24, npm, Docker 29, PostgreSQL client. | Open |
 | A-14 | Staging gets no seed data: the seed refuses anything but development and test (CLAUDE.md). A staging demo will need a separate, clearly fake demo-data decision in Stage 19. | Open |
-| A-15 | Optional TOTP for finance, registrar and admin accounts is built in Stage 17 (brief 13), not Stage 4. | Open |
+| A-15 | Optional TOTP for finance, registrar and admin accounts is built in Stage 17 (brief 13), not Stage 4. Default used in 17b: optional for each person, open to every staff account, with recovery codes (D-206). | Done (Stage 17b, 2026-10-29) |
 | A-16 | Applicant sign-in links work for 30 minutes, and an address can ask for 5 an hour (D-97). | Confirmed (owner, 2026-10-23) |
 | A-17 | Registrar and ICT Admin (and Super Admin) may reword messages to applicants (`notifications.manage`); Admissions Officers may not. | Confirmed (owner, 2026-10-23); the owner will review the starter wording later |
 | A-18 | An unsubmitted draft expires 60 days after its last save while `applications.draft_expiry_days` is empty; staff can set 1 to 365 days in Site settings. | Confirmed (owner, 2026-10-24) |
