@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 17a, Security review, headers and rate limits. Done, awaiting review.
+- **Current stage:** 17d, Home page photos and founders page (owner request). Done, awaiting review.
 - **Next stage:** 17b, optional two-step sign-in (TOTP) for finance, registrar and admin staff (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-17a-hardening` (from `main` after #43)
+- **Branch:** `stage-17d-home-photos-founders` (from `main` after #44)
 
 ## Stage status
 
@@ -44,9 +44,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 16a | Message queue with retries | Merged (#41) |
 | 16b | Reports API: dashboard data and count exports | Merged (#42) |
 | 16c | Dashboard pages and export buttons | Merged (#43) |
-| 17a | Security review, headers, rate limits, dependency audit | Done, awaiting review |
+| 17a | Security review, headers, rate limits, dependency audit | Done (#44) |
 | 17b | Two-step sign-in (TOTP) | Not started |
 | 17c | Retention jobs, data subject requests, breach procedure | Not started |
+| 17d | Home page photos and founders page (owner request) | Done, awaiting review |
 | 18 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -60,6 +61,14 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 17d: Home page photos and founders page (2026-10-29)
+
+- Owner asked for photo backgrounds on the school tiles, a richer home page and a founders page. Photos are staff uploads with consent only; until then, branded designs, never stock or generated people (D-200).
+- Migration 00022: school photos (description, consent to publish), gallery "home page photo" tick, `founders` content type (D-201 to D-203). Staff content manager: photo fields on schools, the tick on gallery photos, a Founders screen.
+- Site: school tiles with photo and navy fade or plain navy with the school's colour; hero photo with a gold frame (logo artwork until there is one); navy values band; founder teaser; "Life at Dakota" strip from the gallery; CSS texture backgrounds (D-205). New `/about/founders`, founders on About, in the About menu and the sitemap.
+- Site tolerates snapshots from an older API (D-204).
+- Verified: Go `httpapi`, `db`, `seed` with PostgreSQL and `-race` (new `TestPublicPhotosAndFounders`; founders added to `TestContentKinds`); migration up, down, up on the dev database; lint, typecheck, build; 137 unit tests; Playwright public and security specs 86 of 86 (new founders and school tile tests, axe on `/about/founders`); staff spec 7 passed, 1 skipped; offline spec 30 of 30 with the API stopped. Contrast over photos checked by eye with plain test images (one near white) uploaded only to the local database, then removed.
 
 ### Stage 17a: Security review, headers and rate limits (2026-10-29)
 

@@ -38,6 +38,6 @@ Status values: **Planned**, **In progress**, **Pass** (with evidence), **Fail**,
 | NN-05 | No destructive edits to completed records | 3, 10, 13, 14 | Append-only triggers on audit log, status history, consents (Stage 3, `TestAppendOnlyTables`); staff notes append-only, submitted snapshot unchanged by later uploads, status changes only along the state machine (Stage 10a, D-120, D-121); compensating entries later |
 | NN-06 | No real data in seed or tests | 3 onward | Seed conventions (D-17), production refusal |
 | NN-07 | Production DB is managed or operated, never a throwaway container | 19 | Deployment docs, DG-04 |
-| NN-08 | Personal data and photos used only with consent | 5a, 7, 9 | `consents` table; gallery photos need confirmed consent to publish (DB and API, `TestContentRules`); uploads stripped of metadata including GPS (`TestProcessAppliesOrientationAndStripsMetadata`) |
+| NN-08 | Personal data and photos used only with consent | 5a, 7, 9 | `consents` table; gallery photos need confirmed consent to publish (DB and API, `TestContentRules`); school photos and founder profiles likewise (`TestPublicPhotosAndFounders`, 17d); uploads stripped of metadata including GPS (`TestProcessAppliesOrientationAndStripsMetadata`) |
 | NN-09 | No copying from reference site | All | Patterns only; original copy |
 | NN-10 | M-Pesa paid needs verified path or finance confirmation | 14, 15 | State machine on payments |
