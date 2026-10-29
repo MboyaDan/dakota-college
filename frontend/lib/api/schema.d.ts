@@ -170,7 +170,7 @@ export interface paths {
         get?: never;
         /**
          * Replace a user's roles (users.manage)
-         * @description Refused if it would leave no active Super Admin, or changes a role with system.admin without holding it.
+         * @description Refused if it would leave no active Super Admin, or changes a role with system.admin without holding it. Roles are only for staff accounts (409 not_staff_account).
          */
         put: operations["setUserRoles"];
         post?: never;

@@ -43,7 +43,7 @@ func (h kcbHandlers) notification(c *gin.Context) {
 		return
 	}
 	var ip *netip.Addr
-	if a, err := netip.ParseAddr(c.ClientIP()); err == nil {
+	if a, err := netip.ParseAddr(clientIP(c)); err == nil {
 		ip = &a
 	}
 	answer, err := h.svc.Receive(c.Request.Context(), c.Param("secret"), ip, c.GetHeader("Signature"), body)

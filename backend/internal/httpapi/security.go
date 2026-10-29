@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"crypto/subtle"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -65,6 +66,61 @@ func checkOrigin(allowed []string) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+// securityHeaders sets the headers every API response carries. Responses are
+// JSON, PDFs and CSVs that must never be sniffed, framed or cached by a shared
+// cache; handlers that serve cacheable public data overwrite Cache-Control,
+// and file handlers add a stricter policy of their own. HSTS is sent only
+// when the API runs behind HTTPS (secure cookies), never on local http.
+func securityHeaders(secure bool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		h := c.Writer.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Content-Security-Policy", "frame-ancestors 'none'")
+		h.Set("Referrer-Policy", "no-referrer")
+		h.Set("Cross-Origin-Resource-Policy", "same-origin")
+		h.Set("Cache-Control", "no-store")
+		if secure {
+			h.Set("Strict-Transport-Security", "max-age=31536000")
+		}
+		c.Next()
+	}
+}
+
+const (
+	clientIPKey       = "client_ip"
+	clientIPHeader    = "X-Dakota-Client-IP"
+	clientIPKeyHeader = "X-Dakota-Client-IP-Key"
+)
+
+// trustedClientIP believes the visitor address the frontend passes on, but
+// only when the request also carries the shared secret. The frontend copies
+// the address from a header its hosting platform sets and overwrites, so the
+// value cannot come from the visitor (R-23). Without the secret, or with a
+// malformed address, the API falls back to the TCP peer as before.
+func trustedClientIP(secret string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if secret != "" {
+			key := c.GetHeader(clientIPKeyHeader)
+			if subtle.ConstantTimeCompare([]byte(key), []byte(secret)) == 1 {
+				if ip, err := netip.ParseAddr(c.GetHeader(clientIPHeader)); err == nil {
+					c.Set(clientIPKey, ip.Unmap().String())
+				}
+			}
+		}
+		c.Next()
+	}
+}
+
+// clientIP is the visitor's address: the verified one from the frontend when
+// present, otherwise what Gin derives from the connection and trusted proxies.
+func clientIP(c *gin.Context) string {
+	if ip := c.GetString(clientIPKey); ip != "" {
+		return ip
+	}
+	return c.ClientIP()
 }
 
 // limitBody caps request bodies so a large upload cannot exhaust memory on
@@ -150,7 +206,7 @@ func principal(c *gin.Context) *auth.Principal {
 // auditRequest captures who and where for audit entries.
 func auditRequest(c *gin.Context) audit.Request {
 	r := audit.Request{RequestID: c.GetString(requestIDKey), UserAgent: truncate(c.Request.UserAgent(), 512)}
-	if ip, err := netip.ParseAddr(c.ClientIP()); err == nil {
+	if ip, err := netip.ParseAddr(clientIP(c)); err == nil {
 		r.IP = &ip
 	}
 	if p := principal(c); p != nil {

@@ -37,6 +37,10 @@ type Config struct {
 	// TrustedProxies lists proxy IPs or CIDRs whose X-Forwarded-For headers
 	// are believed. Empty means the client IP is the TCP peer.
 	TrustedProxies []string
+	// ClientIPSecret is shared with the frontend, which sends it with the
+	// visitor address its hosting platform reports (R-23). Required in
+	// staging and production, so per-address limits see real visitors.
+	ClientIPSecret string
 
 	// AllowedOrigins are the browser origins allowed to make state-changing
 	// requests (the frontend). Requests from any other Origin are refused.
@@ -203,6 +207,10 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 	}
 
 	cfg.TrustedProxies = splitList(get("TRUSTED_PROXIES", ""))
+	cfg.ClientIPSecret = get("CLIENT_IP_SECRET", "")
+	if cfg.ClientIPSecret != "" && len(cfg.ClientIPSecret) < 32 {
+		errs = append(errs, errors.New("CLIENT_IP_SECRET must be at least 32 characters (openssl rand -hex 32)"))
+	}
 
 	cfg.AllowedOrigins = splitList(get("ALLOWED_ORIGINS", "http://localhost:3000"))
 	for _, o := range cfg.AllowedOrigins {
@@ -338,6 +346,9 @@ func FromLookup(lookup func(string) (string, bool)) (Config, error) {
 		}
 		if !strings.HasPrefix(cfg.AppBaseURL, "https://") {
 			errs = append(errs, fmt.Errorf("APP_BASE_URL must use https when APP_ENV=%s", cfg.Env))
+		}
+		if cfg.ClientIPSecret == "" {
+			errs = append(errs, fmt.Errorf("CLIENT_IP_SECRET is required when APP_ENV=%s: without it every visitor shares the frontend's address in rate limits (openssl rand -hex 32)", cfg.Env))
 		}
 		for _, o := range cfg.AllowedOrigins {
 			if !strings.HasPrefix(o, "https://") {

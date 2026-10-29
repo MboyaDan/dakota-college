@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 16c, Reports page and export buttons. Done, awaiting review.
-- **Next stage:** 17, Security and privacy hardening (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-16c-report-screens` (from `main` after #42)
+- **Current stage:** 17a, Security review, headers and rate limits. Done, awaiting review.
+- **Next stage:** 17b, optional two-step sign-in (TOTP) for finance, registrar and admin staff (KCB signature check slots in when KCB sends the key).
+- **Branch:** `stage-17a-hardening` (from `main` after #43)
 
 ## Stage status
 
@@ -43,8 +43,11 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 15b | KCB Buni notifications | Merged (#39, gitleaks fix #40); signature check waits for KCB |
 | 16a | Message queue with retries | Merged (#41) |
 | 16b | Reports API: dashboard data and count exports | Merged (#42) |
-| 16c | Dashboard pages and export buttons | Done, awaiting review |
-| 17 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 16c | Dashboard pages and export buttons | Merged (#43) |
+| 17a | Security review, headers, rate limits, dependency audit | Done, awaiting review |
+| 17b | Two-step sign-in (TOTP) | Not started |
+| 17c | Retention jobs, data subject requests, breach procedure | Not started |
+| 18 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -57,6 +60,17 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 17a: Security review, headers and rate limits (2026-10-29)
+
+- Stage 17 split into 17a, 17b (TOTP) and 17c (retention, data subject requests); owner chose nonces on signed-in pages, CI failing on high or critical advisories, and ClamAV as an opt-in service tested locally and in CI (D-191, D-193, D-194, D-199).
+- Written review `docs/security.md` (assets, attackers, boundaries, controls with evidence, findings F-01 to F-06, open items before real data) and a generated route list `docs/endpoints.md` (208 routes) kept current by a test (D-198).
+- Fixed: anyone could lock every account out of sign-in, because all visitors shared one address behind the rewrite (R-23). The frontend proxy now passes the platform's client address with a shared secret and the API believes it only with that secret (D-195). New env vars: `CLIENT_IP_SECRET` (API, required in staging and production), `CLIENT_IP_HEADER`, `CLIENT_IP_SECRET` and `CONTENT_IMAGE_ORIGIN` (frontend).
+- Site: Content-Security-Policy from `proxy.ts`, with a nonce on the staff portal, student portal and application form (now rendered per request; form pages moved into an `apply/(form)` route group) and a fixed policy on cached public pages; HSTS, frame, referrer and permissions headers; links into the signed-in areas load fresh (D-191, D-192). API: security headers on every response, `no-store` by default (D-192).
+- Permission routes need a staff account and roles are for staff only (D-196). Sign-in forms keep text typed before the scripts load (D-197).
+- Dependencies: quic-go raised to v0.59.1 (GO-2026-5676, reachable); CI runs govulncheck and npm audit. ClamAV: Compose and CI use the Debian image, which runs on arm64; new CI job scans EICAR against a real clamd.
+- No migrations.
+- Verified: all Go packages with PostgreSQL and `-race` (new: `TestSecurityHeaders`, `TestTrustedClientIP`, `TestVerifiedVisitorAddressReachesAuditAndLimits`, `TestPermissionRoutesNeedAStaffAccount`, `TestApplicantRoutesRefuseOtherApplicants`, `TestEndpointInventoryIsCurrent`, `TestClientIPSecret`); `TestClamAVLive` against a local ClamAV (EICAR found, clean file passed); govulncheck 0 reachable; npm audit 0; 137 unit tests; typecheck, lint, Prettier, build; Playwright 170 passed, 0 failed, 42 skipped by design (offline, M-Pesa, KCB, one-width tests), plus the offline spec with the API stopped (28 passed); every script on 8 signed-in pages carried the response's nonce (curl on the built site); live check through the rewrite: a verified visitor audited under their own address, a forged header ignored.
 
 ### Stage 16c: Reports page and export buttons (2026-10-28)
 

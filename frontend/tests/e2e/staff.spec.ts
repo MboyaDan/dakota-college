@@ -42,18 +42,17 @@ test("signed-out visitors are sent to the login page and back", async ({ page },
   await expect(page.getByRole("heading", { level: 1, name: "News" })).toBeVisible();
 });
 
-test("credentials never reach the URL, even on a fast submit", async ({ page }) => {
+test("credentials never reach the URL, even on a fast submit", async ({ page }, testInfo) => {
   const urls: string[] = [];
   page.on("request", (r) => urls.push(r.url()));
   await page.goto("/staff/login", { waitUntil: "commit" });
-  await page.getByLabel("Email address").fill("editor@example.invalid");
+  // An unknown address, so the wrong password never counts against a real
+  // account (five failures lock it, D-45). Typed before the scripts load, it
+  // must survive hydration and be sent (D-197).
+  await page.getByLabel("Email address").fill(`fast-${testInfo.project.name}-${Date.now()}@example.invalid`);
   await page.getByLabel("Password").fill("a-secret-that-must-not-leak");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(
-    page
-      .getByRole("heading", { level: 1, name: /^Hello/ })
-      .or(page.getByRole("alert").filter({ hasText: "Could not sign in" })),
-  ).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "Could not sign in" })).toBeVisible();
   expect(urls.filter((u) => u.includes("a-secret") || u.includes("password="))).toEqual([]);
 });
 

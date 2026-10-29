@@ -147,6 +147,7 @@ func run() error {
 		Logger:         logger,
 		DB:             pool,
 		TrustedProxies: cfg.TrustedProxies,
+		ClientIPSecret: cfg.ClientIPSecret,
 		AllowedOrigins: cfg.AllowedOrigins,
 		CookieSecure:   cfg.Session.CookieSecure,
 		Auth:           authSvc,

@@ -8,6 +8,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { api, errorMessage } from "@/lib/api/client";
+import { fields } from "@/lib/form-fields";
 import { useHydrated } from "@/lib/use-hydrated";
 
 const portals = {
@@ -79,13 +80,12 @@ export function safeNext(next: string | null): string {
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const hydrated = useHydrated();
 
-  async function submit() {
+  async function submit(form: HTMLFormElement) {
+    const { email, password } = fields(form, "email", "password");
     setBusy(true);
     setError(null);
     const { data, error: err } = await api.POST("/api/v1/auth/login", { body: { email, password } });
@@ -100,7 +100,7 @@ export function LoginForm() {
       className="flex flex-col gap-5"
       onSubmit={(e) => {
         e.preventDefault();
-        void submit();
+        void submit(e.currentTarget);
       }}
     >
       {error ? (
@@ -108,24 +108,8 @@ export function LoginForm() {
           {error}
         </Alert>
       ) : null}
-      <Input
-        name="email"
-        label="Email address"
-        type="email"
-        autoComplete="username"
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <Input
-        name="password"
-        label="Password"
-        type="password"
-        autoComplete="current-password"
-        required
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+      <Input name="email" label="Email address" type="email" autoComplete="username" required />
+      <Input name="password" label="Password" type="password" autoComplete="current-password" required />
       <Button type="submit" loading={busy} disabled={!hydrated}>
         Sign in
       </Button>
@@ -140,13 +124,13 @@ export function LoginForm() {
 }
 
 export function ForgotPasswordForm() {
-  const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const hydrated = useHydrated();
 
-  async function submit() {
+  async function submit(form: HTMLFormElement) {
+    const { email } = fields(form, "email");
     setBusy(true);
     setError(null);
     const { data, error: err } = await api.POST("/api/v1/auth/password-reset", { body: { email } });
@@ -168,7 +152,7 @@ export function ForgotPasswordForm() {
       className="flex flex-col gap-5"
       onSubmit={(e) => {
         e.preventDefault();
-        void submit();
+        void submit(e.currentTarget);
       }}
     >
       {error ? (
@@ -176,15 +160,7 @@ export function ForgotPasswordForm() {
           {error}
         </Alert>
       ) : null}
-      <Input
-        name="email"
-        label="Email address"
-        type="email"
-        autoComplete="email"
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+      <Input name="email" label="Email address" type="email" autoComplete="email" required />
       <Button type="submit" loading={busy} disabled={!hydrated}>
         Send reset link
       </Button>

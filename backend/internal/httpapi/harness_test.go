@@ -40,6 +40,9 @@ import (
 const (
 	testOrigin   = "https://dakota.example"
 	testPassword = "correct horse battery staple"
+	// testClientIPSecret is what the frontend would send with the visitor
+	// address (R-23).
+	testClientIPSecret = "test-client-ip-secret-0123456789abcdef"
 )
 
 // testMessageKey encrypts queued messages in tests; never a real key.
@@ -114,7 +117,7 @@ func (h *harness) rebuild() {
 		Storage: h.storage, PrivateBucket: "dakota-private",
 	})
 	h.router, err = NewRouter(Deps{
-		Logger: logger, DB: h.pool, AllowedOrigins: []string{testOrigin}, CookieSecure: true,
+		Logger: logger, DB: h.pool, AllowedOrigins: []string{testOrigin}, CookieSecure: true, ClientIPSecret: testClientIPSecret,
 		Auth: h.auth, Access: h.access, Content: content.NewService(h.pool),
 		Images:    &media.Images{Pool: h.pool, Storage: h.storage, Bucket: "dakota-public", PublicBaseURL: "https://cdn.example/dakota-public"},
 		Enquiries: enquiry.NewService(h.pool, h.queue, logger, testOrigin),

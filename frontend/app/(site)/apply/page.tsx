@@ -83,10 +83,10 @@ export default async function ApplyPage({ searchParams }: PageProps<"/apply">) {
             status.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
-            <LinkButton href="/apply/start" variant="secondary">
+            <LinkButton href="/apply/start" variant="secondary" reload>
               Email me a sign-in link
             </LinkButton>
-            <LinkButton href="/apply/resume" variant="outline">
+            <LinkButton href="/apply/resume" variant="outline" reload>
               I have a reference number
             </LinkButton>
           </div>
@@ -133,7 +133,9 @@ async function Choice({ searchParams }: Pick<PageProps<"/apply">, "searchParams"
       </p>
       {open.length > 0 ? (
         <div className="pt-2">
-          <LinkButton href={`/apply/new?${q}`}>Start your application</LinkButton>
+          <LinkButton href={`/apply/new?${q}`} reload>
+            Start your application
+          </LinkButton>
         </div>
       ) : (
         <p>

@@ -78,7 +78,7 @@ services:
   # COMPOSE_CLAMAV_ADDR=clamav:3310 for the api container, or
   # CLAMAV_ADDR=localhost:3310 for `make run`.
   clamav:
-    image: clamav/clamav:1.4.3
+    image: clamav/clamav-debian:1.4.3 # Debian build: also runs on arm64 (Apple Silicon)
     profiles: ["scan"]
     volumes:
       - clamav-data:/var/lib/clamav
