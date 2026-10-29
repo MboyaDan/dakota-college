@@ -362,6 +362,15 @@ func (q *Queries) StaffDeleteFaqCategory(ctx context.Context, id uuid.UUID) erro
 	return err
 }
 
+const staffDeleteFounder = `-- name: StaffDeleteFounder :exec
+DELETE FROM founders WHERE id = $1
+`
+
+func (q *Queries) StaffDeleteFounder(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, staffDeleteFounder, id)
+	return err
+}
+
 const staffDeleteGalleryItem = `-- name: StaffDeleteGalleryItem :exec
 DELETE FROM gallery_items WHERE id = $1
 `
@@ -590,9 +599,56 @@ func (q *Queries) StaffGetFaqCategory(ctx context.Context, id uuid.UUID) (FaqCat
 	return i, err
 }
 
+const staffGetFounder = `-- name: StaffGetFounder :one
+
+SELECT id, name, role_title, intro, story, photo_file_id, photo_alt, consent_confirmed, consent_note, sort_order,
+       status, published_at, is_sample, updated_at
+FROM founders WHERE id = $1
+`
+
+type StaffGetFounderRow struct {
+	ID               uuid.UUID
+	Name             string
+	RoleTitle        string
+	Intro            string
+	Story            string
+	PhotoFileID      *uuid.UUID
+	PhotoAlt         string
+	ConsentConfirmed bool
+	ConsentNote      string
+	SortOrder        int32
+	Status           string
+	PublishedAt      *time.Time
+	IsSample         bool
+	UpdatedAt        time.Time
+}
+
+// ---------- founders ----------
+func (q *Queries) StaffGetFounder(ctx context.Context, id uuid.UUID) (StaffGetFounderRow, error) {
+	row := q.db.QueryRow(ctx, staffGetFounder, id)
+	var i StaffGetFounderRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.RoleTitle,
+		&i.Intro,
+		&i.Story,
+		&i.PhotoFileID,
+		&i.PhotoAlt,
+		&i.ConsentConfirmed,
+		&i.ConsentNote,
+		&i.SortOrder,
+		&i.Status,
+		&i.PublishedAt,
+		&i.IsSample,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const staffGetGalleryItem = `-- name: StaffGetGalleryItem :one
 
-SELECT id, file_id, caption, alt_text, consent_confirmed, consent_note, sort_order, status, is_sample, updated_at
+SELECT id, file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, sort_order, status, is_sample, updated_at
 FROM gallery_items WHERE id = $1
 `
 
@@ -603,6 +659,7 @@ type StaffGetGalleryItemRow struct {
 	AltText          string
 	ConsentConfirmed bool
 	ConsentNote      string
+	HomeHero         bool
 	SortOrder        int32
 	Status           string
 	IsSample         bool
@@ -620,6 +677,7 @@ func (q *Queries) StaffGetGalleryItem(ctx context.Context, id uuid.UUID) (StaffG
 		&i.AltText,
 		&i.ConsentConfirmed,
 		&i.ConsentNote,
+		&i.HomeHero,
 		&i.SortOrder,
 		&i.Status,
 		&i.IsSample,
@@ -778,24 +836,27 @@ func (q *Queries) StaffGetProgramme(ctx context.Context, id uuid.UUID) (StaffGet
 const staffGetSchool = `-- name: StaffGetSchool :one
 
 SELECT id, slug, name, short_name, accent_key, summary, description, head_message, sort_order,
-       status, published_at, is_sample, updated_at
+       photo_file_id, photo_alt, photo_consent_confirmed, status, published_at, is_sample, updated_at
 FROM schools WHERE id = $1
 `
 
 type StaffGetSchoolRow struct {
-	ID          uuid.UUID
-	Slug        string
-	Name        string
-	ShortName   string
-	AccentKey   string
-	Summary     string
-	Description string
-	HeadMessage string
-	SortOrder   int32
-	Status      string
-	PublishedAt *time.Time
-	IsSample    bool
-	UpdatedAt   time.Time
+	ID                    uuid.UUID
+	Slug                  string
+	Name                  string
+	ShortName             string
+	AccentKey             string
+	Summary               string
+	Description           string
+	HeadMessage           string
+	SortOrder             int32
+	PhotoFileID           *uuid.UUID
+	PhotoAlt              string
+	PhotoConsentConfirmed bool
+	Status                string
+	PublishedAt           *time.Time
+	IsSample              bool
+	UpdatedAt             time.Time
 }
 
 // ---------- schools ----------
@@ -812,6 +873,9 @@ func (q *Queries) StaffGetSchool(ctx context.Context, id uuid.UUID) (StaffGetSch
 		&i.Description,
 		&i.HeadMessage,
 		&i.SortOrder,
+		&i.PhotoFileID,
+		&i.PhotoAlt,
+		&i.PhotoConsentConfirmed,
 		&i.Status,
 		&i.PublishedAt,
 		&i.IsSample,
@@ -991,9 +1055,48 @@ func (q *Queries) StaffInsertFaqCategory(ctx context.Context, arg StaffInsertFaq
 	return id, err
 }
 
+const staffInsertFounder = `-- name: StaffInsertFounder :one
+INSERT INTO founders (name, role_title, intro, story, photo_file_id, photo_alt, consent_confirmed, consent_note, sort_order,
+  created_by, updated_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
+  $10, $10)
+RETURNING id
+`
+
+type StaffInsertFounderParams struct {
+	Name             string
+	RoleTitle        string
+	Intro            string
+	Story            string
+	PhotoFileID      *uuid.UUID
+	PhotoAlt         string
+	ConsentConfirmed bool
+	ConsentNote      string
+	SortOrder        int32
+	Actor            *uuid.UUID
+}
+
+func (q *Queries) StaffInsertFounder(ctx context.Context, arg StaffInsertFounderParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, staffInsertFounder,
+		arg.Name,
+		arg.RoleTitle,
+		arg.Intro,
+		arg.Story,
+		arg.PhotoFileID,
+		arg.PhotoAlt,
+		arg.ConsentConfirmed,
+		arg.ConsentNote,
+		arg.SortOrder,
+		arg.Actor,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const staffInsertGalleryItem = `-- name: StaffInsertGalleryItem :one
-INSERT INTO gallery_items (file_id, caption, alt_text, consent_confirmed, consent_note, sort_order)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO gallery_items (file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, sort_order)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id
 `
 
@@ -1003,6 +1106,7 @@ type StaffInsertGalleryItemParams struct {
 	AltText          string
 	ConsentConfirmed bool
 	ConsentNote      string
+	HomeHero         bool
 	SortOrder        int32
 }
 
@@ -1013,6 +1117,7 @@ func (q *Queries) StaffInsertGalleryItem(ctx context.Context, arg StaffInsertGal
 		arg.AltText,
 		arg.ConsentConfirmed,
 		arg.ConsentNote,
+		arg.HomeHero,
 		arg.SortOrder,
 	)
 	var id uuid.UUID
@@ -1140,21 +1245,26 @@ func (q *Queries) StaffInsertProgramme(ctx context.Context, arg StaffInsertProgr
 }
 
 const staffInsertSchool = `-- name: StaffInsertSchool :one
-INSERT INTO schools (slug, name, short_name, accent_key, summary, description, head_message, sort_order, created_by, updated_by)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+INSERT INTO schools (slug, name, short_name, accent_key, summary, description, head_message, sort_order,
+  photo_file_id, photo_alt, photo_consent_confirmed, created_by, updated_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+  $9, $10, $11, $12, $12)
 RETURNING id
 `
 
 type StaffInsertSchoolParams struct {
-	Slug        string
-	Name        string
-	ShortName   string
-	AccentKey   string
-	Summary     string
-	Description string
-	HeadMessage string
-	SortOrder   int32
-	Actor       *uuid.UUID
+	Slug                  string
+	Name                  string
+	ShortName             string
+	AccentKey             string
+	Summary               string
+	Description           string
+	HeadMessage           string
+	SortOrder             int32
+	PhotoFileID           *uuid.UUID
+	PhotoAlt              string
+	PhotoConsentConfirmed bool
+	Actor                 *uuid.UUID
 }
 
 func (q *Queries) StaffInsertSchool(ctx context.Context, arg StaffInsertSchoolParams) (uuid.UUID, error) {
@@ -1167,6 +1277,9 @@ func (q *Queries) StaffInsertSchool(ctx context.Context, arg StaffInsertSchoolPa
 		arg.Description,
 		arg.HeadMessage,
 		arg.SortOrder,
+		arg.PhotoFileID,
+		arg.PhotoAlt,
+		arg.PhotoConsentConfirmed,
 		arg.Actor,
 	)
 	var id uuid.UUID
@@ -1378,6 +1491,46 @@ func (q *Queries) StaffListFaqs(ctx context.Context) ([]StaffListFaqsRow, error)
 			&i.IsSample,
 			&i.UpdatedAt,
 			&i.CategoryName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const staffListFounders = `-- name: StaffListFounders :many
+SELECT id, name AS label, role_title, status, is_sample, updated_at FROM founders ORDER BY sort_order, name
+`
+
+type StaffListFoundersRow struct {
+	ID        uuid.UUID
+	Label     string
+	RoleTitle string
+	Status    string
+	IsSample  bool
+	UpdatedAt time.Time
+}
+
+func (q *Queries) StaffListFounders(ctx context.Context) ([]StaffListFoundersRow, error) {
+	rows, err := q.db.Query(ctx, staffListFounders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []StaffListFoundersRow{}
+	for rows.Next() {
+		var i StaffListFoundersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Label,
+			&i.RoleTitle,
+			&i.Status,
+			&i.IsSample,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1719,6 +1872,27 @@ func (q *Queries) StaffSetFaqStatus(ctx context.Context, arg StaffSetFaqStatusPa
 	return err
 }
 
+const staffSetFounderStatus = `-- name: StaffSetFounderStatus :exec
+UPDATE founders SET status = $1, published_at = $2, updated_by = $3 WHERE id = $4
+`
+
+type StaffSetFounderStatusParams struct {
+	Status      string
+	PublishedAt *time.Time
+	Actor       *uuid.UUID
+	ID          uuid.UUID
+}
+
+func (q *Queries) StaffSetFounderStatus(ctx context.Context, arg StaffSetFounderStatusParams) error {
+	_, err := q.db.Exec(ctx, staffSetFounderStatus,
+		arg.Status,
+		arg.PublishedAt,
+		arg.Actor,
+		arg.ID,
+	)
+	return err
+}
+
 const staffSetGalleryItemStatus = `-- name: StaffSetGalleryItemStatus :exec
 UPDATE gallery_items SET status = $1 WHERE id = $2
 `
@@ -1962,10 +2136,48 @@ func (q *Queries) StaffUpdateFaqCategory(ctx context.Context, arg StaffUpdateFaq
 	return err
 }
 
+const staffUpdateFounder = `-- name: StaffUpdateFounder :exec
+UPDATE founders SET name = $1, role_title = $2, intro = $3, story = $4, photo_file_id = $5,
+  photo_alt = $6, consent_confirmed = $7, consent_note = $8, sort_order = $9,
+  updated_by = $10
+WHERE id = $11
+`
+
+type StaffUpdateFounderParams struct {
+	Name             string
+	RoleTitle        string
+	Intro            string
+	Story            string
+	PhotoFileID      *uuid.UUID
+	PhotoAlt         string
+	ConsentConfirmed bool
+	ConsentNote      string
+	SortOrder        int32
+	Actor            *uuid.UUID
+	ID               uuid.UUID
+}
+
+func (q *Queries) StaffUpdateFounder(ctx context.Context, arg StaffUpdateFounderParams) error {
+	_, err := q.db.Exec(ctx, staffUpdateFounder,
+		arg.Name,
+		arg.RoleTitle,
+		arg.Intro,
+		arg.Story,
+		arg.PhotoFileID,
+		arg.PhotoAlt,
+		arg.ConsentConfirmed,
+		arg.ConsentNote,
+		arg.SortOrder,
+		arg.Actor,
+		arg.ID,
+	)
+	return err
+}
+
 const staffUpdateGalleryItem = `-- name: StaffUpdateGalleryItem :exec
 UPDATE gallery_items SET file_id = $1, caption = $2, alt_text = $3,
-  consent_confirmed = $4, consent_note = $5, sort_order = $6
-WHERE id = $7
+  consent_confirmed = $4, consent_note = $5, home_hero = $6, sort_order = $7
+WHERE id = $8
 `
 
 type StaffUpdateGalleryItemParams struct {
@@ -1974,6 +2186,7 @@ type StaffUpdateGalleryItemParams struct {
 	AltText          string
 	ConsentConfirmed bool
 	ConsentNote      string
+	HomeHero         bool
 	SortOrder        int32
 	ID               uuid.UUID
 }
@@ -1985,6 +2198,7 @@ func (q *Queries) StaffUpdateGalleryItem(ctx context.Context, arg StaffUpdateGal
 		arg.AltText,
 		arg.ConsentConfirmed,
 		arg.ConsentNote,
+		arg.HomeHero,
 		arg.SortOrder,
 		arg.ID,
 	)
@@ -2111,21 +2325,25 @@ func (q *Queries) StaffUpdateProgramme(ctx context.Context, arg StaffUpdateProgr
 
 const staffUpdateSchool = `-- name: StaffUpdateSchool :exec
 UPDATE schools SET slug = $1, name = $2, short_name = $3, accent_key = $4, summary = $5,
-  description = $6, head_message = $7, sort_order = $8, updated_by = $9
-WHERE id = $10
+  description = $6, head_message = $7, sort_order = $8, photo_file_id = $9,
+  photo_alt = $10, photo_consent_confirmed = $11, updated_by = $12
+WHERE id = $13
 `
 
 type StaffUpdateSchoolParams struct {
-	Slug        string
-	Name        string
-	ShortName   string
-	AccentKey   string
-	Summary     string
-	Description string
-	HeadMessage string
-	SortOrder   int32
-	Actor       *uuid.UUID
-	ID          uuid.UUID
+	Slug                  string
+	Name                  string
+	ShortName             string
+	AccentKey             string
+	Summary               string
+	Description           string
+	HeadMessage           string
+	SortOrder             int32
+	PhotoFileID           *uuid.UUID
+	PhotoAlt              string
+	PhotoConsentConfirmed bool
+	Actor                 *uuid.UUID
+	ID                    uuid.UUID
 }
 
 func (q *Queries) StaffUpdateSchool(ctx context.Context, arg StaffUpdateSchoolParams) error {
@@ -2138,6 +2356,9 @@ func (q *Queries) StaffUpdateSchool(ctx context.Context, arg StaffUpdateSchoolPa
 		arg.Description,
 		arg.HeadMessage,
 		arg.SortOrder,
+		arg.PhotoFileID,
+		arg.PhotoAlt,
+		arg.PhotoConsentConfirmed,
 		arg.Actor,
 		arg.ID,
 	)

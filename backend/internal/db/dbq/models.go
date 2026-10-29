@@ -371,6 +371,26 @@ type FileLink struct {
 	CreatedAt time.Time
 }
 
+type Founder struct {
+	ID               uuid.UUID
+	Name             string
+	RoleTitle        string
+	Intro            string
+	Story            string
+	PhotoFileID      *uuid.UUID
+	PhotoAlt         string
+	ConsentConfirmed bool
+	ConsentNote      string
+	SortOrder        int32
+	Status           string
+	PublishedAt      *time.Time
+	IsSample         bool
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	CreatedBy        *uuid.UUID
+	UpdatedBy        *uuid.UUID
+}
+
 type GalleryItem struct {
 	ID               uuid.UUID
 	FileID           uuid.UUID
@@ -383,6 +403,7 @@ type GalleryItem struct {
 	IsSample         bool
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
+	HomeHero         bool
 }
 
 type IdempotencyRecord struct {
@@ -759,22 +780,25 @@ type RolePermission struct {
 }
 
 type School struct {
-	ID          uuid.UUID
-	Slug        string
-	Name        string
-	ShortName   string
-	AccentKey   string
-	Summary     string
-	Description string
-	HeadMessage string
-	SortOrder   int32
-	Status      string
-	PublishedAt *time.Time
-	IsSample    bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	CreatedBy   *uuid.UUID
-	UpdatedBy   *uuid.UUID
+	ID                    uuid.UUID
+	Slug                  string
+	Name                  string
+	ShortName             string
+	AccentKey             string
+	Summary               string
+	Description           string
+	HeadMessage           string
+	SortOrder             int32
+	Status                string
+	PublishedAt           *time.Time
+	IsSample              bool
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+	CreatedBy             *uuid.UUID
+	UpdatedBy             *uuid.UUID
+	PhotoFileID           *uuid.UUID
+	PhotoAlt              string
+	PhotoConsentConfirmed bool
 }
 
 type SchoolAssignment struct {

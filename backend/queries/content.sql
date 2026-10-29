@@ -97,6 +97,7 @@ SELECT
   + (SELECT count(*) FROM academic_terms WHERE is_sample)
   + (SELECT count(*) FROM units WHERE is_sample)
   + (SELECT count(*) FROM pages WHERE is_sample)
+  + (SELECT count(*) FROM founders WHERE is_sample)
   AS total;
 
 -- name: UpsertPage :exec
@@ -127,3 +128,12 @@ DELETE FROM programme_intakes i
 WHERE i.programme_id = @programme_id AND i.is_sample AND NOT (i.starts_on = ANY(@keep::date[]))
   AND NOT EXISTS (SELECT 1 FROM applications a WHERE a.intake_id = i.id)
   AND NOT EXISTS (SELECT 1 FROM fee_items f WHERE f.intake_id = i.id);
+
+-- name: DeleteSampleFounders :exec
+DELETE FROM founders WHERE is_sample;
+
+-- name: InsertSampleFounder :exec
+-- A placeholder profile with no photo; consent is recorded as not applicable
+-- because it describes no real person.
+INSERT INTO founders (name, role_title, intro, story, consent_confirmed, consent_note, status, published_at, is_sample)
+VALUES (@name, @role_title, @intro, @story, true, 'Sample record: not a real person.', 'published', now(), true);

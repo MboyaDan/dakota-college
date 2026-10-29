@@ -114,6 +114,19 @@ func Run(ctx context.Context, pool *pgxpool.Pool, password string) (Summary, err
 			return err
 		}
 
+		// One placeholder founder, so the founders page and home teaser can be
+		// previewed. No photo: real photos come from the college with consent.
+		if err := q.DeleteSampleFounders(ctx); err != nil {
+			return err
+		}
+		if err := q.InsertSampleFounder(ctx, dbq.InsertSampleFounderParams{
+			Name: "Test Founder 001", RoleTitle: "(Sample) Founder",
+			Intro: "(Sample) The college will add a short introduction to its founder.",
+			Story: "(Sample) The college will add the founder's story here, with their photo and their written consent to publish it.",
+		}); err != nil {
+			return err
+		}
+
 		pages := append([]pageSeed(nil), pageSeeds...)
 		for _, l := range legalPages {
 			body, err := legalDrafts.ReadFile("legal/" + l.file)

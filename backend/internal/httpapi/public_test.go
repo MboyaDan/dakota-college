@@ -379,3 +379,101 @@ func TestAlumniEnquiryGoesToTheGeneralOffice(t *testing.T) {
 		t.Fatalf("alumni email: %+v", m)
 	}
 }
+
+// Photos on the home page and the founders page are published only with
+// consent (NN-08), and only published items reach the snapshot.
+func TestPublicPhotosAndFounders(t *testing.T) {
+	h := newHarness(t)
+	h.firstSuperAdmin("owner@example.invalid")
+	owner := h.mustLogin("owner@example.invalid")
+	img := h.upload(owner, "photo.png", pngBytes(t, 1200, 800))
+	fileID := img.body["id"]
+
+	fieldsOf := func(res map[string]any) []string {
+		var out []string
+		for _, f := range res["error"].(map[string]any)["fields"].([]any) {
+			out = append(out, f.(map[string]any)["field"].(string))
+		}
+		return out
+	}
+
+	// A school photo needs a description, and consent before publishing.
+	doc := schoolDoc("school-of-photos")
+	doc["photo_file_id"] = fileID
+	bad := h.call(req{method: http.MethodPost, path: contentPath("schools"), body: map[string]any{"document": doc}, sess: owner}, http.StatusUnprocessableEntity)
+	if got := fieldsOf(bad); len(got) != 1 || got[0] != "photo_alt" {
+		t.Fatalf("photo without description: %v", got)
+	}
+	doc["photo_alt"] = "Trainees in the skills lab"
+	schoolID := h.create(owner, "schools", doc)
+	if got := fieldsOf(h.publish(owner, "schools", schoolID, http.StatusUnprocessableEntity)); len(got) != 1 || got[0] != "photo_consent_confirmed" {
+		t.Fatalf("school photo without consent: %v", got)
+	}
+	doc["photo_consent_confirmed"] = true
+	cur := h.item(owner, "schools", schoolID)
+	h.call(req{method: http.MethodPut, path: contentPath("schools", schoolID), body: map[string]any{"document": doc, "base_version": cur["version"]}, sess: owner}, http.StatusOK)
+	h.publish(owner, "schools", schoolID, http.StatusOK)
+
+	// A school without a photo has none in the snapshot.
+	plainID := h.create(owner, "schools", schoolDoc("school-without-photo"))
+	h.publish(owner, "schools", plainID, http.StatusOK)
+
+	// The hero is a published gallery photo chosen for the home page.
+	heroDoc := map[string]any{"file_id": fileID, "caption": "", "alt_text": "The college entrance", "consent_confirmed": true,
+		"consent_note": "No people in the photo.", "home_hero": true, "sort_order": 0}
+	heroID := h.create(owner, "gallery", heroDoc)
+	if hero := h.site()["home_hero"]; hero != nil {
+		t.Fatalf("draft hero photo is public: %v", hero)
+	}
+	h.publish(owner, "gallery", heroID, http.StatusOK)
+
+	// A founder needs a story and consent before publishing.
+	founder := map[string]any{"name": "Test Founder", "role_title": "Founder and Director", "intro": "Founded the college.", "story": "",
+		"photo_file_id": fileID, "photo_alt": "Test Founder", "consent_confirmed": false, "consent_note": "", "sort_order": 0}
+	founderID := h.create(owner, "founders", founder)
+	if got := fieldsOf(h.publish(owner, "founders", founderID, http.StatusUnprocessableEntity)); len(got) != 2 {
+		t.Fatalf("founder without story and consent: %v", got)
+	}
+	if got := h.site()["founders"].([]any); len(got) != 0 {
+		t.Fatalf("draft founder is public: %v", got)
+	}
+	founder["story"] = "Started the college to train health workers.\n\nStill teaches on Fridays."
+	founder["consent_confirmed"] = true
+	cur = h.item(owner, "founders", founderID)
+	h.call(req{method: http.MethodPut, path: contentPath("founders", founderID), body: map[string]any{"document": founder, "base_version": cur["version"]}, sess: owner}, http.StatusOK)
+	h.publish(owner, "founders", founderID, http.StatusOK)
+
+	site := h.site()
+	photoURL := func(v any) string {
+		img, _ := v.(map[string]any)
+		url, _ := img["url"].(string)
+		return url
+	}
+	schools := map[string]map[string]any{}
+	for _, s := range site["schools"].([]any) {
+		schools[s.(map[string]any)["slug"].(string)] = s.(map[string]any)
+	}
+	if s := schools["school-of-photos"]; !strings.HasPrefix(photoURL(s["photo"]), "https://cdn.example/dakota-public/") || s["photo_alt"] != "Trainees in the skills lab" {
+		t.Fatalf("school photo: %v", s)
+	}
+	if s := schools["school-without-photo"]; s["photo"] != nil || s["photo_alt"] != "" {
+		t.Fatalf("school without photo: %v", s)
+	}
+	hero, _ := site["home_hero"].(map[string]any)
+	if hero == nil || hero["alt_text"] != "The college entrance" || photoURL(hero["image"]) == "" {
+		t.Fatalf("home hero: %v", site["home_hero"])
+	}
+	founders := site["founders"].([]any)
+	if len(founders) != 1 {
+		t.Fatalf("founders %v", founders)
+	}
+	f := founders[0].(map[string]any)
+	if f["name"] != "Test Founder" || f["role_title"] != "Founder and Director" || f["photo_alt"] != "Test Founder" || photoURL(f["photo"]) == "" {
+		t.Fatalf("founder %v", f)
+	}
+
+	// The database refuses a published profile without consent, whatever the API does.
+	if _, err := h.pool.Exec(context.Background(), `INSERT INTO founders (name, story, status, published_at) VALUES ('X', 'Story', 'published', now())`); err == nil {
+		t.Fatal("published founder without consent was stored")
+	}
+}

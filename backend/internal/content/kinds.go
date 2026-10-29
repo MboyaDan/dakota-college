@@ -28,11 +28,12 @@ func init() {
 	register(statisticKind)
 	register(accreditationKind)
 	register(pageKind)
+	register(founderKind)
 }
 
 // KindNames lists the registered content types (for docs and tests).
 func KindNames() []string {
-	return []string{"schools", "programmes", "news", "events", "faq-categories", "faqs", "banners", "gallery", "statistics", "accreditations", "pages"}
+	return []string{"schools", "programmes", "news", "events", "faq-categories", "faqs", "banners", "gallery", "statistics", "accreditations", "pages", "founders"}
 }
 
 func summaries[T any](rows []T, err error, f func(T) Summary) ([]Summary, error) {
@@ -64,6 +65,10 @@ type SchoolDoc struct {
 	Description string `json:"description"`
 	HeadMessage string `json:"head_message"`
 	SortOrder   int32  `json:"sort_order"`
+	// PhotoFileID is the photo behind the school's card and page header.
+	PhotoFileID           *uuid.UUID `json:"photo_file_id"`
+	PhotoAlt              string     `json:"photo_alt"`
+	PhotoConsentConfirmed bool       `json:"photo_consent_confirmed"`
 }
 
 func (d SchoolDoc) Validate() error {
@@ -75,8 +80,21 @@ func (d SchoolDoc) Validate() error {
 	p.optional("summary", d.Summary, 400)
 	p.optional("description", d.Description, 20000)
 	p.optional("head_message", d.HeadMessage, 5000)
+	photo(&p, d.PhotoFileID, d.PhotoAlt)
 	return p.Err()
 }
+
+// photo checks an optional photo has a description for screen readers.
+func photo(p *Problems, id *uuid.UUID, alt string) {
+	if id != nil {
+		p.required("photo_alt", alt, 250)
+	} else {
+		p.optional("photo_alt", alt, 250)
+	}
+}
+
+// photoConsentMessage is the publishing rule for photos that may show people (NN-08).
+const photoConsentMessage = "Confirm you have written consent from everyone recognisable in the photo before publishing."
 
 var schoolKind = def[SchoolDoc]{
 	name: "schools", workflow: true,
@@ -92,16 +110,19 @@ var schoolKind = def[SchoolDoc]{
 			return SchoolDoc{}, State{}, notFound(err)
 		}
 		return SchoolDoc{Slug: r.Slug, Name: r.Name, ShortName: r.ShortName, AccentKey: r.AccentKey, Summary: r.Summary,
-				Description: r.Description, HeadMessage: r.HeadMessage, SortOrder: r.SortOrder},
+				Description: r.Description, HeadMessage: r.HeadMessage, SortOrder: r.SortOrder,
+				PhotoFileID: r.PhotoFileID, PhotoAlt: r.PhotoAlt, PhotoConsentConfirmed: r.PhotoConsentConfirmed},
 			State{Status: r.Status, PublishedAt: r.PublishedAt, IsSample: r.IsSample, UpdatedAt: r.UpdatedAt}, nil
 	},
 	create: func(ctx context.Context, q *dbq.Queries, d SchoolDoc, actor uuid.UUID) (uuid.UUID, error) {
 		return q.StaffInsertSchool(ctx, dbq.StaffInsertSchoolParams{Slug: d.Slug, Name: d.Name, ShortName: d.ShortName,
-			AccentKey: d.AccentKey, Summary: d.Summary, Description: d.Description, HeadMessage: d.HeadMessage, SortOrder: d.SortOrder, Actor: &actor})
+			AccentKey: d.AccentKey, Summary: d.Summary, Description: d.Description, HeadMessage: d.HeadMessage, SortOrder: d.SortOrder,
+			PhotoFileID: d.PhotoFileID, PhotoAlt: d.PhotoAlt, PhotoConsentConfirmed: d.PhotoConsentConfirmed, Actor: &actor})
 	},
 	save: func(ctx context.Context, q *dbq.Queries, id uuid.UUID, d SchoolDoc, actor uuid.UUID) error {
 		return q.StaffUpdateSchool(ctx, dbq.StaffUpdateSchoolParams{ID: id, Slug: d.Slug, Name: d.Name, ShortName: d.ShortName,
-			AccentKey: d.AccentKey, Summary: d.Summary, Description: d.Description, HeadMessage: d.HeadMessage, SortOrder: d.SortOrder, Actor: &actor})
+			AccentKey: d.AccentKey, Summary: d.Summary, Description: d.Description, HeadMessage: d.HeadMessage, SortOrder: d.SortOrder,
+			PhotoFileID: d.PhotoFileID, PhotoAlt: d.PhotoAlt, PhotoConsentConfirmed: d.PhotoConsentConfirmed, Actor: &actor})
 	},
 	setStatus: func(ctx context.Context, q *dbq.Queries, id uuid.UUID, status string, at *time.Time, actor uuid.UUID) error {
 		return q.StaffSetSchoolStatus(ctx, dbq.StaffSetSchoolStatusParams{ID: id, Status: status, PublishedAt: at, Actor: &actor})
@@ -111,6 +132,9 @@ var schoolKind = def[SchoolDoc]{
 		var p Problems
 		if d.Summary == "" {
 			p.add("summary", "Add a short summary before publishing: it appears on the schools page.")
+		}
+		if d.PhotoFileID != nil && !d.PhotoConsentConfirmed {
+			p.add("photo_consent_confirmed", photoConsentMessage)
 		}
 		return p.Err()
 	},
@@ -457,7 +481,9 @@ type GalleryDoc struct {
 	AltText          string    `json:"alt_text"`
 	ConsentConfirmed bool      `json:"consent_confirmed"`
 	ConsentNote      string    `json:"consent_note"`
-	SortOrder        int32     `json:"sort_order"`
+	// HomeHero puts the photo at the top of the home page.
+	HomeHero  bool  `json:"home_hero"`
+	SortOrder int32 `json:"sort_order"`
 }
 
 func (d GalleryDoc) Validate() error {
@@ -484,16 +510,16 @@ var galleryKind = def[GalleryDoc]{
 		if err != nil {
 			return GalleryDoc{}, State{}, notFound(err)
 		}
-		return GalleryDoc{FileID: r.FileID, Caption: r.Caption, AltText: r.AltText, ConsentConfirmed: r.ConsentConfirmed, ConsentNote: r.ConsentNote, SortOrder: r.SortOrder},
+		return GalleryDoc{FileID: r.FileID, Caption: r.Caption, AltText: r.AltText, ConsentConfirmed: r.ConsentConfirmed, ConsentNote: r.ConsentNote, HomeHero: r.HomeHero, SortOrder: r.SortOrder},
 			State{Status: r.Status, IsSample: r.IsSample, UpdatedAt: r.UpdatedAt}, nil
 	},
 	create: func(ctx context.Context, q *dbq.Queries, d GalleryDoc, _ uuid.UUID) (uuid.UUID, error) {
 		return q.StaffInsertGalleryItem(ctx, dbq.StaffInsertGalleryItemParams{FileID: d.FileID, Caption: d.Caption, AltText: d.AltText,
-			ConsentConfirmed: d.ConsentConfirmed, ConsentNote: d.ConsentNote, SortOrder: d.SortOrder})
+			ConsentConfirmed: d.ConsentConfirmed, ConsentNote: d.ConsentNote, HomeHero: d.HomeHero, SortOrder: d.SortOrder})
 	},
 	save: func(ctx context.Context, q *dbq.Queries, id uuid.UUID, d GalleryDoc, _ uuid.UUID) error {
 		return q.StaffUpdateGalleryItem(ctx, dbq.StaffUpdateGalleryItemParams{ID: id, FileID: d.FileID, Caption: d.Caption, AltText: d.AltText,
-			ConsentConfirmed: d.ConsentConfirmed, ConsentNote: d.ConsentNote, SortOrder: d.SortOrder})
+			ConsentConfirmed: d.ConsentConfirmed, ConsentNote: d.ConsentNote, HomeHero: d.HomeHero, SortOrder: d.SortOrder})
 	},
 	setStatus: func(ctx context.Context, q *dbq.Queries, id uuid.UUID, status string, _ *time.Time, _ uuid.UUID) error {
 		return q.StaffSetGalleryItemStatus(ctx, dbq.StaffSetGalleryItemStatusParams{ID: id, Status: status})
@@ -503,9 +529,78 @@ var galleryKind = def[GalleryDoc]{
 	},
 	readyToPublish: func(_ context.Context, _ *dbq.Queries, d GalleryDoc) error {
 		if !d.ConsentConfirmed {
-			return Problems{{Field: "consent_confirmed", Message: "Confirm you have written consent from everyone recognisable in the photo before publishing."}}.Err()
+			return Problems{{Field: "consent_confirmed", Message: photoConsentMessage}}.Err()
 		}
 		return nil
+	},
+}
+
+// ---------- founders ----------
+
+// FounderDoc is one founder's profile. Story follows the page text rules.
+type FounderDoc struct {
+	Name             string     `json:"name"`
+	RoleTitle        string     `json:"role_title"`
+	Intro            string     `json:"intro"`
+	Story            string     `json:"story"`
+	PhotoFileID      *uuid.UUID `json:"photo_file_id"`
+	PhotoAlt         string     `json:"photo_alt"`
+	ConsentConfirmed bool       `json:"consent_confirmed"`
+	ConsentNote      string     `json:"consent_note"`
+	SortOrder        int32      `json:"sort_order"`
+}
+
+func (d FounderDoc) Validate() error {
+	var p Problems
+	p.required("name", d.Name, 120)
+	p.optional("role_title", d.RoleTitle, 120)
+	p.optional("intro", d.Intro, 300)
+	p.optional("story", d.Story, 20000)
+	photo(&p, d.PhotoFileID, d.PhotoAlt)
+	p.optional("consent_note", d.ConsentNote, 1000)
+	return p.Err()
+}
+
+var founderKind = def[FounderDoc]{
+	name: "founders", workflow: true,
+	list: func(ctx context.Context, q *dbq.Queries) ([]Summary, error) {
+		rows, err := q.StaffListFounders(ctx)
+		return summaries(rows, err, func(r dbq.StaffListFoundersRow) Summary {
+			return Summary{ID: r.ID, Label: r.Label, Context: r.RoleTitle, Status: r.Status, IsSample: r.IsSample, UpdatedAt: r.UpdatedAt}
+		})
+	},
+	load: func(ctx context.Context, q *dbq.Queries, id uuid.UUID) (FounderDoc, State, error) {
+		r, err := q.StaffGetFounder(ctx, id)
+		if err != nil {
+			return FounderDoc{}, State{}, notFound(err)
+		}
+		return FounderDoc{Name: r.Name, RoleTitle: r.RoleTitle, Intro: r.Intro, Story: r.Story, PhotoFileID: r.PhotoFileID,
+				PhotoAlt: r.PhotoAlt, ConsentConfirmed: r.ConsentConfirmed, ConsentNote: r.ConsentNote, SortOrder: r.SortOrder},
+			State{Status: r.Status, PublishedAt: r.PublishedAt, IsSample: r.IsSample, UpdatedAt: r.UpdatedAt}, nil
+	},
+	create: func(ctx context.Context, q *dbq.Queries, d FounderDoc, actor uuid.UUID) (uuid.UUID, error) {
+		return q.StaffInsertFounder(ctx, dbq.StaffInsertFounderParams{Name: d.Name, RoleTitle: d.RoleTitle, Intro: d.Intro, Story: d.Story,
+			PhotoFileID: d.PhotoFileID, PhotoAlt: d.PhotoAlt, ConsentConfirmed: d.ConsentConfirmed, ConsentNote: d.ConsentNote,
+			SortOrder: d.SortOrder, Actor: &actor})
+	},
+	save: func(ctx context.Context, q *dbq.Queries, id uuid.UUID, d FounderDoc, actor uuid.UUID) error {
+		return q.StaffUpdateFounder(ctx, dbq.StaffUpdateFounderParams{ID: id, Name: d.Name, RoleTitle: d.RoleTitle, Intro: d.Intro, Story: d.Story,
+			PhotoFileID: d.PhotoFileID, PhotoAlt: d.PhotoAlt, ConsentConfirmed: d.ConsentConfirmed, ConsentNote: d.ConsentNote,
+			SortOrder: d.SortOrder, Actor: &actor})
+	},
+	setStatus: func(ctx context.Context, q *dbq.Queries, id uuid.UUID, status string, at *time.Time, actor uuid.UUID) error {
+		return q.StaffSetFounderStatus(ctx, dbq.StaffSetFounderStatusParams{ID: id, Status: status, PublishedAt: at, Actor: &actor})
+	},
+	remove: func(ctx context.Context, q *dbq.Queries, id uuid.UUID) error { return q.StaffDeleteFounder(ctx, id) },
+	readyToPublish: func(_ context.Context, _ *dbq.Queries, d FounderDoc) error {
+		var p Problems
+		if d.Story == "" {
+			p.add("story", "Write the founder's story before publishing.")
+		}
+		if !d.ConsentConfirmed {
+			p.add("consent_confirmed", "Confirm the founder has agreed in writing to their profile and photo being published.")
+		}
+		return p.Err()
 	},
 }
 
