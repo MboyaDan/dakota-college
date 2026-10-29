@@ -7,7 +7,7 @@ import { useState, type ReactNode } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
-import { api, errorMessage } from "@/lib/api/client";
+import { api, errorMessage, isApiError } from "@/lib/api/client";
 import { fields } from "@/lib/form-fields";
 import { useHydrated } from "@/lib/use-hydrated";
 
@@ -82,16 +82,35 @@ export function LoginForm() {
   const params = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // After a right password, accounts with two-step sign-in are asked for a code.
+  const [codeStep, setCodeStep] = useState(false);
   const hydrated = useHydrated();
 
   async function submit(form: HTMLFormElement) {
     const { email, password } = fields(form, "email", "password");
     setBusy(true);
     setError(null);
-    const { data, error: err } = await api.POST("/api/v1/auth/login", { body: { email, password } });
+    const {
+      data,
+      error: err,
+      response,
+    } = await api.POST("/api/v1/auth/login", { body: { email, password } });
     setBusy(false);
-    if (data) router.replace(safeNext(params.get("next")));
+    if (response.status === 202) setCodeStep(true);
+    else if (data) router.replace(safeNext(params.get("next")));
     else setError(errorMessage(err));
+  }
+
+  if (codeStep) {
+    return (
+      <CodeForm
+        onDone={() => router.replace(safeNext(params.get("next")))}
+        onRestart={(message) => {
+          setCodeStep(false);
+          setError(message);
+        }}
+      />
+    );
   }
 
   return (
@@ -119,6 +138,104 @@ export function LoginForm() {
       >
         Forgot your password?
       </Link>
+    </form>
+  );
+}
+
+/** The second sign-in step: a code from the authenticator app, or a recovery code. */
+function CodeForm({
+  onDone,
+  onRestart,
+}: {
+  onDone: () => void;
+  onRestart: (message: string | null) => void;
+}) {
+  const [recovery, setRecovery] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(form: HTMLFormElement) {
+    const { code } = fields(form, "code");
+    setBusy(true);
+    setError(null);
+    const { data, error: err } = await api.POST("/api/v1/auth/login/code", { body: { code } });
+    setBusy(false);
+    if (data) return onDone();
+    const reason = isApiError(err) ? err.error.code : "";
+    // An expired or exhausted sign-in starts again from the password.
+    if (reason === "sign_in_again" || reason === "too_many_attempts") onRestart(errorMessage(err));
+    else setError(errorMessage(err));
+  }
+
+  return (
+    <form
+      method="post"
+      className="flex flex-col gap-5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit(e.currentTarget);
+      }}
+    >
+      <Alert tone="info" title="Two-step sign-in">
+        {recovery
+          ? "Type one of the recovery codes you saved when you turned on two-step sign-in. Each code works once."
+          : "Open the authenticator app on your phone and type the 6-digit code for Dakota Training College."}
+      </Alert>
+      {error ? (
+        <Alert tone="danger" title="Could not sign in" live>
+          {error}
+        </Alert>
+      ) : null}
+      {recovery ? (
+        <Input
+          key="recovery"
+          name="code"
+          label="Recovery code"
+          hint="For example abcd-efgh-jkmn"
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          required
+          maxLength={20}
+          autoFocus
+          className="font-mono"
+        />
+      ) : (
+        <Input
+          key="app"
+          name="code"
+          label="6-digit code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          pattern="[0-9 ]{6,7}"
+          required
+          maxLength={7}
+          autoFocus
+          className="font-mono tracking-widest"
+        />
+      )}
+      <Button type="submit" loading={busy}>
+        Sign in
+      </Button>
+      <div className="flex flex-col items-start">
+        <button
+          type="button"
+          onClick={() => {
+            setRecovery(!recovery);
+            setError(null);
+          }}
+          className="inline-flex min-h-touch items-center text-royal underline underline-offset-4"
+        >
+          {recovery ? "Use the code from your app" : "Lost your phone? Use a recovery code"}
+        </button>
+        <button
+          type="button"
+          onClick={() => onRestart(null)}
+          className="inline-flex min-h-touch items-center text-royal underline underline-offset-4"
+        >
+          Start again with your password
+        </button>
+      </div>
     </form>
   );
 }
