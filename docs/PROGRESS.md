@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 17e, Data requests and retention screens. Done, awaiting review.
-- **Next stage:** 18, Performance and accessibility pass (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-17e-privacy-screens` (from `main` after #52)
+- **Current stage:** 18, Performance and accessibility pass. Done, awaiting review.
+- **Next stage:** 19, Deployment (KCB signature check slots in when KCB sends the key).
+- **Branch:** `stage-18-performance` (from `main` after #53)
 
 ## Stage status
 
@@ -48,8 +48,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 17b | Two-step sign-in (TOTP) | Merged (#51) |
 | 17c | Retention schedule, data subject requests, breach procedure (API and procedures) | Merged (#52) |
 | 17d | Home page photos and founders page (owner request) | Merged (#45) |
-| 17e | Data requests and retention screens | Done, awaiting review |
-| 18 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 17e | Data requests and retention screens | Merged (#53) |
+| 18 | Performance and accessibility pass | Done, awaiting review |
+| 19 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -62,6 +63,16 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 18: Performance and accessibility pass (2026-10-29)
+
+- Measured with Lighthouse 12.6.0 mobile (medians of three runs on a warm local server); results, method and what is below target in `docs/performance.md`. Home 96/100/100/66, programme 96/100/100/69, admissions 97/100/100/69, finder and apply 97/100/100/69; SEO 100 on all five with `SITE_INDEXABLE=1`. CLS 0, TBT under 65 ms.
+- Fix: headings font is the static Newsreader 600 file (24 KB) instead of the variable font (58 KB); fonts per page 105 to 72 KB; LCP about 0.15 to 0.2 s better (D-218). The four serif 400 elements now ask for 600.
+- Still below target: LCP 2.59 to 2.82 s against 2.5 s, and JavaScript at the 150 KB limit (150 to 157 KB on content pages), almost all framework runtime (R-22, R-25 updated). Next step is staging numbers with a CDN and Brotli.
+- An earlier home score of 76 was a cold server, not the page; the measuring method now warms each page first.
+- Accessibility: new `keyboard.spec.ts` (skip link first and working on eight pages, every Tab stop on screen with a focus ring on four pages, menus with Enter and Escape, FAQ with Enter and Space on desktop, keyboard-only contact form errors). Manual keyboard, screen reader, zoom and contrast checklist written in `docs/accessibility.md`; not run (no screen reader here).
+- No backend or migration changes.
+- Verified: typecheck, lint, Prettier, build; 141 unit tests; npm audit (production) 0; full Playwright suite with the API: 174 passed, 56 skipped by design, 10 failed only because the local build left out the design page, and those 10 passed after rebuilding with `ENABLE_DESIGN_PAGE=1` (as CI builds).
 
 ### Stage 17e: Data requests and retention screens (2026-10-29)
 

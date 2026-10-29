@@ -129,7 +129,7 @@ export default function DesignPage() {
 
       <Section id="type" title="Typography">
         <p className="font-serif text-5xl font-semibold text-navy-900">Newsreader heading</p>
-        <p className="font-serif text-3xl text-navy-900">Newsreader subheading</p>
+        <p className="font-serif text-3xl font-semibold text-navy-900">Newsreader subheading</p>
         <p className="max-w-prose">
           Inter body text at 17 px. Short sentences and plain words.{" "}
           <a href="#type" className="text-royal underline underline-offset-4">

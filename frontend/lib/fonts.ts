@@ -3,9 +3,11 @@ import localFont from "next/font/local";
 // Fonts come from fontsource packages and are self-hosted by next/font, so
 // pages never request Google Fonts. Latin subset only: the site is English.
 
+// Headings use one weight, 600, so one static file (24 KB) replaces the
+// variable font (58 KB) on every page's critical path (Stage 18, D-218).
 export const newsreader = localFont({
-  src: "../node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2",
-  weight: "200 800",
+  src: "../node_modules/@fontsource/newsreader/files/newsreader-latin-600-normal.woff2",
+  weight: "600",
   variable: "--font-newsreader",
   display: "swap",
   adjustFontFallback: "Times New Roman",

@@ -54,7 +54,7 @@ export function AuthLayout({
           priority
           className="-ml-2 h-20 w-auto self-start lg:-ml-3 lg:h-28"
         />
-        <p className="font-serif text-2xl">{portals[portal].name}</p>
+        <p className="font-serif text-2xl font-semibold">{portals[portal].name}</p>
         <ul className="hidden list-disc flex-col gap-2 pl-5 text-white/90 lg:flex">
           {portals[portal].points.map((p) => (
             <li key={p}>{p}</li>
