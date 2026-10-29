@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { SiteLink } from "./site-link";
 import { Clock, Mail, MapPin, Phone } from "@/components/icons";
 import { footerNav, legalNav } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/public/settings";
@@ -70,12 +70,12 @@ export function SiteFooter({ settings, accreditations }: SiteFooterProps) {
             <ul className="flex flex-col">
               {section.links.map((link) => (
                 <li key={link.href}>
-                  <Link
+                  <SiteLink
                     href={link.href}
                     className="inline-flex min-h-touch items-center text-white/90 hover:text-white hover:underline"
                   >
                     {link.label}
-                  </Link>
+                  </SiteLink>
                 </li>
               ))}
             </ul>
@@ -96,12 +96,12 @@ export function SiteFooter({ settings, accreditations }: SiteFooterProps) {
             <ul className="flex flex-wrap gap-x-4">
               {legalNav.map((link) => (
                 <li key={link.href}>
-                  <Link
+                  <SiteLink
                     href={link.href}
                     className="inline-flex min-h-touch items-center hover:text-white hover:underline"
                   >
                     {link.label}
-                  </Link>
+                  </SiteLink>
                 </li>
               ))}
             </ul>

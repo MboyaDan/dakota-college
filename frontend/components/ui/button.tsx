@@ -54,10 +54,37 @@ export function Button({
   );
 }
 
-type LinkButtonProps = ComponentProps<typeof Link> & { variant?: ButtonVariant; icon?: ReactNode };
+type LinkButtonProps = ComponentProps<typeof Link> & {
+  variant?: ButtonVariant;
+  icon?: ReactNode;
+  /** Load a fresh document, for links from public pages into signed-in ones (D-191). */
+  reload?: boolean;
+};
 
 /** A link styled as a button, for navigation such as "Apply now". */
-export function LinkButton({ variant = "primary", icon, className, children, ...rest }: LinkButtonProps) {
+export function LinkButton({
+  variant = "primary",
+  icon,
+  className,
+  children,
+  reload,
+  ...rest
+}: LinkButtonProps) {
+  if (reload && typeof rest.href === "string") {
+    const { href, onClick, target, rel } = rest;
+    return (
+      <a
+        href={href}
+        onClick={onClick}
+        target={target}
+        rel={rel}
+        className={buttonClasses(variant, className)}
+      >
+        {icon}
+        {children}
+      </a>
+    );
+  }
   return (
     <Link className={buttonClasses(variant, className)} {...rest}>
       {icon}

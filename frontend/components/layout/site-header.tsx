@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { SiteLink } from "./site-link";
 import { applyHref, mainNav, utilityNav } from "@/lib/navigation";
 import { site } from "@/lib/site";
 import { MainNav } from "./main-nav";
@@ -9,7 +9,7 @@ export function SiteHeader() {
   return (
     <header className="on-dark relative bg-navy-900 text-white">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 lg:h-20 lg:px-6">
-        <Link href="/" className="shrink-0 rounded-control">
+        <SiteLink href="/" className="shrink-0 rounded-control">
           {/* Supplied logo, unchanged. Its navy background matches the header. */}
           <Image
             src="/brand/dakota-logo-reversed.svg"
@@ -20,7 +20,7 @@ export function SiteHeader() {
             priority
             className="h-12 w-auto sm:h-14 lg:h-[4.5rem]"
           />
-        </Link>
+        </SiteLink>
         <MainNav items={mainNav} utility={utilityNav} applyHref={applyHref} />
       </div>
     </header>

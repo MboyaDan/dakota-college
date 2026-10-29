@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { SiteLink } from "./site-link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowRight, ChevronDown, Menu, X } from "@/components/icons";
@@ -71,13 +71,13 @@ export function MainNav({ items, utility, applyHref }: MainNavProps) {
           {items.map((item) =>
             item.kind === "link" ? (
               <li key={item.label}>
-                <Link
+                <SiteLink
                   href={item.href}
                   aria-current={isCurrent(item.href) ? "page" : undefined}
                   className="inline-flex min-h-touch items-center rounded-control px-3 font-medium text-white hover:bg-white/10 aria-[current=page]:underline aria-[current=page]:decoration-gold aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-8"
                 >
                   {item.label}
-                </Link>
+                </SiteLink>
               </li>
             ) : (
               <li key={item.label}>
@@ -109,7 +109,7 @@ export function MainNav({ items, utility, applyHref }: MainNavProps) {
                         <ul className="flex flex-col">
                           {section.links.map((link) => (
                             <li key={link.href}>
-                              <Link
+                              <SiteLink
                                 href={link.href}
                                 className="flex min-h-touch flex-col justify-center rounded-control px-2 py-1 hover:bg-ivory"
                               >
@@ -117,7 +117,7 @@ export function MainNav({ items, utility, applyHref }: MainNavProps) {
                                 {link.description ? (
                                   <span className="text-sm text-ink-muted">{link.description}</span>
                                 ) : null}
-                              </Link>
+                              </SiteLink>
                             </li>
                           ))}
                         </ul>
@@ -125,13 +125,13 @@ export function MainNav({ items, utility, applyHref }: MainNavProps) {
                     ))}
                     {item.footerLink ? (
                       <div className="flex items-end">
-                        <Link
+                        <SiteLink
                           href={item.footerLink.href}
                           className="inline-flex min-h-touch items-center gap-2 font-semibold text-royal underline underline-offset-4"
                         >
                           {item.footerLink.label}
                           <ArrowRight aria-hidden className="size-4" />
-                        </Link>
+                        </SiteLink>
                       </div>
                     ) : null}
                   </div>
@@ -142,9 +142,9 @@ export function MainNav({ items, utility, applyHref }: MainNavProps) {
         </ul>
       </nav>
 
-      <Link href={applyHref} className={buttonClasses("primary", "px-4")}>
+      <SiteLink href={applyHref} className={buttonClasses("primary", "px-4")}>
         Apply now
-      </Link>
+      </SiteLink>
 
       {/* Mobile */}
       <button
@@ -171,12 +171,12 @@ export function MainNav({ items, utility, applyHref }: MainNavProps) {
           {items.map((item) =>
             item.kind === "link" ? (
               <li key={item.label}>
-                <Link
+                <SiteLink
                   href={item.href}
                   className="flex min-h-touch items-center py-2 font-semibold text-navy-900"
                 >
                   {item.label}
-                </Link>
+                </SiteLink>
               </li>
             ) : (
               <li key={item.label}>
@@ -205,9 +205,12 @@ export function MainNav({ items, utility, applyHref }: MainNavProps) {
                       <ul>
                         {section.links.map((link) => (
                           <li key={link.href}>
-                            <Link href={link.href} className="flex min-h-touch items-center pl-3 text-royal">
+                            <SiteLink
+                              href={link.href}
+                              className="flex min-h-touch items-center pl-3 text-royal"
+                            >
                               {link.label}
-                            </Link>
+                            </SiteLink>
                           </li>
                         ))}
                       </ul>
@@ -221,9 +224,9 @@ export function MainNav({ items, utility, applyHref }: MainNavProps) {
             <ul className="grid grid-cols-2 gap-x-4">
               {mobileUtility.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="flex min-h-touch items-center text-royal">
+                  <SiteLink href={link.href} className="flex min-h-touch items-center text-royal">
                     {link.label}
-                  </Link>
+                  </SiteLink>
                 </li>
               ))}
             </ul>

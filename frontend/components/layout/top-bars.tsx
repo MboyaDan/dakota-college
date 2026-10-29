@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SiteLink } from "./site-link";
 import { ArrowRight, Megaphone } from "@/components/icons";
 import type { NavLink } from "@/lib/navigation";
 
@@ -17,13 +17,13 @@ export function AnnouncementBar({ announcement }: { announcement?: Announcement 
         <Megaphone aria-hidden className="size-4 shrink-0" />
         <span>{announcement.message}</span>
         {announcement.link ? (
-          <Link
+          <SiteLink
             href={announcement.link.href}
             className="inline-flex min-h-touch items-center gap-1 font-semibold underline underline-offset-4 sm:min-h-0"
           >
             {announcement.link.label}
             <ArrowRight aria-hidden className="size-4" />
-          </Link>
+          </SiteLink>
         ) : null}
       </p>
     </div>
@@ -38,12 +38,12 @@ export function UtilityBar({ links }: { links: NavLink[] }) {
         <ul className="flex gap-1 text-sm">
           {links.map((link) => (
             <li key={link.href}>
-              <Link
+              <SiteLink
                 href={link.href}
                 className="inline-flex min-h-touch items-center px-3 text-white/90 hover:text-white hover:underline"
               >
                 {link.label}
-              </Link>
+              </SiteLink>
             </li>
           ))}
         </ul>
