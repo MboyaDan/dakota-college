@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 17b, Two-step sign-in (TOTP). Done, awaiting review.
-- **Next stage:** 17c, retention jobs, data subject requests and breach procedure (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-17b-totp` (from `main` after #45)
+- **Current stage:** 17c, Retention schedule, data subject requests and breach procedure (API and procedures). Done, awaiting review.
+- **Next stage:** 17e, staff screens for data requests and the retention log (KCB signature check slots in when KCB sends the key).
+- **Branch:** `stage-17c-privacy` (from `main` after #51)
 
 ## Stage status
 
@@ -45,9 +45,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 16b | Reports API: dashboard data and count exports | Merged (#42) |
 | 16c | Dashboard pages and export buttons | Merged (#43) |
 | 17a | Security review, headers, rate limits, dependency audit | Merged (#44) |
-| 17b | Two-step sign-in (TOTP) | Done, awaiting review |
-| 17c | Retention jobs, data subject requests, breach procedure | Not started |
+| 17b | Two-step sign-in (TOTP) | Merged (#51) |
+| 17c | Retention schedule, data subject requests, breach procedure (API and procedures) | Done, awaiting review |
 | 17d | Home page photos and founders page (owner request) | Merged (#45) |
+| 17e | Data requests and retention screens | Not started |
 | 18 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -61,6 +62,15 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 17c: Retention schedule, data subject requests, breach procedure (2026-10-29)
+
+- Stage split: 17c is the API, migration, daily run, command and written procedures; 17e adds the staff screens (D-216).
+- Migration 00024: permission `privacy.manage` (Super Admin, Principal, Registrar; A-50), `applicants.erased_at`, `files.storage_removed_at`, `retention_runs`, `data_requests` and append-only `data_request_events`; notes, status history and consents accept only an erasure that blanks named text columns (D-214).
+- Retention schedule (`docs/retention.md`, A-48, D-211, D-212): the API runs it daily in `RETENTION_MODE` (new env var: `report` by default, `apply`, `off`). Housekeeping (spent links, ended sessions, repeat-protection records, overdue drafts marked expired) always runs; enquiries 12 months after closing, applicants who did not enrol 12 months after their last application ended or its intake started, and the message log after 12 months are erased only in apply mode. Report mode counts exactly what apply would remove. Runs are logged and applied runs audited. `go run ./cmd/retention [report|apply]` and `make retention-report`.
+- Erasure keeps the application reference, programme, intake, status and dates and removes everything that identifies the person, including documents in storage; students and applications still being decided are refused (D-211).
+- Data subject requests (`docs/privacy-requests.md`): register with references (DTC-DSR-YEAR-NNNN) and due dates (7 days by default, A-49); identity check before anything else; JSON export for access and portability requests (D-213); erasure of a matching applicant or enquiry for erasure requests; records found by email or the last nine phone digits (D-215); notes; complete or refuse with an outcome. Ten new staff routes, all `privacy.manage`.
+- Breach procedure: `docs/breach.md` (containment steps for this system, 72-hour notice, breach log).
 
 ### Stage 17b: Two-step sign-in (2026-10-29)
 

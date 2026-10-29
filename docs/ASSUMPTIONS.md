@@ -37,7 +37,7 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | DQ-15 | Existing student data to import | None in v1. CSV import is a Could. | Open |
 | DQ-16 | Staff list, Super Admin, recovery contact | Starter roles from brief section 11; developer holds Super Admin until handover. | Confirmed (owner, 2026-10-22) |
 | DQ-17 | Budget | Planning figure from brief 12.2 (about USD 45 to 60 per month); recheck before quoting. | Open |
-| DQ-18 | Retention periods, data protection contact | Applications kept 12 months if not enrolled; student records permanent. | Open |
+| DQ-18 | Retention periods, data protection contact | Applications kept 12 months if not enrolled; student records permanent. Full default schedule in A-48 and `docs/retention.md` (Stage 17c). Contact not named. | Open |
 | DQ-19 | Go-live date and approvers | None assumed. | Open |
 
 ## New in Stage 0
@@ -84,3 +84,6 @@ Status values: **Open** (default in use, not confirmed), **Confirmed**, **Replac
 | A-46 | A Head of School (no `schools.all`) sees admissions and enquiries on the dashboard only if they hold those permissions, and no college-wide student or results figures. A dashboard scoped to their own schools can follow if wanted. | Default, Stage 16b; owner may change |
 | A-47 | Dashboards and exports default to 1 January this year to today, Nairobi dates, at most two years at a time. | Default, Stage 16b; owner may change |
 | A-45 | The sent messages log is for the people who edit messages (`notifications.manage`: Super Admin, ICT Admin, Registrar). It shows recipients' addresses but never message text. | Default, Stage 16a; owner may change |
+| A-48 | Retention periods until the college decides (DQ-18): enquiries 12 months after closing; applicants who did not enrol 12 months after their last application ended or its intake started, whichever is later; the message log 12 months; ended sessions 30 days; student, academic and financial records and the audit log kept. Written up in `docs/retention.md`. | Default, Stage 17c; for the DG-06 review |
+| A-49 | A data subject request is due 7 days after it arrives, whatever its kind; staff can set another due date per request. | Default, Stage 17c; to be checked by the college's legal adviser (DG-06) |
+| A-50 | `privacy.manage` (request register, exports, erasure, retention log) goes to Super Admin, Principal and Registrar. The data protection contact, once named, gets it through one of those roles or a custom role. | Default, Stage 17c; owner may change |
