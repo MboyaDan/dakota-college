@@ -169,7 +169,7 @@ export default async function Home() {
             {values.map((v) => (
               <div key={v.label} className="flex flex-col gap-2 border-t-2 border-gold pt-4">
                 <dt className="text-sm font-semibold tracking-widest text-gold uppercase">{v.label}</dt>
-                <dd className="font-serif text-xl whitespace-pre-line text-white">{v.text}</dd>
+                <dd className="font-serif text-xl font-semibold whitespace-pre-line text-white">{v.text}</dd>
               </div>
             ))}
           </dl>
