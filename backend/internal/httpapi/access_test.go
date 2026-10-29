@@ -29,6 +29,8 @@ func TestEveryRouteIsProtected(t *testing.T) {
 
 	public := map[string]bool{
 		"GET /api/v1/health": true, "GET /api/v1/ready": true, "POST /api/v1/auth/login": true,
+		// The second sign-in step: no session yet; it needs the challenge cookie.
+		"POST /api/v1/auth/login/code":     true,
 		"POST /api/v1/auth/password-reset": true, "POST /api/v1/auth/password-reset/confirm": true,
 		"GET /api/v1/public/site": true, "POST /api/v1/public/enquiries": true,
 		"GET /api/v1/public/news": true, "GET /api/v1/public/news/:slug": true,

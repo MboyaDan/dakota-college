@@ -45,6 +45,10 @@ func accessError(c *gin.Context, err error) {
 		writeError(c, http.StatusConflict, "not_staff_account", "Roles can only be given to staff accounts.")
 	case errors.Is(err, access.ErrSelf):
 		writeError(c, http.StatusConflict, "cannot_disable_self", "You cannot disable your own account. Ask another administrator.")
+	case errors.Is(err, access.ErrSelfTwoStep):
+		writeError(c, http.StatusConflict, "cannot_reset_self", "To turn off your own two-step sign-in, use Your account, where you confirm your password.")
+	case errors.Is(err, access.ErrNoTwoStep):
+		writeError(c, http.StatusConflict, "two_step_not_on", "This person does not use two-step sign-in, so there is nothing to reset.")
 	case errors.Is(err, access.ErrDuplicate):
 		writeError(c, http.StatusConflict, "already_exists", "That already exists. Use a different email or key.")
 	default:
@@ -62,13 +66,15 @@ func pathID(c *gin.Context) (uuid.UUID, bool) {
 }
 
 type adminUser struct {
-	ID          string     `json:"id"`
-	Email       string     `json:"email"`
-	FullName    string     `json:"full_name"`
-	Status      string     `json:"status"`
-	RoleKeys    []string   `json:"role_keys"`
-	LastLoginAt *time.Time `json:"last_login_at"`
-	CreatedAt   time.Time  `json:"created_at"`
+	ID       string   `json:"id"`
+	Email    string   `json:"email"`
+	FullName string   `json:"full_name"`
+	Status   string   `json:"status"`
+	RoleKeys []string `json:"role_keys"`
+	// TwoStepEnabled: the person signs in with a code as well (Stage 17b).
+	TwoStepEnabled bool       `json:"two_step_enabled"`
+	LastLoginAt    *time.Time `json:"last_login_at"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
 
 func (h adminHandlers) listUsers(c *gin.Context) {
@@ -79,7 +85,7 @@ func (h adminHandlers) listUsers(c *gin.Context) {
 	}
 	out := make([]adminUser, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, adminUser{ID: r.ID.String(), Email: r.Email, FullName: r.FullName, Status: r.Status, RoleKeys: r.RoleKeys, LastLoginAt: r.LastLoginAt, CreatedAt: r.CreatedAt})
+		out = append(out, adminUser{ID: r.ID.String(), Email: r.Email, FullName: r.FullName, Status: r.Status, RoleKeys: r.RoleKeys, TwoStepEnabled: r.TwoStepEnabled, LastLoginAt: r.LastLoginAt, CreatedAt: r.CreatedAt})
 	}
 	c.JSON(http.StatusOK, gin.H{"users": out})
 }
@@ -132,6 +138,18 @@ func (h adminHandlers) setActive(c *gin.Context, active bool) {
 		return
 	}
 	if err := h.svc.SetUserActive(c.Request.Context(), principal(c), id, active, auditRequest(c)); err != nil {
+		accessError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h adminHandlers) resetTwoStep(c *gin.Context) {
+	id, ok := pathID(c)
+	if !ok {
+		return
+	}
+	if err := h.svc.ResetTwoStep(c.Request.Context(), principal(c), id, auditRequest(c)); err != nil {
 		accessError(c, err)
 		return
 	}

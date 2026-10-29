@@ -4,7 +4,7 @@ Written threat review for the Dakota Training College platform (brief section 13
 
 - **Last reviewed:** 2026-10-29, Stage 17a, against `main` after #43 plus the Stage 17a branch.
 - **Covers:** the Go API, the Next.js site and the local Compose stack. Hosting, backups and DNS are reviewed in Stage 19 and are listed below as open items.
-- **Still to come in Stage 17:** two-step sign-in (TOTP) for finance, registrar and admin staff (17b); retention jobs, data subject request tools and a breach procedure (17c).
+- **Still to come in Stage 17:** retention jobs, data subject request tools and a breach procedure (17c). Two-step sign-in was added in 17b (section 4.2).
 - **Rule for this file:** a control is listed as in place only if a test or a command shows it. Anything not yet checked says so.
 
 ## 1. What we protect
@@ -15,7 +15,7 @@ Written threat review for the Dakota Training College platform (brief section 13
 | Student records: results, transcripts, fees, payments | PostgreSQL; private bucket (PDFs) | Academic and financial integrity; never edited destructively (NN-05) |
 | Staff accounts and their permissions | PostgreSQL (`users`, `roles`, `sessions`) | A staff account can read or change everything above |
 | Money records: invoices, receipts, M-Pesa and KCB notifications | PostgreSQL | Fraud and reconciliation (NN-03, NN-10) |
-| Secrets: database URL, `MESSAGE_KEY`, payment callback secrets, Daraja and Buni keys, `CLIENT_IP_SECRET`, SMTP and S3 credentials | Environment variables only; local `.env` is git-ignored | Any one of them opens a back door |
+| Secrets: database URL, `MESSAGE_KEY`, `TOTP_KEY`, payment callback secrets, Daraja and Buni keys, `CLIENT_IP_SECRET`, SMTP and S3 credentials | Environment variables only; local `.env` is git-ignored | Any one of them opens a back door |
 | The public website's content and reputation | PostgreSQL, public bucket, site cache | Defacement or false claims (NN-01) |
 
 ## 2. Who might attack, and how
@@ -50,7 +50,7 @@ The browser never talks to the database or storage directly, except for public c
 ### 4.1 Authorisation (every endpoint)
 
 - **Inventory:** [endpoints.md](endpoints.md) lists all routes and who may call each, generated from the route table; `TestEndpointInventoryIsCurrent` fails if it drifts (D-198). Count at this review: 208 routes (19 public, 149 staff, 16 applicant, 21 student, 3 for any signed-in account).
-- **Every protected route refuses the wrong caller:** `TestEveryRouteIsProtected` walks the table. Every non-public route gives 401 without a session and 403 to a user holding every other permission. The public list is reviewed in the test itself (19 routes: two health probes, staff and student sign-in and reset, site content, news and events, the enquiry form, applicant sign-in links, and the three payment callbacks that answer only on a secret path).
+- **Every protected route refuses the wrong caller:** `TestEveryRouteIsProtected` walks the table. Every non-public route gives 401 without a session and 403 to a user holding every other permission. The public list is reviewed in the test itself (20 routes: two health probes, staff and student sign-in and reset, the two-step sign-in code, site content, news and events, the enquiry form, applicant sign-in links, and the three payment callbacks that answer only on a secret path).
 - **Staff routes need a staff account (new, D-196):** a student account with a Super Admin role inserted directly in the database still gets 403 on staff and admin routes, and the API refuses to give roles to non-staff accounts (`TestPermissionRoutesNeedAStaffAccount`).
 - **Own records only (object level):** applicant and student routes take the account from the session, never from the request. `TestApplicantRoutesRefuseOtherApplicants` (new) sends every applicant route that takes an application ID with another applicant's session: all are refused and the owner's draft is unchanged. Earlier tests cover the rest: `TestStudentsSeeOnlyTheirOwnData`, `TestTrainersSeeOnlyTheirUnits`, `TestHeadOfSchoolScope`, another student's invoice in `TestFinanceFlow`, another student's transcript in `TestResultsSlipAndTranscripts`, file links bound to one account in `TestDocumentLinks`.
 - **Privilege protections:** the last Super Admin cannot be removed, `system.admin` cannot be granted through roles, and roles in use cannot be deleted (`TestSuperAdminAndRoleProtections`, `TestConcurrentSuperAdminRemovalLeavesOne`).
@@ -61,6 +61,7 @@ The browser never talks to the database or storage directly, except for public c
 - Server-side sessions in an HttpOnly, SameSite=Lax cookie, `__Host-` prefixed and Secure outside local development; 12-hour lifetime and 30-minute idle timeout. Staging and production refuse to start with insecure cookies or http origins (`TestFromLookupErrors`).
 - Five wrong passwords lock an account for 15 minutes, stored in the database so a restart does not reset it. A password reset ends every session.
 - Unknown accounts take the same path and time as known ones (dummy hash), so answers do not reveal who has an account.
+- **Two-step sign-in (Stage 17b, D-206 to D-210):** optional for every staff account, suggested on the Overview to holders of finance, registrar and admin permissions. Authenticator app codes (RFC 6238: 6 digits, 30 seconds, one step either side) or one of ten single-use recovery codes. With it on, a right password only gets a five-minute challenge in an HttpOnly, SameSite=Strict cookie, and the session starts after the code. Each code works once. Wrong codes count towards the same database lockout as wrong passwords, and five wrong codes end a challenge. The secret is stored encrypted with `TOTP_KEY` (AES-256-GCM, bound to the user); recovery codes are stored hashed. Setting up, getting new codes and turning it off need the password again; turning it on signs out the person's other sessions. A password reset does not turn it off. An admin with `users.manage` can reset it for a lost phone, but not their own, and only a Super Admin can reset a Super Admin. `setup reset-two-step EMAIL` on the server covers the case where nobody can sign in. Everything is audited. Evidence: `TestTOTPCodeRFC6238` (RFC test vectors), `TestMatchTOTP`, `TestSecretBoxBindsToUser`, `TestRecoveryCodes`, `TestTwoStepSignIn`, `TestTwoStepWrongCodesLockTheAccount`, `TestTwoStepAdminReset`, `TestTOTPKey`; Playwright `two-step.spec.ts` (set up, sign in with an app code and with a recovery code, turn off, axe at 360 px and desktop).
 
 ### 4.3 Cross-site requests
 
@@ -70,7 +71,7 @@ The browser never talks to the database or storage directly, except for public c
 
 | Endpoint | Limit |
 |---|---|
-| Staff and student sign-in | 5 failures per account (database lockout); 5 attempts per email and 100 per visitor address per 15 min |
+| Staff and student sign-in | 5 failures per account, wrong two-step codes included (database lockout); 5 attempts per email and 100 per visitor address per 15 min; 5 codes per sign-in challenge |
 | Password reset (staff and student) | 3 per email and 30 per visitor address per hour; always the same answer |
 | Applicant sign-in link and resume | 5 per email and 30 per visitor address per hour |
 | Contact form | Honeypot, minimum fill time, at most 2 links, 3 per contact per hour, 60 per hour overall (D-70) |
@@ -131,7 +132,6 @@ These block go-live with real applicants. Each has an owner stage.
 | The GitHub repository is public (R-10): make it private before any real data, client content or staging credentials | Before Stage 19 |
 | Set `CLIENT_IP_HEADER` (the platform's client address header) and `CLIENT_IP_SECRET` on the frontend, and the same secret on the API | 19 |
 | Decide production virus scanning (paid instance or scanner host), or accept and record "not scanned" with the client | 19, DG-04 |
-| Two-step sign-in (TOTP) for finance, registrar and admin staff | 17b |
 | Retention schedule jobs, data subject request tools, breach procedure | 17c, DG-06 |
 | Data protection registration, privacy notice approval, parental consent review (R-26) | DG-06, Stage 20 |
 | Backups with a tested restore; uptime and error monitoring | 19 |

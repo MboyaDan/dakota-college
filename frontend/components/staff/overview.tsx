@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Alert } from "@/components/ui/alert";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api/client";
@@ -24,7 +25,14 @@ export function Overview() {
     to_enrol: number;
   } | null>(null);
 
+  const [suggestTwoStep, setSuggestTwoStep] = useState(false);
+
   useEffect(() => {
+    // Holders of finance, registrar and admin permissions are asked to turn
+    // on two-step sign-in until they do (D-206).
+    void api.GET("/api/v1/auth/two-step").then(({ data }) => {
+      if (data) setSuggestTwoStep(data.recommended && !data.enabled);
+    });
     if (can("content.publish")) void loadQueue().then((q) => setWaiting(q.length));
     if (can("admissions.view")) {
       void api.GET("/api/v1/staff/applications/counts").then(({ data }) => {
@@ -61,6 +69,17 @@ export function Overview() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-semibold">Hello, {user.full_name.split(" ")[0]}</h1>
+      {suggestTwoStep ? (
+        <Alert tone="warning" title="Protect your account with two-step sign-in">
+          <p>
+            Your role can see or change money, student records or staff accounts. With two-step sign-in, a
+            stolen password is not enough to get in.{" "}
+            <Link href="/staff/account" className="font-semibold text-royal underline underline-offset-4">
+              Set it up now
+            </Link>
+          </p>
+        </Alert>
+      ) : null}
       {can("reports.view") ? (
         <Card>
           <h2 className="text-xl font-semibold">Reports</h2>

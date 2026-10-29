@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/field";
 import { Loading, Skeleton } from "@/components/ui/skeleton";
 import { api, errorMessage } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
+import { useSession } from "./session";
 import { useAction } from "./use-action";
 
 // Which schools each member of staff works in (users.manage, D-133).
@@ -126,6 +128,59 @@ function UserSchools({ user, schools }: { user: User; schools: Option[] }) {
           Save<span className="sr-only"> schools for {user.full_name}</span>
         </Button>
       </form>
+      {user.two_step_enabled ? <TwoStepReset user={user} /> : null}
     </Card>
+  );
+}
+
+/** For a lost phone: turns off the person's two-step sign-in (D-209). */
+function TwoStepReset({ user }: { user: User }) {
+  const { user: me } = useSession();
+  const { run } = useAction();
+  const [on, setOn] = useState(true);
+
+  return (
+    <div className="flex flex-col items-start gap-2 border-t border-stone pt-3">
+      <p className="text-sm">
+        {on ? "Uses two-step sign-in." : "Two-step sign-in was reset. They can set it up again."}
+      </p>
+      {on && me.id !== user.id ? (
+        <Dialog
+          title={`Reset two-step sign-in for ${user.full_name}?`}
+          description="Do this only when they have lost their phone and their recovery codes, and you have confirmed it is really them, in person or by a call to a number you already have."
+          triggerLabel="Reset two-step sign-in"
+          triggerVariant="outline"
+          actions={
+            <>
+              <Button type="submit" variant="outline">
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="danger"
+                onClick={() =>
+                  void run(
+                    () =>
+                      api.POST("/api/v1/admin/users/{id}/two-step/reset", {
+                        params: { path: { id: user.id } },
+                      }),
+                    `Two-step sign-in reset for ${user.full_name}`,
+                  ).then((res) => {
+                    if (res) setOn(false);
+                  })
+                }
+              >
+                Reset
+              </Button>
+            </>
+          }
+        >
+          <p>
+            They will be signed out everywhere, and can then sign in with their password alone until they set
+            two-step sign-in up again on their new phone.
+          </p>
+        </Dialog>
+      ) : null}
+    </div>
   );
 }

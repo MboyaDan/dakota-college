@@ -14,11 +14,18 @@ Every route needs a session unless marked public. Staff routes also need the nam
 | POST | `/api/v1/auth/password-reset/confirm` | Public |
 | GET | `/api/v1/auth/session` | Any signed-in account |
 | POST | `/api/v1/auth/logout` | Any signed-in account |
+| POST | `/api/v1/auth/login/code` | Public |
+| GET | `/api/v1/auth/two-step` | Any staff account |
+| POST | `/api/v1/auth/two-step/setup` | Any staff account |
+| POST | `/api/v1/auth/two-step/confirm` | Any staff account |
+| POST | `/api/v1/auth/two-step/recovery-codes` | Any staff account |
+| POST | `/api/v1/auth/two-step/disable` | Any staff account |
 | GET | `/api/v1/admin/users` | Staff with `users.manage` |
 | POST | `/api/v1/admin/users` | Staff with `users.manage` |
 | PUT | `/api/v1/admin/users/:id/roles` | Staff with `users.manage` |
 | POST | `/api/v1/admin/users/:id/disable` | Staff with `users.manage` |
 | POST | `/api/v1/admin/users/:id/enable` | Staff with `users.manage` |
+| POST | `/api/v1/admin/users/:id/two-step/reset` | Staff with `users.manage` |
 | GET | `/api/v1/admin/roles` | Staff with `roles.manage` |
 | POST | `/api/v1/admin/roles` | Staff with `roles.manage` |
 | PUT | `/api/v1/admin/roles/:id/permissions` | Staff with `roles.manage` |
@@ -216,4 +223,4 @@ Every route needs a session unless marked public. Staff routes also need the nam
 | GET | `/api/v1/public/events` | Public |
 | GET | `/api/v1/public/events/:slug` | Public |
 
-208 routes: 19 public, 149 staff, 16 applicant, 21 student, 3 for any signed-in account.
+215 routes: 20 public, 155 staff, 16 applicant, 21 student, 3 for any signed-in account.

@@ -139,6 +139,9 @@ paths:
       description: |
         Sets the HttpOnly session cookie. Wrong email and wrong password give the
         same answer. Five wrong passwords lock the account for 15 minutes.
+        For a staff account with two-step sign-in on, a right password answers
+        202 with a short-lived HttpOnly challenge cookie instead, and the session
+        starts at POST /api/v1/auth/login/code.
       requestBody:
         required: true
         content:
@@ -159,9 +162,145 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Session" }
+        "202":
+          description: Password right; the account needs a code from its authenticator app or a recovery code.
+          headers:
+            Set-Cookie:
+              description: Challenge cookie (HttpOnly, SameSite=Strict), valid for five minutes.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SecondStep" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/login/code:
+    post:
+      security: []
+      tags: [auth]
+      operationId: loginCode
+      summary: Finish a two-step sign-in with an authenticator or recovery code
+      description: |
+        Needs the challenge cookie from POST /api/v1/auth/login. A code works once.
+        Wrong codes count towards the account lockout; five on one challenge end it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, maxLength: 64, description: Six digits, or a recovery code like abcd-efgh-jkmn. }
+      responses:
+        "200":
+          description: Signed in.
+          headers:
+            Set-Cookie:
+              description: Session cookie; the challenge cookie is cleared.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/two-step:
+    get:
+      tags: [auth]
+      operationId: getTwoStep
+      summary: Whether the signed-in staff member uses two-step sign-in
+      responses:
+        "200":
+          description: Status.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoStepStatus" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/two-step/setup:
+    post:
+      tags: [auth]
+      operationId: startTwoStep
+      summary: Make a new authenticator secret (asks for the password)
+      description: Nothing changes at sign-in until the setup is confirmed with a code.
+      security: [{ session: [], csrf: [] }]
+      requestBody: { $ref: "#/components/requestBodies/PasswordConfirm" }
+      responses:
+        "200":
+          description: The secret, for the QR code or typing by hand.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwoStepSetup" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/two-step/confirm:
+    post:
+      tags: [auth]
+      operationId: confirmTwoStep
+      summary: Turn two-step sign-in on with a code from the app
+      description: Returns the recovery codes once and signs out the person's other sessions.
+      security: [{ session: [], csrf: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, maxLength: 64 }
+      responses:
+        "200":
+          description: On.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecoveryCodes" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/two-step/recovery-codes:
+    post:
+      tags: [auth]
+      operationId: replaceRecoveryCodes
+      summary: Replace every recovery code (asks for the password)
+      security: [{ session: [], csrf: [] }]
+      requestBody: { $ref: "#/components/requestBodies/PasswordConfirm" }
+      responses:
+        "200":
+          description: New codes; the old ones no longer work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecoveryCodes" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/two-step/disable:
+    post:
+      tags: [auth]
+      operationId: disableTwoStep
+      summary: Turn two-step sign-in off (asks for the password)
+      security: [{ session: [], csrf: [] }]
+      requestBody: { $ref: "#/components/requestBodies/PasswordConfirm" }
+      responses:
+        "204": { description: Off. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
   /api/v1/auth/session:
     get:
@@ -322,6 +461,22 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/users/{id}/two-step/reset:
+    post:
+      tags: [admin]
+      operationId: resetUserTwoStep
+      summary: Turn off someone's two-step sign-in, for a lost phone (users.manage)
+      description: |
+        Signs the person out everywhere. Resetting a Super Admin needs system.admin;
+        nobody resets their own (they turn it off with their password).
+      security: [{ session: [], csrf: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "204": { description: Reset. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
   /api/v1/admin/roles:
     get:
       tags: [admin]
@@ -4391,6 +4546,17 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+  requestBodies:
+    PasswordConfirm:
+      required: true
+      description: The person's password, asked for again before a change to two-step sign-in.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [password]
+            properties:
+              password: { type: string }
   headers:
     RequestID:
       description: Request correlation ID. Echoes a well-formed caller value or is generated.
@@ -5691,15 +5857,43 @@ components:
       required: [id]
       properties:
         id: { type: string, format: uuid }
+    SecondStep:
+      type: object
+      required: [second_step, expires_at]
+      properties:
+        second_step: { type: string, enum: [code] }
+        expires_at: { type: string, format: date-time }
+    TwoStepStatus:
+      type: object
+      required: [enabled, enabled_at, recovery_codes_left, recommended]
+      properties:
+        enabled: { type: boolean }
+        enabled_at: { type: [string, "null"], format: date-time }
+        recovery_codes_left: { type: integer }
+        recommended:
+          type: boolean
+          description: The person holds a finance, registrar or admin permission, so two-step sign-in is suggested.
+    TwoStepSetup:
+      type: object
+      required: [secret, otpauth_uri]
+      properties:
+        secret: { type: string, description: Base32 in groups of four, for typing into an app. }
+        otpauth_uri: { type: string, description: For the QR code. }
+    RecoveryCodes:
+      type: object
+      required: [recovery_codes]
+      properties:
+        recovery_codes: { type: array, items: { type: string }, description: Shown once. }
     AdminUser:
       type: object
-      required: [id, email, full_name, status, role_keys, last_login_at, created_at]
+      required: [id, email, full_name, status, role_keys, two_step_enabled, last_login_at, created_at]
       properties:
         id: { type: string, format: uuid }
         email: { type: string }
         full_name: { type: string }
         status: { type: string, enum: [active, disabled] }
         role_keys: { type: array, items: { type: string } }
+        two_step_enabled: { type: boolean }
         last_login_at: { type: [string, "null"], format: date-time }
         created_at: { type: string, format: date-time }
     Role:

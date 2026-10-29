@@ -57,8 +57,123 @@ export interface paths {
          * Sign in with email and password
          * @description Sets the HttpOnly session cookie. Wrong email and wrong password give the
          *     same answer. Five wrong passwords lock the account for 15 minutes.
+         *     For a staff account with two-step sign-in on, a right password answers
+         *     202 with a short-lived HttpOnly challenge cookie instead, and the session
+         *     starts at POST /api/v1/auth/login/code.
          */
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish a two-step sign-in with an authenticator or recovery code
+         * @description Needs the challenge cookie from POST /api/v1/auth/login. A code works once.
+         *     Wrong codes count towards the account lockout; five on one challenge end it.
+         */
+        post: operations["loginCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/two-step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the signed-in staff member uses two-step sign-in */
+        get: operations["getTwoStep"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/two-step/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a new authenticator secret (asks for the password)
+         * @description Nothing changes at sign-in until the setup is confirmed with a code.
+         */
+        post: operations["startTwoStep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/two-step/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn two-step sign-in on with a code from the app
+         * @description Returns the recovery codes once and signs out the person's other sessions.
+         */
+        post: operations["confirmTwoStep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/two-step/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace every recovery code (asks for the password) */
+        post: operations["replaceRecoveryCodes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/two-step/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn two-step sign-in off (asks for the password) */
+        post: operations["disableTwoStep"];
         delete?: never;
         options?: never;
         head?: never;
@@ -208,6 +323,27 @@ export interface paths {
         put?: never;
         /** Enable an account (users.manage) */
         post: operations["enableUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/two-step/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn off someone's two-step sign-in, for a lost phone (users.manage)
+         * @description Signs the person out everywhere. Resetting a Super Admin needs system.admin;
+         *     nobody resets their own (they turn it off with their password).
+         */
+        post: operations["resetUserTwoStep"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4693,6 +4829,30 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
+        SecondStep: {
+            /** @enum {string} */
+            second_step: "code";
+            /** Format: date-time */
+            expires_at: string;
+        };
+        TwoStepStatus: {
+            enabled: boolean;
+            /** Format: date-time */
+            enabled_at: string | null;
+            recovery_codes_left: number;
+            /** @description The person holds a finance, registrar or admin permission, so two-step sign-in is suggested. */
+            recommended: boolean;
+        };
+        TwoStepSetup: {
+            /** @description Base32 in groups of four */
+            secret: string;
+            /** @description For the QR code. */
+            otpauth_uri: string;
+        };
+        RecoveryCodes: {
+            /** @description Shown once. */
+            recovery_codes: string[];
+        };
         AdminUser: {
             /** Format: uuid */
             id: string;
@@ -4701,6 +4861,7 @@ export interface components {
             /** @enum {string} */
             status: "active" | "disabled";
             role_keys: string[];
+            two_step_enabled: boolean;
             /** Format: date-time */
             last_login_at: string | null;
             /** Format: date-time */
@@ -5363,7 +5524,16 @@ export interface components {
         /** @description A new key for each action the user takes, and the same key when retrying it (NN-04). */
         IdempotencyKey: string;
     };
-    requestBodies: never;
+    requestBodies: {
+        /** @description The person's password, asked for again before a change to two-step sign-in. */
+        PasswordConfirm: {
+            content: {
+                "application/json": {
+                    password: string;
+                };
+            };
+        };
+    };
     headers: {
         /** @description Request correlation ID. Echoes a well-formed caller value or is generated. */
         RequestID: string;
@@ -5452,9 +5622,183 @@ export interface operations {
                     "application/json": components["schemas"]["Session"];
                 };
             };
+            /** @description Password right; the account needs a code from its authenticator app or a recovery code. */
+            202: {
+                headers: {
+                    /** @description Challenge cookie (HttpOnly, SameSite=Strict), valid for five minutes. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecondStep"];
+                };
+            };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    loginCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Six digits */
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Signed in. */
+            200: {
+                headers: {
+                    /** @description Session cookie; the challenge cookie is cleared. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    getTwoStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoStepStatus"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+        };
+    };
+    startTwoStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["PasswordConfirm"];
+        responses: {
+            /** @description The secret, for the QR code or typing by hand. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoStepSetup"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    confirmTwoStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description On. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    replaceRecoveryCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["PasswordConfirm"];
+        responses: {
+            /** @description New codes; the old ones no longer work. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    disableTwoStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["PasswordConfirm"];
+        responses: {
+            /** @description Off. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
             429: components["responses"]["Error"];
         };
     };
@@ -5687,6 +6031,30 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
+        };
+    };
+    resetUserTwoStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reset. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
         };
     };
     listRoles: {

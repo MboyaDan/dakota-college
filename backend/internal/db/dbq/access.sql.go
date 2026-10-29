@@ -316,7 +316,8 @@ func (q *Queries) ListUserRoleKeys(ctx context.Context, userID uuid.UUID) ([]str
 
 const listUsers = `-- name: ListUsers :many
 SELECT u.id, u.email, u.full_name, u.kind, u.status, u.last_login_at, u.created_at,
-       COALESCE(array_agg(r.key ORDER BY r.key) FILTER (WHERE r.key IS NOT NULL), '{}')::text[] AS role_keys
+       COALESCE(array_agg(r.key ORDER BY r.key) FILTER (WHERE r.key IS NOT NULL), '{}')::text[] AS role_keys,
+       EXISTS (SELECT 1 FROM user_totp t WHERE t.user_id = u.id AND t.confirmed_at IS NOT NULL) AS two_step_enabled
 FROM users u
 LEFT JOIN user_roles ur ON ur.user_id = u.id
 LEFT JOIN roles r ON r.id = ur.role_id
@@ -326,14 +327,15 @@ ORDER BY u.full_name
 `
 
 type ListUsersRow struct {
-	ID          uuid.UUID
-	Email       string
-	FullName    string
-	Kind        string
-	Status      string
-	LastLoginAt *time.Time
-	CreatedAt   time.Time
-	RoleKeys    []string
+	ID             uuid.UUID
+	Email          string
+	FullName       string
+	Kind           string
+	Status         string
+	LastLoginAt    *time.Time
+	CreatedAt      time.Time
+	RoleKeys       []string
+	TwoStepEnabled bool
 }
 
 func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
@@ -354,6 +356,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 			&i.LastLoginAt,
 			&i.CreatedAt,
 			&i.RoleKeys,
+			&i.TwoStepEnabled,
 		); err != nil {
 			return nil, err
 		}

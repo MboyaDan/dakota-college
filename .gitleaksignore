@@ -8,3 +8,7 @@ f996f2297724a10008d9a73ef81eac3063af6e9d:backend/internal/httpapi/kcb_test.go:ge
 # A made-up 32-character test value in TestTrustedClientIP (not a
 # credential), replaced by an obviously fake one in the next commit.
 a5bf49f24ab618c07bf55246a18de419c9f56ce4:backend/internal/httpapi/hardening_test.go:generic-api-key:61
+#
+# The public RFC 6238 example key ("12345678901234567890") in base32 in
+# TestOTPAuthURI (not a credential), computed instead in the next commit.
+35d782bb732de84775981c0d29a5316f25e6831d:backend/internal/auth/totp_test.go:generic-api-key:98

@@ -103,7 +103,7 @@ func (h *harness) rebuild() {
 	h.stopQueue = func() { cancel(); <-done }
 	h.t.Cleanup(h.stopQueue)
 	h.auth, err = auth.NewService(auth.Options{
-		Pool: h.pool, Outbox: h.queue, Logger: logger, AppBaseURL: testOrigin,
+		Pool: h.pool, Outbox: h.queue, Logger: logger, AppBaseURL: testOrigin, TOTPKey: bytes.Repeat([]byte{5}, auth.TOTPKeySize),
 		Session: config.SessionConfig{CookieSecure: true, TTL: 12 * time.Hour, IdleTimeout: 30 * time.Minute},
 	})
 	if err != nil {
