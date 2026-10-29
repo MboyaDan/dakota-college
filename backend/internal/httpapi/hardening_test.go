@@ -58,7 +58,7 @@ func TestSecurityHeaders(t *testing.T) {
 }
 
 func TestTrustedClientIP(t *testing.T) {
-	const secret = "0123456789abcdef0123456789abcdef"
+	const secret = "test-only-client-ip-secret-xxxxxx"
 	e := gin.New()
 	e.Use(trustedClientIP(secret))
 	e.GET("/", func(c *gin.Context) { c.String(http.StatusOK, clientIP(c)) })
@@ -70,7 +70,7 @@ func TestTrustedClientIP(t *testing.T) {
 		{"verified IPv6 visitor", "2c0f:fe38::1", secret, "2c0f:fe38::1"},
 		{"IPv4 written as IPv6", "::ffff:41.90.1.2", secret, "41.90.1.2"},
 		{"no key: visitor-supplied, ignored", "41.90.1.2", "", "192.0.2.1"},
-		{"wrong key", "41.90.1.2", secret[:31] + "x", "192.0.2.1"},
+		{"wrong key", "41.90.1.2", strings.Repeat("w", len(secret)), "192.0.2.1"},
 		{"not an address", "41.90.1.2, 10.0.0.1", secret, "192.0.2.1"},
 	}
 	for _, tc := range cases {
