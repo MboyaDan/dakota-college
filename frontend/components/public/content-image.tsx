@@ -33,6 +33,7 @@ export function ContentImage({
       width={image.width || undefined}
       height={image.height || undefined}
       loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : undefined}
       decoding="async"
       className={className}
     />

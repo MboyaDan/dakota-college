@@ -14,6 +14,7 @@ for (const path of [
   "/schools/ict",
   "/programmes/example-health-studies-diploma",
   "/about",
+  "/about/founders",
   "/contact",
   "/admissions/fees",
   "/admissions/intakes",

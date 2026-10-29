@@ -38,6 +38,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     })),
     { url: url("/schools"), changeFrequency: "monthly", priority: 0.7 },
+    // Listed once a founder's profile is published, like the text pages.
+    ...(site.founders.length
+      ? [{ url: url("/about/founders"), changeFrequency: "yearly" as const, priority: 0.5 }]
+      : []),
     ...site.schools.map((s) => ({
       url: url(`/schools/${s.slug}`),
       changeFrequency: "monthly" as const,

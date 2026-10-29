@@ -1,7 +1,7 @@
 import type { components } from "@/lib/api/schema";
 
 // One description per content type drives the list, the form and the
-// preview, so the ten types share one set of screens.
+// preview, so every type shares one set of screens.
 
 export type ContentKind = components["parameters"]["Kind"];
 type Option = { value: string; label: string };
@@ -72,6 +72,19 @@ const sortOrder: FieldSpec = {
   label: "Order",
   hint: "Lower numbers show first.",
 };
+
+/** An optional photo and its description for screen readers. */
+function photoFields(label: string, hint: string): FieldSpec[] {
+  return [
+    { type: "image", name: "photo_file_id", label, hint },
+    {
+      type: "text",
+      name: "photo_alt",
+      label: "Describe the photo",
+      hint: "For people who cannot see it. Required when there is a photo.",
+    },
+  ];
+}
 
 const levels: Option[] = [
   { value: "short_course", label: "Short course" },
@@ -292,6 +305,9 @@ export const kinds: Record<ContentKind, KindConfig> = {
       description: "",
       head_message: "",
       sort_order: 0,
+      photo_file_id: null,
+      photo_alt: "",
+      photo_consent_confirmed: false,
     }),
     fields: [
       { type: "text", name: "name", label: "Name", required: true },
@@ -318,6 +334,16 @@ export const kinds: Record<ContentKind, KindConfig> = {
       { type: "textarea", name: "summary", label: "Summary", rows: 3 },
       { type: "textarea", name: "description", label: "Description", rows: 8 },
       { type: "textarea", name: "head_message", label: "Message from the head of school", rows: 5 },
+      ...photoFields(
+        "Photo",
+        "Optional. Shown behind the school's card on the home page and at the top of its page. Use a wide, real photo of this school's training. Without one, the card uses the school's colour.",
+      ),
+      {
+        type: "checkbox",
+        name: "photo_consent_confirmed",
+        label: "Everyone recognisable in this photo gave written consent",
+        hint: "Required to publish with a photo.",
+      },
       sortOrder,
     ],
   },
@@ -488,6 +514,7 @@ export const kinds: Record<ContentKind, KindConfig> = {
       alt_text: "",
       consent_confirmed: false,
       consent_note: "",
+      home_hero: false,
       sort_order: 0,
     }),
     fields: [
@@ -501,6 +528,58 @@ export const kinds: Record<ContentKind, KindConfig> = {
         hint: "Required to publish.",
       },
       { type: "textarea", name: "consent_note", label: "Where the consent forms are kept", rows: 2 },
+      {
+        type: "checkbox",
+        name: "home_hero",
+        label: "Use this photo at the top of the home page",
+        hint: "Choose a wide photo of the campus or training. If several photos are chosen, the most recently changed one is used.",
+      },
+      sortOrder,
+    ],
+  },
+  founders: {
+    kind: "founders",
+    title: "Founders",
+    singular: "founder",
+    description:
+      "The people who founded the college, on the founders page and the home page. Each profile needs the person's written consent.",
+    empty: () => ({
+      name: "",
+      role_title: "",
+      intro: "",
+      story: "",
+      photo_file_id: null,
+      photo_alt: "",
+      consent_confirmed: false,
+      consent_note: "",
+      sort_order: 0,
+    }),
+    fields: [
+      { type: "text", name: "name", label: "Full name", required: true },
+      { type: "text", name: "role_title", label: "Title", hint: "For example: Founder and Director." },
+      {
+        type: "textarea",
+        name: "intro",
+        label: "Short introduction",
+        rows: 2,
+        hint: "One or two sentences for the home page. Up to 300 characters.",
+      },
+      {
+        type: "textarea",
+        name: "story",
+        label: "Their story",
+        rows: 12,
+        required: true,
+        hint: 'Why they started the college and what it stands for. Leave a blank line between paragraphs. Start a line with "## " for a heading.',
+      },
+      ...photoFields("Portrait", "Optional. A real, recent photo, ideally upright (portrait)."),
+      {
+        type: "checkbox",
+        name: "consent_confirmed",
+        label: "The founder agreed in writing to this profile and photo being published",
+        hint: "Required to publish.",
+      },
+      { type: "textarea", name: "consent_note", label: "Where the consent form is kept", rows: 2 },
       sortOrder,
     ],
   },
@@ -584,6 +663,7 @@ export const kindOrder: ContentKind[] = [
   "statistics",
   "accreditations",
   "pages",
+  "founders",
 ];
 
 export function isKind(v: string): v is ContentKind {

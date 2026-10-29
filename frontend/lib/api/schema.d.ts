@@ -3478,7 +3478,7 @@ export interface components {
             version: string;
         };
         /** @description The document for the content type in the path. */
-        ContentDocument: components["schemas"]["SchoolDoc"] | components["schemas"]["ProgrammeDoc"] | components["schemas"]["NewsDoc"] | components["schemas"]["EventDoc"] | components["schemas"]["FaqCategoryDoc"] | components["schemas"]["FaqDoc"] | components["schemas"]["BannerDoc"] | components["schemas"]["GalleryDoc"] | components["schemas"]["StatisticDoc"] | components["schemas"]["AccreditationDoc"] | components["schemas"]["PageDoc"];
+        ContentDocument: components["schemas"]["SchoolDoc"] | components["schemas"]["ProgrammeDoc"] | components["schemas"]["NewsDoc"] | components["schemas"]["EventDoc"] | components["schemas"]["FaqCategoryDoc"] | components["schemas"]["FaqDoc"] | components["schemas"]["BannerDoc"] | components["schemas"]["GalleryDoc"] | components["schemas"]["StatisticDoc"] | components["schemas"]["AccreditationDoc"] | components["schemas"]["PageDoc"] | components["schemas"]["FounderDoc"];
         SchoolDoc: {
             slug: string;
             name: string;
@@ -3489,6 +3489,14 @@ export interface components {
             description: string;
             head_message: string;
             sort_order: number;
+            /**
+             * Format: uuid
+             * @description Photo behind the school's card. Needs photo_alt.
+             */
+            photo_file_id: string | null;
+            photo_alt: string;
+            /** @description Written consent from everyone recognisable. Required to publish with a photo. */
+            photo_consent_confirmed: boolean;
         };
         ProgrammeDoc: {
             /** Format: uuid */
@@ -3606,6 +3614,24 @@ export interface components {
             caption: string;
             alt_text: string;
             /** @description Written consent from everyone recognisable. Required to publish. */
+            consent_confirmed: boolean;
+            consent_note: string;
+            /** @description Show at the top of the home page. If several are chosen, the most recently changed is used. */
+            home_hero: boolean;
+            sort_order: number;
+        };
+        FounderDoc: {
+            name: string;
+            /** @description For example: Founder and Director. */
+            role_title: string;
+            /** @description One or two sentences for the home page. Up to 300 characters. */
+            intro: string;
+            /** @description Plain text, same rules as page bodies. Required to publish. */
+            story: string;
+            /** Format: uuid */
+            photo_file_id: string | null;
+            photo_alt: string;
+            /** @description The founder agreed in writing to publishing the profile and photo. Required to publish. */
             consent_confirmed: boolean;
             consent_note: string;
             sort_order: number;
@@ -4726,6 +4752,19 @@ export interface components {
             news: components["schemas"]["PublicNews"][];
             pages: components["schemas"]["PublicPage"][];
             gallery: components["schemas"]["PublicPhoto"][];
+            /** @description The gallery photo chosen for the top of the home page, if any. */
+            home_hero: components["schemas"]["PublicPhoto"] | null;
+            founders: components["schemas"]["PublicFounder"][];
+        };
+        PublicFounder: {
+            name: string;
+            role_title: string;
+            intro: string;
+            /** @description Plain text, same rules as page bodies. */
+            story: string;
+            photo: components["schemas"]["ImageFile"] | null;
+            photo_alt: string;
+            is_sample: boolean;
         };
         PublicBanner: {
             message: string;
@@ -4744,6 +4783,9 @@ export interface components {
             summary: string;
             description: string;
             head_message: string;
+            /** @description Published only with consent. Null shows the plain card. */
+            photo: components["schemas"]["ImageFile"] | null;
+            photo_alt: string;
             is_sample: boolean;
         };
         PublicProgramme: {
@@ -5316,7 +5358,7 @@ export interface components {
         };
     };
     parameters: {
-        Kind: "schools" | "programmes" | "news" | "events" | "faq-categories" | "faqs" | "banners" | "gallery" | "statistics" | "accreditations" | "pages";
+        Kind: "schools" | "programmes" | "news" | "events" | "faq-categories" | "faqs" | "banners" | "gallery" | "statistics" | "accreditations" | "pages" | "founders";
         ID: string;
         /** @description A new key for each action the user takes, and the same key when retrying it (NN-04). */
         IdempotencyKey: string;

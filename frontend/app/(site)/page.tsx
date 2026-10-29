@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Calendar, Clock, MapPin, Search } from "@/components/icons";
+import { ContentImage } from "@/components/public/content-image";
 import { FinderForm } from "@/components/public/finder-form";
+import { FoundersTeaser } from "@/components/public/founders";
 import { JsonLd } from "@/components/public/json-ld";
 import { Section } from "@/components/public/page-header";
 import { SchoolCard } from "@/components/public/school-card";
@@ -27,6 +29,8 @@ export default async function Home() {
     { label: "Vision", text: settings.vision },
   ].filter((v) => v.text);
   const programmeCount = (slug: string) => site.programmes.filter((p) => p.school_slug === slug).length;
+  const hero = site.home_hero;
+  const life = site.gallery.filter((p) => p.image.id !== hero?.image.id).slice(0, 4);
 
   return (
     <>
@@ -45,8 +49,9 @@ export default async function Home() {
         }}
       />
 
-      {/* Split hero (brief 5.1): words and actions first, artwork beside. */}
-      <section aria-labelledby="hero-title" className="bg-ivory">
+      {/* Split hero (brief 5.1): words and actions first, then a real photo
+          without a heavy overlay, or the logo artwork until there is one. */}
+      <section aria-labelledby="hero-title" className="bg-ivory-glow">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 lg:grid-cols-[1.2fr_1fr] lg:px-6 lg:py-16">
           <div className="flex flex-col gap-5">
             <h1 id="hero-title" className="text-4xl font-semibold text-navy-900 sm:text-5xl">
@@ -79,22 +84,48 @@ export default async function Home() {
               </p>
             ) : null}
           </div>
-          {/* Supplied tagline artwork with "Progression" shortened to "Progress"
-              from its own letter outlines (docs/brand/retagline.py, D-86). */}
-          <Image
-            src="/brand/dakota-logo-stacked-tagline-progress.svg"
-            alt="Dakota Training College logo with the tagline Turning Potential into Progress"
-            width={916}
-            height={858}
-            unoptimized
-            priority
-            className="mx-auto h-auto w-full max-w-xs sm:max-w-sm"
-          />
+          {hero ? (
+            <figure className="mx-auto flex w-full max-w-xl flex-col gap-3">
+              <div className="relative pb-4 pl-4">
+                <div aria-hidden className="absolute inset-0 top-4 right-4 rounded-card bg-gold/80" />
+                <ContentImage
+                  image={hero.image}
+                  alt={hero.alt_text}
+                  sizes="(min-width: 1024px) 45vw, 100vw"
+                  priority
+                  className="relative aspect-[4/3] w-full rounded-card object-cover shadow-lg"
+                />
+                <Image
+                  src="/brand/dakota-icon.svg"
+                  alt=""
+                  width={64}
+                  height={64}
+                  unoptimized
+                  className="absolute -bottom-2 left-0 size-16 rounded-full bg-white p-2 shadow-md sm:size-20"
+                />
+              </div>
+              {hero.caption ? (
+                <figcaption className="pl-20 text-sm text-ink-muted sm:pl-24">{hero.caption}</figcaption>
+              ) : null}
+            </figure>
+          ) : (
+            // Supplied tagline artwork with "Progression" shortened to "Progress"
+            // from its own letter outlines (docs/brand/retagline.py, D-86).
+            <Image
+              src="/brand/dakota-logo-stacked-tagline-progress.svg"
+              alt="Dakota Training College logo with the tagline Turning Potential into Progress"
+              width={916}
+              height={858}
+              unoptimized
+              priority
+              className="mx-auto h-auto w-full max-w-xs sm:max-w-sm"
+            />
+          )}
         </div>
       </section>
 
       {/* Quick course search: a plain GET form, so it works without JavaScript. */}
-      <section aria-labelledby="finder-title" className="on-dark bg-navy-900 text-white">
+      <section aria-labelledby="finder-title" className="on-dark bg-navy-texture text-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 lg:px-6">
           <h2 id="finder-title" className="text-2xl font-semibold text-white">
             Find a course
@@ -105,7 +136,7 @@ export default async function Home() {
 
       {site.schools.length ? (
         <Section id="schools" title="Our schools">
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {site.schools.map((school) => (
               <li key={school.slug} className="flex">
                 <SchoolCard school={school} programmeCount={programmeCount(school.slug)} />
@@ -133,15 +164,51 @@ export default async function Home() {
       ) : null}
 
       {values.length ? (
-        <Section id="values" title="What we stand for">
-          <dl className="grid gap-4 md:grid-cols-3">
+        <Section id="values" title="What we stand for" className="on-dark bg-navy-texture text-white">
+          <dl className="grid gap-8 md:grid-cols-3 md:gap-10">
             {values.map((v) => (
-              <Card key={v.label}>
-                <dt className="font-serif text-xl font-semibold text-navy-900">{v.label}</dt>
-                <dd className="whitespace-pre-line">{v.text}</dd>
-              </Card>
+              <div key={v.label} className="flex flex-col gap-2 border-t-2 border-gold pt-4">
+                <dt className="text-sm font-semibold tracking-widest text-gold uppercase">{v.label}</dt>
+                <dd className="font-serif text-xl whitespace-pre-line text-white">{v.text}</dd>
+              </div>
             ))}
           </dl>
+        </Section>
+      ) : null}
+
+      {/* Profiles are published only with each founder's consent. */}
+      {site.founders.length ? (
+        <Section
+          id="founders"
+          title={site.founders.length === 1 ? "Our founder" : "Our founders"}
+          className="bg-white"
+        >
+          <FoundersTeaser founders={site.founders} />
+        </Section>
+      ) : null}
+
+      {/* Photos with recorded consent only (NN-08). */}
+      {life.length ? (
+        <Section id="life" title="Life at Dakota">
+          <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {life.map((photo) => (
+              <li key={photo.image.id}>
+                <ContentImage
+                  image={photo.image}
+                  alt={photo.alt_text}
+                  sizes="(min-width: 1024px) 25vw, 50vw"
+                  className="aspect-square w-full rounded-card object-cover"
+                />
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/student-life"
+            className="inline-flex min-h-touch items-center gap-1 self-start font-semibold text-royal underline underline-offset-4"
+          >
+            More about student life
+            <ArrowRight aria-hidden className="size-4" />
+          </Link>
         </Section>
       ) : null}
 
@@ -271,7 +338,7 @@ export default async function Home() {
         </Section>
       ) : null}
 
-      <section aria-labelledby="apply-title" className="on-dark bg-navy-900 text-white">
+      <section aria-labelledby="apply-title" className="on-dark bg-navy-texture text-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 sm:flex-row sm:items-center sm:justify-between lg:px-6">
           <div className="flex flex-col gap-2">
             <h2 id="apply-title" className="text-2xl font-semibold text-white sm:text-3xl">

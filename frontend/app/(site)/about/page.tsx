@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Clock, ExternalLink, MapPin } from "@/components/icons";
+import { FoundersTeaser } from "@/components/public/founders";
 import { PageHeader, Prose, Section } from "@/components/public/page-header";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,6 +58,13 @@ export default async function AboutPage() {
               </Card>
             ))}
           </dl>
+        </Section>
+      ) : null}
+
+      {/* Profiles are published only with each founder's consent. */}
+      {site.founders.length ? (
+        <Section id="founders" title={site.founders.length === 1 ? "Our founder" : "Our founders"}>
+          <FoundersTeaser founders={site.founders} />
         </Section>
       ) : null}
 

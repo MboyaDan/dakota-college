@@ -15,6 +15,7 @@ const pages = [
   "/programmes?level=diploma&grade=C",
   programmePath,
   "/about",
+  "/about/founders",
   "/contact",
   "/apply?programme=example-health-studies-diploma",
   "/admissions",
@@ -183,4 +184,24 @@ test("text pages show the published words; the alumni button preselects the topi
   await page.goto("/alumni");
   await page.getByRole("link", { name: "Request a transcript or certificate" }).click();
   await expect(page.getByLabel("What is your question about?")).toHaveValue("alumni");
+});
+
+// Founders (owner, 2026-10-29): the home page introduces them and links to
+// their full stories; the seed publishes one sample profile without a photo.
+test("the home page leads to the founders page", async ({ page }) => {
+  await page.goto("/");
+  const founders = page.getByRole("region", { name: /^Our founders?$/ });
+  await expect(founders.getByText("Test Founder 001")).toBeVisible();
+  await founders.getByRole("link", { name: "Read our founders’ story" }).click();
+  await expect(page).toHaveURL(/\/about\/founders$/);
+  await expect(page.getByRole("heading", { level: 2, name: "Test Founder 001" })).toBeVisible();
+  await expect(page.locator("article").getByText("(Sample) Founder", { exact: true })).toBeVisible();
+});
+
+// Every school tile reads as one link with its name, photo or not.
+test("school tiles link to their school pages", async ({ page }) => {
+  await page.goto("/");
+  const schools = page.getByRole("region", { name: "Our schools" });
+  await schools.getByRole("link", { name: "School of ICT" }).click();
+  await expect(page).toHaveURL(/\/schools\/ict$/);
 });

@@ -40,7 +40,8 @@ export function Section({
   return (
     <section id={id} aria-labelledby={id ? `${id}-title` : undefined} className={className}>
       <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-10 lg:px-6">
-        <h2 id={id ? `${id}-title` : undefined} className="text-2xl font-semibold text-navy-900 sm:text-3xl">
+        {/* Navy from the base styles, white inside an .on-dark section. */}
+        <h2 id={id ? `${id}-title` : undefined} className="text-2xl font-semibold sm:text-3xl">
           {title}
         </h2>
         {children}
