@@ -53,7 +53,7 @@ func (h mpesaHandlers) callback(kind string) gin.HandlerFunc {
 			return
 		}
 		var ip *netip.Addr
-		if a, err := netip.ParseAddr(c.ClientIP()); err == nil {
+		if a, err := netip.ParseAddr(clientIP(c)); err == nil {
 			ip = &a
 		}
 		err = h.svc.Callback(c.Request.Context(), kind, c.Param("secret"), ip, body)

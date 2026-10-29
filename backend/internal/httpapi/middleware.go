@@ -61,7 +61,7 @@ func accessLog(logger *slog.Logger) gin.HandlerFunc {
 			slog.String("path", loggedPath(c)),
 			slog.Int("status", status),
 			slog.Duration("duration", time.Since(start)),
-			slog.String("client_ip", c.ClientIP()),
+			slog.String("client_ip", clientIP(c)),
 		)
 	}
 }

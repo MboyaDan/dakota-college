@@ -41,6 +41,8 @@ func accessError(c *gin.Context, err error) {
 		writeError(c, http.StatusUnprocessableEntity, "unknown_role", "One of the roles does not exist. Reload the page and choose again.")
 	case errors.Is(err, access.ErrUnknownPermission):
 		writeError(c, http.StatusUnprocessableEntity, "unknown_permission", "One of the permissions does not exist. Reload the page and choose again.")
+	case errors.Is(err, access.ErrNotStaff):
+		writeError(c, http.StatusConflict, "not_staff_account", "Roles can only be given to staff accounts.")
 	case errors.Is(err, access.ErrSelf):
 		writeError(c, http.StatusConflict, "cannot_disable_self", "You cannot disable your own account. Ask another administrator.")
 	case errors.Is(err, access.ErrDuplicate):

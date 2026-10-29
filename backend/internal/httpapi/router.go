@@ -39,6 +39,9 @@ type Deps struct {
 	TrustedProxies []string
 	AllowedOrigins []string
 	CookieSecure   bool
+	// ClientIPSecret proves a request came through the frontend, whose
+	// X-Dakota-Client-IP is then believed (R-23). Empty disables it.
+	ClientIPSecret string
 	Auth           *auth.Service
 	Access         *access.Service
 	Content        *content.Service
@@ -96,7 +99,8 @@ func NewRouter(d Deps) (*Router, error) {
 		return nil, err
 	}
 	e.HandleMethodNotAllowed = true
-	e.Use(requestID(), accessLog(d.Logger), recoverJSON(d.Logger), checkOrigin(d.AllowedOrigins))
+	e.Use(requestID(), trustedClientIP(d.ClientIPSecret), securityHeaders(d.CookieSecure),
+		accessLog(d.Logger), recoverJSON(d.Logger), checkOrigin(d.AllowedOrigins))
 
 	e.NoRoute(func(c *gin.Context) {
 		writeError(c, http.StatusNotFound, "not_found", "No such endpoint.")
@@ -113,6 +117,12 @@ func NewRouter(d Deps) (*Router, error) {
 	// Authenticated routes get the session check, CSRF check (for unsafe
 	// methods) and permission check.
 	mount := func(r Route, bodyLimit int64, h gin.HandlerFunc) {
+		// Permissions belong to staff roles. Requiring a staff session as
+		// well means a student or applicant account can never use a staff
+		// endpoint, even if a role were attached to it by mistake.
+		if r.Permission != "" {
+			r.Kind = "staff"
+		}
 		path := r.Path
 		r.Path = "/api/v1" + path
 		rt.Routes = append(rt.Routes, r)

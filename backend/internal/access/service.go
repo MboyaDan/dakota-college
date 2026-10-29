@@ -38,6 +38,7 @@ var (
 	ErrUnknownRole             = errors.New("unknown role")
 	ErrUnknownPermission       = errors.New("unknown permission")
 	ErrSelf                    = errors.New("you cannot disable your own account")
+	ErrNotStaff                = errors.New("roles are only for staff accounts")
 	ErrDuplicate               = errors.New("already exists")
 )
 
@@ -177,10 +178,16 @@ func (s *Service) CreateStaffUser(ctx context.Context, actor *auth.Principal, em
 func (s *Service) SetUserRoles(ctx context.Context, actor *auth.Principal, userID uuid.UUID, roleKeys []string, req audit.Request) error {
 	roleKeys = normaliseKeys(roleKeys)
 	return s.inTx(ctx, func(q *dbq.Queries) error {
-		if _, err := q.GetUserByID(ctx, userID); errors.Is(err, pgx.ErrNoRows) {
+		u, err := q.GetUserByID(ctx, userID)
+		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		} else if err != nil {
 			return err
+		}
+		// Roles carry staff permissions; students and applicants get theirs
+		// from their own records, never from a role.
+		if u.Kind != "staff" {
+			return ErrNotStaff
 		}
 		before, err := s.assignRoles(ctx, q, actor, userID, roleKeys)
 		if err != nil {

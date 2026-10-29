@@ -278,7 +278,7 @@ paths:
       tags: [admin]
       operationId: setUserRoles
       summary: Replace a user's roles (users.manage)
-      description: Refused if it would leave no active Super Admin, or changes a role with system.admin without holding it.
+      description: Refused if it would leave no active Super Admin, or changes a role with system.admin without holding it. Roles are only for staff accounts (409 not_staff_account).
       security: [{ session: [], csrf: [] }]
       parameters: [{ $ref: "#/components/parameters/ID" }]
       requestBody:
