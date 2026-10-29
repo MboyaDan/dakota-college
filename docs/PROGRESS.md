@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 17c, Retention schedule, data subject requests and breach procedure (API and procedures). Done, awaiting review.
-- **Next stage:** 17e, staff screens for data requests and the retention log (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-17c-privacy` (from `main` after #51)
+- **Current stage:** 17e, Data requests and retention screens. Done, awaiting review.
+- **Next stage:** 18, Performance and accessibility pass (KCB signature check slots in when KCB sends the key).
+- **Branch:** `stage-17e-privacy-screens` (from `main` after #52)
 
 ## Stage status
 
@@ -46,9 +46,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 16c | Dashboard pages and export buttons | Merged (#43) |
 | 17a | Security review, headers, rate limits, dependency audit | Merged (#44) |
 | 17b | Two-step sign-in (TOTP) | Merged (#51) |
-| 17c | Retention schedule, data subject requests, breach procedure (API and procedures) | Done, awaiting review |
+| 17c | Retention schedule, data subject requests, breach procedure (API and procedures) | Merged (#52) |
 | 17d | Home page photos and founders page (owner request) | Merged (#45) |
-| 17e | Data requests and retention screens | Not started |
+| 17e | Data requests and retention screens | Done, awaiting review |
 | 18 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -62,6 +62,13 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 17e: Data requests and retention screens (2026-10-29)
+
+- New staff pages for holders of `privacy.manage` (menu: Data requests, Retention). No backend or migration changes.
+- **Data requests** (`/staff/privacy`): open requests first with due or overdue text; record a request (kind with what to do next, requester, who it is for, the email or phone to find records by, dates). A request page leads through the steps of `docs/privacy-requests.md`: identity check, then export (access, portability) or erase (erasure, with a confirmation dialog per record), notes, and closing with what the person is told. Records found are listed by kind, with why an applicant cannot be erased; history on the side (D-217).
+- **Retention** (`/staff/privacy/retention`): the mode in plain words, the schedule as a list, "Count what is due" (report run) and the latest runs.
+- Verified: typecheck, lint, Prettier, build; 141 unit tests (4 new for due dates, run results, request kinds and Nairobi dates); Playwright `privacy.spec.ts` 8 of 8 on mobile and desktop (access request recorded, identity checked, JSON export downloaded and read, completed; erasure request with no records refused; retention schedule and count; no menu link and a permission message for an Admissions Officer; axe and no overflow on the list, request and retention pages) and `staff.spec.ts` 7 passed, 1 skipped; screenshots checked at 360 px.
 
 ### Stage 17c: Retention schedule, data subject requests, breach procedure (2026-10-29)
 
