@@ -4109,6 +4109,8 @@ export interface components {
             consent_note: string;
             /** @description Show at the top of the home page. If several are chosen, the most recently changed is used. */
             home_hero: boolean;
+            /** @description Show on the Alumni page (at most six photos, in sort order). */
+            alumni: boolean;
             sort_order: number;
         };
         FounderDoc: {
@@ -5270,6 +5272,8 @@ export interface components {
             gallery: components["schemas"]["PublicPhoto"][];
             /** @description The gallery photo chosen for the top of the home page, if any. */
             home_hero: components["schemas"]["PublicPhoto"] | null;
+            /** @description Published gallery photos chosen for the Alumni page, at most six. */
+            alumni_photos: components["schemas"]["PublicPhoto"][];
             founders: components["schemas"]["PublicFounder"][];
         };
         PublicFounder: {

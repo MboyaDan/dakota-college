@@ -482,7 +482,9 @@ type GalleryDoc struct {
 	ConsentConfirmed bool      `json:"consent_confirmed"`
 	ConsentNote      string    `json:"consent_note"`
 	// HomeHero puts the photo at the top of the home page.
-	HomeHero  bool  `json:"home_hero"`
+	HomeHero bool `json:"home_hero"`
+	// Alumni shows the photo on the Alumni page.
+	Alumni    bool  `json:"alumni"`
 	SortOrder int32 `json:"sort_order"`
 }
 
@@ -510,16 +512,16 @@ var galleryKind = def[GalleryDoc]{
 		if err != nil {
 			return GalleryDoc{}, State{}, notFound(err)
 		}
-		return GalleryDoc{FileID: r.FileID, Caption: r.Caption, AltText: r.AltText, ConsentConfirmed: r.ConsentConfirmed, ConsentNote: r.ConsentNote, HomeHero: r.HomeHero, SortOrder: r.SortOrder},
+		return GalleryDoc{FileID: r.FileID, Caption: r.Caption, AltText: r.AltText, ConsentConfirmed: r.ConsentConfirmed, ConsentNote: r.ConsentNote, HomeHero: r.HomeHero, Alumni: r.Alumni, SortOrder: r.SortOrder},
 			State{Status: r.Status, IsSample: r.IsSample, UpdatedAt: r.UpdatedAt}, nil
 	},
 	create: func(ctx context.Context, q *dbq.Queries, d GalleryDoc, _ uuid.UUID) (uuid.UUID, error) {
 		return q.StaffInsertGalleryItem(ctx, dbq.StaffInsertGalleryItemParams{FileID: d.FileID, Caption: d.Caption, AltText: d.AltText,
-			ConsentConfirmed: d.ConsentConfirmed, ConsentNote: d.ConsentNote, HomeHero: d.HomeHero, SortOrder: d.SortOrder})
+			ConsentConfirmed: d.ConsentConfirmed, ConsentNote: d.ConsentNote, HomeHero: d.HomeHero, Alumni: d.Alumni, SortOrder: d.SortOrder})
 	},
 	save: func(ctx context.Context, q *dbq.Queries, id uuid.UUID, d GalleryDoc, _ uuid.UUID) error {
 		return q.StaffUpdateGalleryItem(ctx, dbq.StaffUpdateGalleryItemParams{ID: id, FileID: d.FileID, Caption: d.Caption, AltText: d.AltText,
-			ConsentConfirmed: d.ConsentConfirmed, ConsentNote: d.ConsentNote, HomeHero: d.HomeHero, SortOrder: d.SortOrder})
+			ConsentConfirmed: d.ConsentConfirmed, ConsentNote: d.ConsentNote, HomeHero: d.HomeHero, Alumni: d.Alumni, SortOrder: d.SortOrder})
 	},
 	setStatus: func(ctx context.Context, q *dbq.Queries, id uuid.UUID, status string, _ *time.Time, _ uuid.UUID) error {
 		return q.StaffSetGalleryItemStatus(ctx, dbq.StaffSetGalleryItemStatusParams{ID: id, Status: status})

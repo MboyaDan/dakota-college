@@ -648,7 +648,7 @@ func (q *Queries) StaffGetFounder(ctx context.Context, id uuid.UUID) (StaffGetFo
 
 const staffGetGalleryItem = `-- name: StaffGetGalleryItem :one
 
-SELECT id, file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, sort_order, status, is_sample, updated_at
+SELECT id, file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, alumni, sort_order, status, is_sample, updated_at
 FROM gallery_items WHERE id = $1
 `
 
@@ -660,6 +660,7 @@ type StaffGetGalleryItemRow struct {
 	ConsentConfirmed bool
 	ConsentNote      string
 	HomeHero         bool
+	Alumni           bool
 	SortOrder        int32
 	Status           string
 	IsSample         bool
@@ -678,6 +679,7 @@ func (q *Queries) StaffGetGalleryItem(ctx context.Context, id uuid.UUID) (StaffG
 		&i.ConsentConfirmed,
 		&i.ConsentNote,
 		&i.HomeHero,
+		&i.Alumni,
 		&i.SortOrder,
 		&i.Status,
 		&i.IsSample,
@@ -1095,8 +1097,8 @@ func (q *Queries) StaffInsertFounder(ctx context.Context, arg StaffInsertFounder
 }
 
 const staffInsertGalleryItem = `-- name: StaffInsertGalleryItem :one
-INSERT INTO gallery_items (file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, sort_order)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO gallery_items (file_id, caption, alt_text, consent_confirmed, consent_note, home_hero, alumni, sort_order)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING id
 `
 
@@ -1107,6 +1109,7 @@ type StaffInsertGalleryItemParams struct {
 	ConsentConfirmed bool
 	ConsentNote      string
 	HomeHero         bool
+	Alumni           bool
 	SortOrder        int32
 }
 
@@ -1118,6 +1121,7 @@ func (q *Queries) StaffInsertGalleryItem(ctx context.Context, arg StaffInsertGal
 		arg.ConsentConfirmed,
 		arg.ConsentNote,
 		arg.HomeHero,
+		arg.Alumni,
 		arg.SortOrder,
 	)
 	var id uuid.UUID
@@ -2176,8 +2180,8 @@ func (q *Queries) StaffUpdateFounder(ctx context.Context, arg StaffUpdateFounder
 
 const staffUpdateGalleryItem = `-- name: StaffUpdateGalleryItem :exec
 UPDATE gallery_items SET file_id = $1, caption = $2, alt_text = $3,
-  consent_confirmed = $4, consent_note = $5, home_hero = $6, sort_order = $7
-WHERE id = $8
+  consent_confirmed = $4, consent_note = $5, home_hero = $6, alumni = $7, sort_order = $8
+WHERE id = $9
 `
 
 type StaffUpdateGalleryItemParams struct {
@@ -2187,6 +2191,7 @@ type StaffUpdateGalleryItemParams struct {
 	ConsentConfirmed bool
 	ConsentNote      string
 	HomeHero         bool
+	Alumni           bool
 	SortOrder        int32
 	ID               uuid.UUID
 }
@@ -2199,6 +2204,7 @@ func (q *Queries) StaffUpdateGalleryItem(ctx context.Context, arg StaffUpdateGal
 		arg.ConsentConfirmed,
 		arg.ConsentNote,
 		arg.HomeHero,
+		arg.Alumni,
 		arg.SortOrder,
 		arg.ID,
 	)

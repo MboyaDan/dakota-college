@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 18, Performance and accessibility pass. Done, awaiting review.
+- **Current stage:** 18b, Alumni page photos and Track your application page (owner requests). Done, awaiting review.
 - **Next stage:** 19, Deployment (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-18-performance` (from `main` after #53)
+- **Branch:** `stage-18b-alumni-track` (from `main` after #54)
 
 ## Stage status
 
@@ -49,7 +49,8 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 17c | Retention schedule, data subject requests, breach procedure (API and procedures) | Merged (#52) |
 | 17d | Home page photos and founders page (owner request) | Merged (#45) |
 | 17e | Data requests and retention screens | Merged (#53) |
-| 18 | Performance and accessibility pass | Done, awaiting review |
+| 18 | Performance and accessibility pass | Merged (#54) |
+| 18b | Alumni page photos and Track your application page (owner requests) | Done, awaiting review |
 | 19 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
@@ -63,6 +64,15 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 18b: Alumni page photos and Track your application page (2026-10-30)
+
+Owner requests made while reviewing Stage 18. #54 was merged before they were committed, so they ship as their own pull request.
+
+- Photos on the Alumni page through a new gallery tick, "Show this photo on the Alumni page" (migration 00025, D-219). Only published photos appear, and publishing needs recorded consent; up to six, in sort order. The section is hidden until there are some.
+- `/apply/track`, linked from the Admissions menu and the footer since Stage 6 but never built, now exists (D-220): how to see your status with an emailed sign-in link or your reference number, and what each status means.
+- The sample alumni text no longer repeats the transcripts section.
+- Verified: Go tests with PostgreSQL, full suite (`TestPublicPhotosAndFounders` extended: a draft or unticked photo stays off the Alumni page); migration 00025 up, down, up on the dev database; typecheck, lint, Prettier, 141 unit tests; Playwright public and keyboard specs 91 passed (both pages under axe and the 360 px check, and a test that the footer link reaches the track page), offline spec 34 of 34 with the API stopped; screenshots at 360 px and desktop, with two plain colour test images uploaded only to the local database and removed afterwards.
 
 ### Stage 18: Performance and accessibility pass (2026-10-29)
 

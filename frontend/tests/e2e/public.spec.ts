@@ -18,6 +18,7 @@ const pages = [
   "/about/founders",
   "/contact",
   "/apply?programme=example-health-studies-diploma",
+  "/apply/track",
   "/admissions",
   "/admissions/requirements",
   "/admissions/fees",
@@ -204,4 +205,20 @@ test("school tiles link to their school pages", async ({ page }) => {
   const schools = page.getByRole("region", { name: "Our schools" });
   await schools.getByRole("link", { name: "School of ICT" }).click();
   await expect(page).toHaveURL(/\/schools\/ict$/);
+});
+
+// The menu and footer link here; it was missing until 2026-10-30.
+test("Track your application explains how to see your status", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Track your application" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Track your application" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Email me a sign-in link" })).toHaveAttribute(
+    "href",
+    "/apply/start?next=/apply/account",
+  );
+  await expect(page.getByRole("link", { name: "Continue with a reference number" })).toHaveAttribute(
+    "href",
+    "/apply/resume",
+  );
+  await expect(page.getByText("Place offered")).toBeVisible();
 });

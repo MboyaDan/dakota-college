@@ -250,6 +250,47 @@ func (q *Queries) PublicListAllUpcomingEvents(ctx context.Context) ([]PublicList
 	return items, nil
 }
 
+const publicListAlumniPhotos = `-- name: PublicListAlumniPhotos :many
+SELECT file_id, caption, alt_text, is_sample FROM gallery_items
+WHERE status = 'published' AND alumni
+ORDER BY sort_order, created_at
+LIMIT 6
+`
+
+type PublicListAlumniPhotosRow struct {
+	FileID   uuid.UUID
+	Caption  string
+	AltText  string
+	IsSample bool
+}
+
+// Photos for the Alumni page: published gallery photos (so with consent)
+// ticked for it, at most six.
+func (q *Queries) PublicListAlumniPhotos(ctx context.Context) ([]PublicListAlumniPhotosRow, error) {
+	rows, err := q.db.Query(ctx, publicListAlumniPhotos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PublicListAlumniPhotosRow{}
+	for rows.Next() {
+		var i PublicListAlumniPhotosRow
+		if err := rows.Scan(
+			&i.FileID,
+			&i.Caption,
+			&i.AltText,
+			&i.IsSample,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const publicListFaqs = `-- name: PublicListFaqs :many
 SELECT c.slug AS category_slug, c.name AS category_name, f.programme_id, f.question, f.answer, f.is_sample
 FROM faqs f

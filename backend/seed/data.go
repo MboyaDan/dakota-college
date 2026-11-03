@@ -140,7 +140,7 @@ var pageSeeds = []pageSeed{
 	{"student-life", "Student life (Sample)", "(Sample) Life on campus.",
 		"(Sample) The college will describe clubs, sports, accommodation guidance, health and safety, and student support here."},
 	{"alumni", "Alumni (Sample)", "(Sample) For former students.",
-		"(Sample) The college will describe its alumni community here.\n\n## Transcripts and certificates\n\n(Sample) Former students can request a transcript or a certificate copy through the contact form, choosing Alumni."},
+		"(Sample) The college will describe its alumni community here: where former students work now, reunions, and how to stay in touch."},
 }
 
 type newsSeed struct{ slug, title, summary, body string }
