@@ -1,0 +1,75 @@
+# Render Blueprint for the Go API (staging). See docs/deployment.md.
+#
+# Free instance: sleeps after 15 minutes without traffic and takes about a
+# minute to wake. Staging only; production needs a paid instance (brief 12.2).
+# Secrets are marked sync: false, so Render asks for them when the Blueprint
+# is created and they never live in this file.
+#
+# Migrations are NOT run here. Run them by hand before a deploy that needs
+# them (docs/runbook.md, "Run migrations").
+services:
+  - type: web
+    name: dakota-api-staging
+    runtime: docker
+    plan: free
+    # Nearest Render region to Kenya; put the Supabase project in Frankfurt too.
+    region: frankfurt
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    # Deploy main only after GitHub checks pass, and only when backend changes.
+    branch: main
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - backend/**
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: PORT
+        value: '8080'
+      - key: HTTP_ADDR
+        value: ':8080'
+      - key: LOG_LEVEL
+        value: info
+      - key: SESSION_COOKIE_SECURE
+        value: 'true'
+      # Values that depend on your accounts: set in the dashboard.
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: CLIENT_IP_SECRET
+        sync: false
+      - key: MESSAGE_KEY
+        sync: false
+      - key: TOTP_KEY
+        sync: false
+      - key: SMTP_HOST
+        value: smtp-relay.brevo.com
+      - key: SMTP_PORT
+        value: '587'
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        value: eu-central-1
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_PUBLIC_BUCKET
+        value: dakota-public
+      - key: S3_PRIVATE_BUCKET
+        value: dakota-private
+      - key: S3_PUBLIC_BASE_URL
+        sync: false
+      - key: RETENTION_MODE
+        value: report
