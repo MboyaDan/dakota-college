@@ -45,7 +45,7 @@ func run(args []string) error {
 	}
 	command := fs.Arg(0)
 
-	cfg, err := config.Load()
+	cfg, err := config.LoadDatabase()
 	if err != nil {
 		return fmt.Errorf("config: %w", err)
 	}

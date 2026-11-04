@@ -12,3 +12,9 @@ a5bf49f24ab618c07bf55246a18de419c9f56ce4:backend/internal/httpapi/hardening_test
 # The public RFC 6238 example key ("12345678901234567890") in base32 in
 # TestOTPAuthURI (not a credential), computed instead in the next commit.
 35d782bb732de84775981c0d29a5316f25e6831d:backend/internal/auth/totp_test.go:generic-api-key:98
+#
+# render.yaml line 70 names the private bucket env var and holds no value;
+# the generic rule misread the name as a key. Not a credential. The second
+# line is this note's first wording, which quoted that line and was flagged.
+0ad89dc64310a3f3c6f9adef39c4e9764479be20:render.yaml:generic-api-key:70
+d2313bde4990c464196197c3442c8402bb463b79:.gitleaksignore:generic-api-key:16

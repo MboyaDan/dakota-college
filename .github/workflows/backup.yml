@@ -1,0 +1,64 @@
+name: Database backup
+
+# Nightly logical backup of the staging database (Supabase Free keeps no
+# backups, brief 12.2). The dump is encrypted with age to a public key whose
+# private half only the owner holds, so neither GitHub nor anyone who can read
+# this repository can open it. Kept 7 days as a workflow artifact.
+#
+# Needs: secret BACKUP_DATABASE_URL (Supabase session pooler URL) and variable
+# BACKUP_AGE_RECIPIENT (an age public key, age1...). Until both exist the job
+# says so and succeeds. Restore: backend/scripts/restore-check.sh.
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 03:00 Nairobi
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+    steps:
+      - name: Check configuration
+        id: cfg
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$RECIPIENT" ]; then
+            echo "::warning::Backup not configured: set secret BACKUP_DATABASE_URL and variable BACKUP_AGE_RECIPIENT (docs/deployment.md)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install age
+        if: steps.cfg.outputs.ready == 'true'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+      - name: Dump and encrypt
+        if: steps.cfg.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          name="dakota-staging-$(date -u +%Y%m%dT%H%MZ).dump.age"
+          # Our tables live in the public schema; Supabase's own schemas
+          # (auth, storage, ...) are not ours to back up.
+          docker run --rm -e DATABASE_URL postgres:17.11-alpine \
+            sh -c 'pg_dump "$DATABASE_URL" --format=custom --schema=public --extension=citext --no-owner --no-privileges' \
+            | age --recipient "$RECIPIENT" > "$name"
+          size=$(stat -c %s "$name")
+          if [ "$size" -lt 1024 ]; then echo "::error::Backup is only $size bytes"; exit 1; fi
+          echo "BACKUP_FILE=$name" >> "$GITHUB_ENV"
+          echo "Encrypted backup $name, $size bytes"
+      - uses: actions/upload-artifact@v7
+        if: steps.cfg.outputs.ready == 'true'
+        with:
+          name: ${{ env.BACKUP_FILE }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 7
+          if-no-files-found: error
