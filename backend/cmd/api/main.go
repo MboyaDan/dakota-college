@@ -121,6 +121,16 @@ func run() error {
 			if err := s3.EnsureBuckets(ctx, cfg.S3.PublicBucket, cfg.S3.PrivateBucket); err != nil {
 				logger.Warn("could not prepare storage buckets", slog.String("error", err.Error()))
 			}
+		} else {
+			// Hosted buckets are made by hand: say at once if they are wrong,
+			// rather than on the first upload. Not fatal, so the site stays up.
+			checkCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			if err := s3.Check(checkCtx, cfg.S3.PublicBucket, cfg.S3.PrivateBucket); err != nil {
+				logger.Error("storage buckets not reachable: uploads will fail", slog.String("error", err.Error()))
+			} else {
+				logger.Info("storage buckets reachable", slog.String("endpoint", media.S3Config{Endpoint: cfg.S3.Endpoint, UseSSL: cfg.S3.UseSSL}.EndpointURL()))
+			}
+			cancel()
 		}
 		store = s3
 		images = &media.Images{Pool: pool, Storage: s3, Bucket: cfg.S3.PublicBucket, PublicBaseURL: cfg.S3.PublicBaseURL}
