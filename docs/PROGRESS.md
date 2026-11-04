@@ -4,9 +4,9 @@ Updated at the end of every stage. Newest stage at the top of the log.
 
 ## Current state
 
-- **Current stage:** 18b, Alumni page photos and Track your application page (owner requests). Done, awaiting review.
-- **Next stage:** 19, Deployment (KCB signature check slots in when KCB sends the key).
-- **Branch:** `stage-18b-alumni-track` (from `main` after #54)
+- **Current stage:** 19a, Deployment configuration (code, config and docs for staging). Done, awaiting review.
+- **Next stage:** 19b, Staging deploy and verification, after the owner creates the accounts and sets the secrets (`docs/deployment.md`). KCB signature check slots in when KCB sends the key.
+- **Branch:** `stage-19a-deploy-config` (from `main` after #55)
 
 ## Stage status
 
@@ -50,8 +50,10 @@ Updated at the end of every stage. Newest stage at the top of the log.
 | 17d | Home page photos and founders page (owner request) | Merged (#45) |
 | 17e | Data requests and retention screens | Merged (#53) |
 | 18 | Performance and accessibility pass | Merged (#54) |
-| 18b | Alumni page photos and Track your application page (owner requests) | Done, awaiting review |
-| 19 to 21 | See `CLAUDE.md` section 3 | Not started |
+| 18b | Alumni page photos and Track your application page (owner requests) | Merged (#55) |
+| 19a | Deployment configuration | Done, awaiting review |
+| 19b | Staging deploy and verification | Waiting for accounts and secrets |
+| 20 to 21 | See `CLAUDE.md` section 3 | Not started |
 
 ## Open questions for the client or owner
 
@@ -64,6 +66,18 @@ Stage 0 questions were answered by the owner on 2026-10-22 (see `ASSUMPTIONS.md`
 DQ-02 (Pool Management content is editable by the college) and DQ-13 (English only for now) were closed on 2026-10-22.
 
 ## Log
+
+### Stage 19a: Deployment configuration (2026-11-04)
+
+Stage 19 split into 19a (what can be built and tested locally) and 19b (the live staging deploy, which needs the owner's accounts). Owner's choices: Supabase Storage with a library change, Brevo for email, and a private repository.
+
+- Storage moved from minio-go to the AWS SDK for Go v2, so the API can reach Supabase Storage's S3 endpoint (it has a path, which minio-go refuses) (D-223). Hosted APIs log at start-up whether both buckets are reachable.
+- `migrate`, `setup` and `seed` need only `APP_ENV` and `DATABASE_URL` (D-224), so migrations run from a laptop (Render Free has no shell).
+- `render.yaml` (API, Frankfurt, free, deploys `main` when checks pass) and `frontend/vercel.json` (`fra1`) (D-226). The site build waits up to `SNAPSHOT_WAIT_SECONDS` for a sleeping API instead of bundling an empty snapshot.
+- Nightly encrypted database backup workflow and `backend/scripts/restore-check.sh` (D-225). No scanner and no error tracker on staging (D-221, D-222).
+- `docs/deployment.md` (setup from nothing, every environment variable, domain steps for later, what must change before real data) and `docs/runbook.md` (deploy, migrations, rollback, restore, secret rotation, symptoms).
+- New risks: Actions minutes on a private repo (R-31); bucket files not in backups (R-32).
+- Verified: Go suite with PostgreSQL and `-race`; `TestS3Live` against MinIO with both endpoint forms; API started with `APP_ENV=staging` logs "storage buckets reachable", and an error naming the bucket when one is missing; snapshot script retried through a fake HTML "waking up" page and then got real content; encrypted dump of the dev database restored by `restore-check.sh` with matching row counts; frontend lint, Prettier, typecheck, 141 unit tests and build.
 
 ### Stage 18b: Alumni page photos and Track your application page (2026-10-30)
 
