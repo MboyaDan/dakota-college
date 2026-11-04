@@ -296,3 +296,21 @@ func TestRetentionMode(t *testing.T) {
 		t.Errorf("unknown mode accepted: %v", err)
 	}
 }
+
+func TestDatabaseFromLookupNeedsOnlyTwoValues(t *testing.T) {
+	env := map[string]string{"APP_ENV": "staging", "DATABASE_URL": "postgres://u@h/db"}
+	d, err := DatabaseFromLookup(func(k string) (string, bool) { v, ok := env[k]; return v, ok })
+	if err != nil {
+		t.Fatalf("staging with only APP_ENV and DATABASE_URL: %v", err)
+	}
+	if d.Env != EnvStaging || d.DatabaseURL != "postgres://u@h/db" {
+		t.Fatalf("got %+v", d)
+	}
+	if _, err := DatabaseFromLookup(func(string) (string, bool) { return "", false }); err == nil {
+		t.Fatal("empty environment accepted")
+	}
+	env["APP_ENV"] = "prod"
+	if _, err := DatabaseFromLookup(func(k string) (string, bool) { v, ok := env[k]; return v, ok }); err == nil {
+		t.Fatal("unknown APP_ENV accepted")
+	}
+}

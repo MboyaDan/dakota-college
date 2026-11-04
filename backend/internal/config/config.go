@@ -175,6 +175,38 @@ func Load() (Config, error) {
 	return FromLookup(os.LookupEnv)
 }
 
+// Database is the subset of settings the command-line tools (migrate, setup,
+// seed) need: the environment and the database. They do not need the API's
+// keys, so a migration can be run from a laptop with only these two values.
+type Database struct {
+	Env         Env
+	DatabaseURL string
+}
+
+// LoadDatabase reads APP_ENV and DATABASE_URL from the process environment.
+func LoadDatabase() (Database, error) { return DatabaseFromLookup(os.LookupEnv) }
+
+// DatabaseFromLookup reads APP_ENV and DATABASE_URL through lookup.
+func DatabaseFromLookup(lookup func(string) (string, bool)) (Database, error) {
+	get := func(key string) string {
+		v, _ := lookup(key)
+		return strings.TrimSpace(v)
+	}
+	var errs []error
+	d := Database{Env: Env(get("APP_ENV")), DatabaseURL: get("DATABASE_URL")}
+	switch d.Env {
+	case EnvDevelopment, EnvTest, EnvStaging, EnvProduction:
+	case "":
+		errs = append(errs, errors.New("APP_ENV is required (development, test, staging or production)"))
+	default:
+		errs = append(errs, fmt.Errorf("APP_ENV %q is not one of development, test, staging, production", d.Env))
+	}
+	if d.DatabaseURL == "" {
+		errs = append(errs, errors.New("DATABASE_URL is required"))
+	}
+	return d, errors.Join(errs...)
+}
+
 // FromLookup reads configuration through lookup, so tests can supply values
 // without touching the real environment.
 func FromLookup(lookup func(string) (string, bool)) (Config, error) {
