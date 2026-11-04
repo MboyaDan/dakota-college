@@ -92,7 +92,7 @@ test("the retention page shows the schedule and counts what is due", async ({ br
   await expect(page.getByRole("heading", { level: 2, name: "Schedule" })).toBeVisible();
   await expect(page.getByText("Kept for:")).toHaveCount(8);
   await page.getByRole("button", { name: "Count what is due" }).click();
-  await expect(page.getByRole("region", { name: "Due now" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Due now", exact: true })).toBeVisible();
   expect(await hasHorizontalOverflow(page)).toBe(false);
   await expectNoSeriousA11yIssues(page);
 });

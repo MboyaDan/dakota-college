@@ -12,3 +12,7 @@ a5bf49f24ab618c07bf55246a18de419c9f56ce4:backend/internal/httpapi/hardening_test
 # The public RFC 6238 example key ("12345678901234567890") in base32 in
 # TestOTPAuthURI (not a credential), computed instead in the next commit.
 35d782bb732de84775981c0d29a5316f25e6831d:backend/internal/auth/totp_test.go:generic-api-key:98
+#
+# render.yaml line 70 is "- key: S3_PRIVATE_BUCKET", an env var name with no
+# value (the generic rule reads "key: <NAME>" as a key). Not a credential.
+0ad89dc64310a3f3c6f9adef39c4e9764479be20:render.yaml:generic-api-key:70
