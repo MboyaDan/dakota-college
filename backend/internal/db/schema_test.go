@@ -266,3 +266,87 @@ func insertApplication(t *testing.T, pool *pgxpool.Pool, applicant, programme uu
 	}
 	return id
 }
+
+// TestPublicSchemaIsLocked keeps Supabase's Data API closed (migration
+// 00026): every table has row level security with no policies, and our
+// functions have a fixed search_path. A new table or a CREATE OR REPLACE
+// FUNCTION that forgets this fails here.
+func TestPublicSchemaIsLocked(t *testing.T) {
+	pool, _ := testdb.Migrated(t)
+	ctx := context.Background()
+
+	open := func(sql string) []string {
+		t.Helper()
+		rows, err := pool.Query(ctx, sql)
+		if err != nil {
+			t.Fatal(err)
+		}
+		names, err := pgx.CollectRows(rows, pgx.RowTo[string])
+		if err != nil {
+			t.Fatal(err)
+		}
+		return names
+	}
+	if bad := open(`
+		SELECT c.relname::text FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+		WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p') AND NOT c.relrowsecurity
+		ORDER BY 1`); len(bad) > 0 {
+		t.Errorf("tables without row level security (add ALTER TABLE ... ENABLE ROW LEVEL SECURITY): %v", bad)
+	}
+	if bad := open(`
+		SELECT c.relname::text FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+		WHERE n.nspname = 'public' AND c.relforcerowsecurity ORDER BY 1`); len(bad) > 0 {
+		t.Errorf("tables with FORCE ROW LEVEL SECURITY would lock out the API: %v", bad)
+	}
+	if bad := open(`SELECT tablename::text FROM pg_policies WHERE schemaname = 'public' ORDER BY 1`); len(bad) > 0 {
+		t.Errorf("policies would open tables to the Data API: %v", bad)
+	}
+	if bad := open(`
+		SELECT p.proname::text FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+		WHERE n.nspname = 'public'
+		  AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = p.oid AND d.deptype = 'e')
+		  AND NOT EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, '{}')) c WHERE c LIKE 'search_path=%')
+		ORDER BY 1`); len(bad) > 0 {
+		t.Errorf("functions without SET search_path = public, pg_temp: %v", bad)
+	}
+}
+
+// TestRowSecurityHidesRowsFromOtherRoles shows what the lock does: a role
+// that is not the owner sees no rows even with SELECT granted, while the
+// owner (the API's role) still sees them.
+func TestRowSecurityHidesRowsFromOtherRoles(t *testing.T) {
+	pool, _ := testdb.Migrated(t)
+	ctx := context.Background()
+	insertSchool(t, pool)
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var owner int
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM schools`).Scan(&owner); err != nil {
+		t.Fatal(err)
+	}
+	if owner == 0 {
+		t.Fatal("owner sees no schools")
+	}
+	for _, sql := range []string{
+		`CREATE ROLE rls_probe NOLOGIN NOBYPASSRLS`,
+		`GRANT USAGE ON SCHEMA public TO rls_probe`,
+		`GRANT SELECT ON schools TO rls_probe`,
+		`SET LOCAL ROLE rls_probe`,
+	} {
+		if _, err := tx.Exec(ctx, sql); err != nil {
+			t.Skipf("%s: %v (needs a role that can create roles)", sql, err)
+		}
+	}
+	var probe int
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM schools`).Scan(&probe); err != nil {
+		t.Fatal(err)
+	}
+	if probe != 0 {
+		t.Fatalf("a non-owner role read %d schools through row level security", probe)
+	}
+}
