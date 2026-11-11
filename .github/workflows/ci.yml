@@ -42,6 +42,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "1.26.x"
+          check-latest: true
           cache-dependency-path: backend/go.sum
       - uses: sqlc-dev/setup-sqlc@v5
         with:
@@ -135,6 +136,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "1.26.x"
+          check-latest: true
           cache-dependency-path: backend/go.sum
       - uses: actions/setup-node@v7
         with:
@@ -219,6 +221,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "1.26.x"
+          check-latest: true
           cache-dependency-path: backend/go.sum
       - name: Scan EICAR and a clean file
         run: |
