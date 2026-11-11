@@ -67,6 +67,13 @@ DQ-02 (Pool Management content is editable by the college) and DQ-13 (English on
 
 ## Log
 
+### Fix: Supabase Security Advisor (2026-11-11)
+
+- Supabase flagged every `public` table as readable and writable through its Data API, and nine functions with a mutable `search_path`.
+- Migration 00026 enables row level security with no policies on every table, pins `search_path` on our functions and, on Supabase, revokes `anon` and `authenticated` (D-227). `TestPublicSchemaIsLocked` and `TestRowSecurityHidesRowsFromOtherRoles` keep it that way.
+- `docs/deployment.md`: turn the Data API off; `citext` in `public` is the one accepted warning.
+- Owner runs migration 00026 against staging from their laptop.
+
 ### Stage 19a: Deployment configuration (2026-11-04)
 
 Stage 19 split into 19a (what can be built and tested locally) and 19b (the live staging deploy, which needs the owner's accounts). Owner's choices: Supabase Storage with a library change, Brevo for email, and a private repository.

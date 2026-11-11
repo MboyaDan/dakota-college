@@ -97,6 +97,14 @@ Order matters: database, then API, then site (D-204).
    Note the endpoint (`https://<ref>.storage.supabase.co/storage/v1/s3`) and
    region (`eu-central-1`). These keys give full storage access; they go only
    to Render.
+4. **Data API off.** The site never uses Supabase's Data API (PostgREST); only
+   the Go API talks to the database. Project Settings → Data API: turn
+   **Enable Data API** off (or remove `public` from the exposed schemas).
+   Migration 00026 also locks the schema on its own (row level security with
+   no policies on every table, no privileges for `anon` and `authenticated`,
+   D-227), so the lock holds even if the API is turned back on. After
+   migrating, Advisors → Security Advisor should show no errors; the one
+   warning left is `citext` in `public` (accepted, D-227).
 
 ### 2. Migrations and the first Super Admin (from your laptop)
 
