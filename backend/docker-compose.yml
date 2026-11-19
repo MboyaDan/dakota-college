@@ -54,7 +54,7 @@ services:
   # MinIO stopped publishing official images in 2025; this is Chainguard's
   # build of MinIO from source, pinned by digest (D-20).
   minio:
-    image: cgr.dev/chainguard/minio@sha256:3c60a2a8c4d33409a9bc7a623a7fcbfb4605adc3d89422d2f53b3f673a6e5597
+    image: cgr.dev/chainguard/minio@sha256:16b824a0016ffad3dfa8b059755f83800aa42ca68fe86f1782cabd0c5a16d322
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-dakota_minio}
